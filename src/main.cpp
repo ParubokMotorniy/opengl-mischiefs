@@ -1,6 +1,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "shader.h"
+
 #include <iostream>
 #include <math.h>
 
@@ -24,44 +26,12 @@ namespace
         1, 3, 5,
         4, 0, 2};
 
-    const char *vertexShaderSource = "#version 400 core\n"
-                                     "layout (location = 0) in vec3 aPos;\n"
-                                     "layout (location = 1) in vec3 aColor;\n"
-                                     "out vec4 outColor;\n"
-                                     "void main()\n"
-                                     "{\n"
-                                     "gl_Position = vec4(aPos, 1.0);\n"
-                                     "outColor = vec4(aColor, 1.f);\n"
-                                     "}\0";
+    const char *vertexShaderSource = "./shaders/vertex.vs";
 
-    const char *fragmentShaderSourceOrange = "#version 400 core\n"
-                                             "out vec4 fragColor;\n"
-                                             "in vec4 outColor;\n"
-                                             "uniform vec4 extColor;\n"
-                                             "void main()\n"
-                                             "{fragColor = normalize(outColor*extColor);}\n";
+    const char *fragmentShaderSourceOrange = "./shaders/fragment_orange.fs";
 
-    const char *fragmentShaderSourceGreen = "#version 400 core\n"
-                                            "out vec4 fragColor;\n"
-                                            "in vec4 outColor;\n"
-                                            "uniform vec4 extColor;\n"
-                                            "void main()\n"
-                                            "{fragColor = normalize(outColor* extColor);}\n";
+    const char *fragmentShaderSourceGreen = "./shaders/fragment_green.fs";
 
-    char infoLog[512];
-}
-
-void compileShader(uint shaderId)
-{
-    glCompileShader(shaderId);
-
-    int success;
-    glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(shaderId, sizeof(infoLog), NULL, infoLog);
-        std::cerr << "Shader compilation failed. Details: " << infoLog;
-    }
 }
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -103,10 +73,6 @@ int main(int argc, const char *argv[])
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    uint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    compileShader(vertexShader);
-
     //// Orange
 
     uint VAOOrange;
@@ -128,15 +94,6 @@ int main(int argc, const char *argv[])
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    uint fragmentShaderOrange = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShaderOrange, 1, &fragmentShaderSourceOrange, NULL);
-    compileShader(fragmentShaderOrange);
-
-    uint shaderProgramOrange = glCreateProgram();
-    glAttachShader(shaderProgramOrange, vertexShader);
-    glAttachShader(shaderProgramOrange, fragmentShaderOrange);
-    glLinkProgram(shaderProgramOrange);
-
     glBindVertexArray(0);
 
     //// Green
@@ -157,27 +114,16 @@ int main(int argc, const char *argv[])
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    uint fragmentShaderGreen = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShaderGreen, 1, &fragmentShaderSourceGreen, NULL);
-    compileShader(fragmentShaderGreen);
-
-    uint shaderProgramGreen = glCreateProgram();
-    glAttachShader(shaderProgramGreen, vertexShader);
-    glAttachShader(shaderProgramGreen, fragmentShaderGreen);
-    glLinkProgram(shaderProgramGreen);
-
     glBindVertexArray(0);
 
-    //// Cleanup
-
-    glDeleteShader(fragmentShaderOrange);
-    glDeleteShader(fragmentShaderGreen);
-    glDeleteShader(vertexShader);
+    Shader shaderProgramOrange{vertexShaderSource, fragmentShaderSourceOrange};
+    Shader shaderProgramGreen{vertexShaderSource, fragmentShaderSourceGreen};
 
     //// Render loop
 
     while (!glfwWindowShouldClose(mainWindow))
     {
+
         processInput(mainWindow);
 
         glClear(GL_COLOR_BUFFER_BIT);
@@ -187,16 +133,14 @@ int main(int argc, const char *argv[])
         const float gComponent = std::sin(time / 25) * 2.0f;
         const float bComponent = std::sin(time / 5) * 2.0f;
 
-        std::cout << rComponent << gComponent << bComponent << std::endl;
-
+        shaderProgramOrange.use();
         const int extLocationOrange = glGetUniformLocation(shaderProgramOrange, "extColor");
-        glUseProgram(shaderProgramOrange);
         glUniform4f(extLocationOrange, rComponent, gComponent, bComponent, 1.0f);
         glBindVertexArray(VAOOrange);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+        shaderProgramGreen.use();
         const int extLocationGreen = glGetUniformLocation(shaderProgramGreen, "extColor");
-        glUseProgram(shaderProgramGreen);
         glUniform4f(extLocationGreen, rComponent, gComponent, bComponent, 1.0f);
         glBindVertexArray(VAOGreen);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
