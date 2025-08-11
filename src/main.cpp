@@ -12,12 +12,12 @@ namespace
     constexpr size_t windowHeight = 540;
 
     float vertices[] = {
-        0.5f, 0.5f, 0.0f, 0.318f, 0.89f, 0.263f,    // top right
-        0.5f, -0.5f, 0.0f, 0.494f, 0.941f, 0.937f,  // bottom right
-        0.25f, 0.25f, 0.0f, 0.839f, 0.192f, 0.353f, // concavity right
-        -0.5f, -0.5f, 0.0f, 0.733f, 0.678f, 0.988f, // bottom left
-        -0.5f, 0.5f, 0.0f, 0.91, 0.216, 0.922,      // top left
-        -0.25f, -0.25f, 0.0f, 0.859f, 0.643f, 0.38f // concavity left
+        0.5f, 0.5f, 0.0f, 0.318f, 0.89f, 0.263f, 0.25f,     // top right
+        0.5f, -0.5f, 0.0f, 0.494f, 0.941f, 0.937f, -0.04f,  // bottom right
+        0.25f, 0.25f, 0.0f, 0.839f, 0.192f, 0.353f, 0.4f,   // concavity right
+        -0.5f, -0.5f, 0.0f, 0.733f, 0.678f, 0.988f, -0.7f,  // bottom left
+        -0.5f, 0.5f, 0.0f, 0.91, 0.216, 0.922, 0.41f,       // top left
+        -0.25f, -0.25f, 0.0f, 0.859f, 0.643f, 0.38f, -0.15f // concavity left
     };
 
     uint indices[] = {
@@ -89,10 +89,12 @@ int main(int argc, const char *argv[])
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOOrange);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) / 2, indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_TRUE, 7 * sizeof(float), (void *)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     glBindVertexArray(0);
 
@@ -109,12 +111,16 @@ int main(int argc, const char *argv[])
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOGreen);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) / 2, indices + 6, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_TRUE, 7 * sizeof(float), (void *)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     glBindVertexArray(0);
+
+    //// Shaders
 
     Shader shaderProgramOrange{vertexShaderSource, fragmentShaderSourceOrange};
     Shader shaderProgramGreen{vertexShaderSource, fragmentShaderSourceGreen};
@@ -132,16 +138,20 @@ int main(int argc, const char *argv[])
         const float rComponent = std::sin(time / 50) * 2.0f;
         const float gComponent = std::sin(time / 25) * 2.0f;
         const float bComponent = std::sin(time / 5) * 2.0f;
+        const float oscFraction = std::sin(time) * 0.05f;
 
         shaderProgramOrange.use();
-        const int extLocationOrange = glGetUniformLocation(shaderProgramOrange, "extColor");
-        glUniform4f(extLocationOrange, rComponent, gComponent, bComponent, 1.0f);
+        glUniform4f(glGetUniformLocation(shaderProgramOrange, "extColor"), rComponent, gComponent, bComponent, 1.0f);
+        glUniform3f(glGetUniformLocation(shaderProgramOrange, "oscillationDirection"), 0.6f, 0.8f, 0.0f);
+        glUniform1f(glGetUniformLocation(shaderProgramOrange, "oscillationFraction"), oscFraction);
+
         glBindVertexArray(VAOOrange);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         shaderProgramGreen.use();
-        const int extLocationGreen = glGetUniformLocation(shaderProgramGreen, "extColor");
-        glUniform4f(extLocationGreen, rComponent, gComponent, bComponent, 1.0f);
+        glUniform4f(glGetUniformLocation(shaderProgramGreen, "extColor"), bComponent, gComponent, rComponent, 1.0f);
+        glUniform3f(glGetUniformLocation(shaderProgramGreen, "oscillationDirection"), 0.6f, 0.8f, 0.0f);
+        glUniform1f(glGetUniformLocation(shaderProgramGreen, "oscillationFraction"), oscFraction * 1.25f);
         glBindVertexArray(VAOGreen);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -156,9 +166,6 @@ int main(int argc, const char *argv[])
 
     glDeleteVertexArrays(1, &VAOOrange);
     glDeleteVertexArrays(1, &VAOGreen);
-
-    glDeleteProgram(shaderProgramOrange);
-    glDeleteProgram(shaderProgramGreen);
 
     glfwTerminate();
 
