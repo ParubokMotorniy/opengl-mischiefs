@@ -85,6 +85,7 @@ int main(int argc, const char *argv[])
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_DEPTH_TEST);  
 
     //// Textures
 
@@ -189,6 +190,16 @@ int main(int argc, const char *argv[])
         glUniform1i(glGetUniformLocation(shaderProgramGreen, "textureSampler1"), 0);
         glUniform1i(glGetUniformLocation(shaderProgramGreen, "textureSampler2"), 1);
 
+        //// Transformation stuff
+
+        glm::mat4 model (1.0f);
+        model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+        glm::mat4 view (1.0f);
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)windowWidth/windowHeight, 0.1f, 100.0f);
+
         //// Render loop
 
         while (!glfwWindowShouldClose(mainWindow))
@@ -196,7 +207,7 @@ int main(int argc, const char *argv[])
 
             processInput(mainWindow);
 
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             const float time = glfwGetTime();
             const float rComponent = std::sin(time / 100) * 2.0f;
@@ -209,8 +220,11 @@ int main(int argc, const char *argv[])
 
             shaderProgramOrange.use();
             glUniform4f(glGetUniformLocation(shaderProgramOrange, "extColor"), rComponent, gComponent, bComponent, 1.0f);
-            glUniform3f(glGetUniformLocation(shaderProgramOrange, "oscillationDirection"), oscX, oscY, 0.2f);
+            glUniform3f(glGetUniformLocation(shaderProgramOrange, "oscillationDirection"), oscX, oscY, 0.0f);
             glUniform1f(glGetUniformLocation(shaderProgramOrange, "oscillationFraction"), oscFraction);
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgramOrange, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgramOrange, "view"), 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgramOrange, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture1);
             glActiveTexture(GL_TEXTURE1);
@@ -220,8 +234,11 @@ int main(int argc, const char *argv[])
 
             shaderProgramGreen.use();
             glUniform4f(glGetUniformLocation(shaderProgramGreen, "extColor"), bComponent, gComponent, rComponent, 1.0f);
-            glUniform3f(glGetUniformLocation(shaderProgramGreen, "oscillationDirection"), oscX, oscY, -0.2f);
+            glUniform3f(glGetUniformLocation(shaderProgramGreen, "oscillationDirection"), oscX, oscY, 0.0f);
             glUniform1f(glGetUniformLocation(shaderProgramGreen, "oscillationFraction"), oscFraction * 1.25f);
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgramGreen, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgramGreen, "view"), 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgramGreen, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture1);
             glActiveTexture(GL_TEXTURE1);
