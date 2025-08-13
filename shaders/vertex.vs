@@ -18,9 +18,9 @@ uniform mat4 projection;
 void main()
 {
     //position
-
-    mat3 directionPerturbation = mat3(cos(gl_VertexID), -sin(gl_VertexID), 0, 
-                             sin(gl_VertexID), cos(gl_VertexID), 0, 
+    int perturbationMagnitude = gl_VertexID * 4;
+    mat3 directionPerturbation = mat3(cos(perturbationMagnitude), -sin(perturbationMagnitude), 0, 
+                             sin(perturbationMagnitude), cos(perturbationMagnitude), 0, 
                              0,0,1);
     gl_Position = projection * view * model * vec4(aPos, 1.0f);
     gl_Position += (oscillationFraction + oscPhase) * vec4(directionPerturbation * normalize(oscillationDirection), 0.0f);

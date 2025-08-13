@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <math.h>
+#include <tuple>
 
 namespace
 {
@@ -51,10 +52,10 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         oscDirection += 0.1;
 
-    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         oscDirection -= 0.1;
 }
 
@@ -85,7 +86,7 @@ int main(int argc, const char *argv[])
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glEnable(GL_DEPTH_TEST);  
+    glEnable(GL_DEPTH_TEST);
 
     //// Textures
 
@@ -192,59 +193,57 @@ int main(int argc, const char *argv[])
 
         //// Transformation stuff
 
-        glm::mat4 model (1.0f);
+        glm::mat4 model(1.0f);
         model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-        glm::mat4 view (1.0f);
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)windowWidth/windowHeight, 0.1f, 100.0f);
+        glm::mat4 view(1.0f);
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
 
         //// Render loop
-
+        
         while (!glfwWindowShouldClose(mainWindow))
         {
-
+            
             processInput(mainWindow);
-
+            
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+            
             const float time = glfwGetTime();
-            const float rComponent = std::sin(time / 100) * 2.0f;
-            const float gComponent = std::sin(time / 50) * 2.0f;
-            const float bComponent = std::sin(time / 25) * 2.0f;
-            const float oscFraction = std::sin(time) * 0.03f;
-
+            const float rComponent = std::sin(time / 50) * 2.0f;
+            const float gComponent = std::sin(time / 25) * 2.0f;
+            const float bComponent = std::sin(time / 5) * 2.0f;
+            const float oscFraction = std::sin(time) * 0.2f;
+            
             const float oscX = std::cos(oscDirection);
             const float oscY = std::sin(oscDirection);
+            
+            glm::mat4 projection = glm::perspective(glm::radians((std::abs(std::sin(time / 50)) + 0.1f) * 90.0f), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
 
-            shaderProgramOrange.use();
-            glUniform4f(glGetUniformLocation(shaderProgramOrange, "extColor"), rComponent, gComponent, bComponent, 1.0f);
-            glUniform3f(glGetUniformLocation(shaderProgramOrange, "oscillationDirection"), oscX, oscY, 0.0f);
-            glUniform1f(glGetUniformLocation(shaderProgramOrange, "oscillationFraction"), oscFraction);
-            glUniformMatrix4fv(glGetUniformLocation(shaderProgramOrange, "model"), 1, GL_FALSE, glm::value_ptr(model));
-            glUniformMatrix4fv(glGetUniformLocation(shaderProgramOrange, "view"), 1, GL_FALSE, glm::value_ptr(view));
-            glUniformMatrix4fv(glGetUniformLocation(shaderProgramOrange, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture1);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture2);
-            glBindVertexArray(VAOOrange);
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            for (size_t p = 0; p < 4; ++p)
+            {
+                const glm::mat4 customModel = glm::translate(model, glm::vec3(p%2, p, 0.0f));
 
-            shaderProgramGreen.use();
-            glUniform4f(glGetUniformLocation(shaderProgramGreen, "extColor"), bComponent, gComponent, rComponent, 1.0f);
-            glUniform3f(glGetUniformLocation(shaderProgramGreen, "oscillationDirection"), oscX, oscY, 0.0f);
-            glUniform1f(glGetUniformLocation(shaderProgramGreen, "oscillationFraction"), oscFraction * 1.25f);
-            glUniformMatrix4fv(glGetUniformLocation(shaderProgramGreen, "model"), 1, GL_FALSE, glm::value_ptr(model));
-            glUniformMatrix4fv(glGetUniformLocation(shaderProgramGreen, "view"), 1, GL_FALSE, glm::value_ptr(view));
-            glUniformMatrix4fv(glGetUniformLocation(shaderProgramGreen, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture1);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture2);
-            glBindVertexArray(VAOGreen);
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                for (auto [shaderProgram, vertexArray, oscFractionMultiplier] : {std::tuple<Shader *, uint, float>{&shaderProgramOrange, VAOOrange, 3.0f}, std::tuple<Shader *, uint, float>{&shaderProgramGreen, VAOGreen, 1.5f}})
+                {
+                    shaderProgram->use();
+                    
+                    glUniform4f(glGetUniformLocation(*shaderProgram, "extColor"), rComponent, gComponent, bComponent, 1.0f);
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "oscillationDirection"), oscX, oscY, 0.0f);
+                    glUniform1f(glGetUniformLocation(*shaderProgram, "oscillationFraction"), oscFraction * oscFractionMultiplier);
+
+                    shaderProgram->setMatrix4("model", customModel);
+                    shaderProgram->setMatrix4("view", view);
+                    shaderProgram->setMatrix4("projection", projection);
+
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, texture1);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, texture2);
+
+                    glBindVertexArray(vertexArray);
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                }
+            }
 
             glfwSwapBuffers(mainWindow);
 
