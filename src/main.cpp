@@ -7,9 +7,10 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "shader.h"
+#include "camera.h"
 
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <tuple>
 
 namespace
@@ -40,6 +41,11 @@ namespace
 
     float oscDirection = 0.0;
 
+    Camera camera;
+    float lastX {0.0f};
+    float lastY {0.0f};
+    float deltaTime {0.0f};
+    float previousTime {0.0f};
 }
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -57,6 +63,36 @@ void processInput(GLFWwindow *window)
 
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         oscDirection -= 0.1;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+// glfw: whenever the mouse scroll wheel scrolls, this callback is called
+// ----------------------------------------------------------------------
+void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
 int main(int argc, const char *argv[])
@@ -76,6 +112,9 @@ int main(int argc, const char *argv[])
 
     glfwMakeContextCurrent(mainWindow);
     glfwSetFramebufferSizeCallback(mainWindow, framebufferResizeCallback);
+    glfwSetCursorPosCallback(mainWindow, mouseCallback);
+    glfwSetScrollCallback(mainWindow, scrollCallback);
+    glfwSetInputMode(mainWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -195,17 +234,16 @@ int main(int argc, const char *argv[])
 
         glm::mat4 model(1.0f);
         model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
-        glm::mat4 view(1.0f);
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
-
+        
         //// Render loop
         
         while (!glfwWindowShouldClose(mainWindow))
         {
-            
+            deltaTime = glfwGetTime() - previousTime;
+            previousTime = glfwGetTime();
+
             processInput(mainWindow);
-            
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             
             const float time = glfwGetTime();
@@ -213,20 +251,21 @@ int main(int argc, const char *argv[])
             const float gComponent = std::sin(time / 25) * 2.0f;
             const float bComponent = std::sin(time / 5) * 2.0f;
             const float oscFraction = std::sin(time) * 0.2f;
-            
+
             const float oscX = std::cos(oscDirection);
             const float oscY = std::sin(oscDirection);
-            
-            glm::mat4 projection = glm::perspective(glm::radians((std::abs(std::sin(time / 50)) + 0.1f) * 90.0f), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
+
+            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
+            glm::mat4 view = camera.GetViewMatrix();
 
             for (size_t p = 0; p < 4; ++p)
             {
-                const glm::mat4 customModel = glm::translate(model, glm::vec3(p%2, p, 0.0f));
+                const glm::mat4 customModel = glm::translate(model, glm::vec3(p % 2, p, 0.0f));
 
                 for (auto [shaderProgram, vertexArray, oscFractionMultiplier] : {std::tuple<Shader *, uint, float>{&shaderProgramOrange, VAOOrange, 3.0f}, std::tuple<Shader *, uint, float>{&shaderProgramGreen, VAOGreen, 1.5f}})
                 {
                     shaderProgram->use();
-                    
+
                     glUniform4f(glGetUniformLocation(*shaderProgram, "extColor"), rComponent, gComponent, bComponent, 1.0f);
                     glUniform3f(glGetUniformLocation(*shaderProgram, "oscillationDirection"), oscX, oscY, 0.0f);
                     glUniform1f(glGetUniformLocation(*shaderProgram, "oscillationFraction"), oscFraction * oscFractionMultiplier);
