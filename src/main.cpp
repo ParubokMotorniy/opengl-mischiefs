@@ -19,12 +19,13 @@ namespace
     constexpr size_t windowHeight = 540;
 
     float vertices[] = {
-        0.5f, 0.5f, 0.0f, 0.318f, 0.89f, 0.263f, 0.1f, 1.0f, 1.0f,      // top right
-        0.5f, -0.5f, 0.0f, 0.494f, 0.941f, 0.937f, -0.04f, 1.0f, 0.0f,  // bottom right
-        0.25f, 0.25f, 0.0f, 0.839f, 0.192f, 0.353f, 0.3f, 0.5f, 0.5f,   // concavity right
-        -0.5f, -0.5f, 0.0f, 0.733f, 0.678f, 0.988f, -0.5f, 0.0f, 0.0f,  // bottom left
-        -0.5f, 0.5f, 0.0f, 0.91, 0.216, 0.922, 0.31f, 0.0f, 1.0f,       // top left
-        -0.25f, -0.25f, 0.0f, 0.859f, 0.643f, 0.38f, -0.15f, 0.5f, 0.5f // concavity left
+        //coords                //color                     //shift     //texture
+        15.5f, 10.5f, -3.0f,     0.318f, 0.89f, 0.263f,     0.1f,       1.0f, 1.0f,      // top right
+        4.5f, -8.5f, 7.0f,       0.494f, 0.941f, 0.937f,    -0.04f,     1.0f, 0.0f,  // bottom right
+        -12.25f, 9.25f, 10.0f,   0.839f, 0.192f, 0.353f,    0.3f,       0.5f, 0.5f,   // concavity right
+        -16.5f, -7.5f, 5.0f,     0.733f, 0.678f, 0.988f,    -0.5f,      0.0f, 0.0f,  // bottom left
+        -6.5f, 7.5f, 3.0f,       0.91, 0.216, 0.922,        0.31f,      0.0f, 1.0f,       // top left
+        -10.25f, -18.25f, 3.0f,  0.859f, 0.643f, 0.38f,     -0.15f,     0.5f, 0.5f // concavity left
     };
 
     uint indices[] = {
@@ -42,10 +43,10 @@ namespace
     float oscDirection = 0.0;
 
     Camera camera;
-    float lastX {0.0f};
-    float lastY {0.0f};
-    float deltaTime {0.0f};
-    float previousTime {0.0f};
+    float lastX{0.0f};
+    float lastY{0.0f};
+    float deltaTime{0.0f};
+    float previousTime{0.0f};
 }
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -64,14 +65,11 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         oscDirection -= 0.1;
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+    camera.ProcessKeyboard(MovementInput{
+                            glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS, 
+                            glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS, 
+                            glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS, 
+                            glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS}, deltaTime);
 }
 
 void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
@@ -234,9 +232,10 @@ int main(int argc, const char *argv[])
 
         glm::mat4 model(1.0f);
         model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        
+
         //// Render loop
-        
+
+        camera.LookAt(glm::vec3(10.0f, 10.0f, 10.0f));
         while (!glfwWindowShouldClose(mainWindow))
         {
             deltaTime = glfwGetTime() - previousTime;
@@ -245,7 +244,7 @@ int main(int argc, const char *argv[])
             processInput(mainWindow);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            
+
             const float time = glfwGetTime();
             const float rComponent = std::sin(time / 50) * 2.0f;
             const float gComponent = std::sin(time / 25) * 2.0f;
@@ -260,7 +259,7 @@ int main(int argc, const char *argv[])
 
             for (size_t p = 0; p < 4; ++p)
             {
-                const glm::mat4 customModel = glm::translate(model, glm::vec3(p % 2, p, 0.0f));
+                const glm::mat4 customModel = glm::translate(model, glm::vec3(p % 2, p, 2 - p));
 
                 for (auto [shaderProgram, vertexArray, oscFractionMultiplier] : {std::tuple<Shader *, uint, float>{&shaderProgramOrange, VAOOrange, 3.0f}, std::tuple<Shader *, uint, float>{&shaderProgramGreen, VAOGreen, 1.5f}})
                 {
