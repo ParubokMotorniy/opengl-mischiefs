@@ -19,20 +19,36 @@ namespace
     constexpr size_t windowHeight = 540;
 
     float vertices[] = {
-        //coords                //color                     //shift     //texture
-        15.5f, 10.5f, -3.0f,     0.318f, 0.89f, 0.263f,     0.1f,       1.0f, 1.0f,      // top right
-        4.5f, -8.5f, 7.0f,       0.494f, 0.941f, 0.937f,    -0.04f,     1.0f, 0.0f,  // bottom right
-        -12.25f, 9.25f, 10.0f,   0.839f, 0.192f, 0.353f,    0.3f,       0.5f, 0.5f,   // concavity right
-        -16.5f, -7.5f, 5.0f,     0.733f, 0.678f, 0.988f,    -0.5f,      0.0f, 0.0f,  // bottom left
-        -6.5f, 7.5f, 3.0f,       0.91, 0.216, 0.922,        0.31f,      0.0f, 1.0f,       // top left
-        -10.25f, -18.25f, 3.0f,  0.859f, 0.643f, 0.38f,     -0.15f,     0.5f, 0.5f // concavity left
+        // coords                  //color                    //shift     //texture
+        -10.0f, -5.0f, -5.0f, 0.318f, 0.89f, 0.263f, 0.1f, 1.0f, 1.0f,   // top right              0   4
+        -10.0f, -5.0f, 5.0f, 0.494f, 0.941f, 0.937f, -0.04f, 1.0f, 0.0f, // bottom right             1 3 5 7
+        -10.0f, 5.0f, 5.0f, 0.839f, 0.192f, 0.353f, 0.3f, 0.5f, 0.5f,    // concavity right         2   6
+        -10.0f, 5.0f, -5.0f, 0.733f, 0.678f, 0.988f, -0.5f, 0.0f, 0.0f,  // bottom left
+
+        10.0f, -5.0f, -5.0f, 0.91, 0.216, 0.922, 0.31f, 0.0f, 1.0f,    // top left
+        10.0f, -5.0f, 5.0f, 0.859f, 0.643f, 0.38f, -0.15f, 0.5f, 0.5f, // concavity left
+        10.0f, 5.0f, 5.0f, 0.91, 0.216, 0.922, 0.014f, 0.0f, 1.0f,     // top left
+        10.0f, 5.0f, -5.0f, 0.859f, 0.643f, 0.38f, -0.65f, 0.5f, 0.5f  // concavity left
     };
 
     uint indices[] = {
         0, 1, 2,
-        4, 5, 3,
-        1, 3, 5,
-        4, 0, 2};
+        2, 3, 0,
+
+        0, 4, 5,
+        5, 1, 0,
+
+        4, 5, 6,
+        6, 7, 4,
+
+        2, 3, 7,
+        7, 6, 2,
+
+        1, 2, 6,
+        6, 5, 1,
+
+        0, 3, 7,
+        7, 4, 0};
 
     const char *vertexShaderSource = "./shaders/vertex.vs";
 
@@ -66,10 +82,11 @@ void processInput(GLFWwindow *window)
         oscDirection -= 0.1;
 
     camera.ProcessKeyboard(MovementInput{
-                            glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS, 
-                            glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS, 
-                            glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS, 
-                            glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS}, deltaTime);
+                               glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS,
+                               glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS,
+                               glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS,
+                               glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS},
+                           deltaTime);
 }
 
 void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
@@ -202,7 +219,7 @@ int main(int argc, const char *argv[])
     uint EBOGreen;
     glGenBuffers(1, &EBOGreen);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOGreen);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) / 2, indices + 6, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) / 2, indices + 18, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
@@ -249,7 +266,7 @@ int main(int argc, const char *argv[])
             const float rComponent = std::sin(time / 50) * 2.0f;
             const float gComponent = std::sin(time / 25) * 2.0f;
             const float bComponent = std::sin(time / 5) * 2.0f;
-            const float oscFraction = std::sin(time) * 0.2f;
+            const float oscFraction = std::sin(time) * 0.7f;
 
             const float oscX = std::cos(oscDirection);
             const float oscY = std::sin(oscDirection);
@@ -259,7 +276,7 @@ int main(int argc, const char *argv[])
 
             for (size_t p = 0; p < 4; ++p)
             {
-                const glm::mat4 customModel = glm::translate(model, glm::vec3(p % 2, p, 2 - p));
+                const glm::mat4 customModel = glm::translate(model, glm::vec3((p % 2) * 10, p * 10, 0.0f));
 
                 for (auto [shaderProgram, vertexArray, oscFractionMultiplier] : {std::tuple<Shader *, uint, float>{&shaderProgramOrange, VAOOrange, 3.0f}, std::tuple<Shader *, uint, float>{&shaderProgramGreen, VAOGreen, 1.5f}})
                 {
@@ -279,7 +296,7 @@ int main(int argc, const char *argv[])
                     glBindTexture(GL_TEXTURE_2D, texture2);
 
                     glBindVertexArray(vertexArray);
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                    glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
                 }
             }
 
