@@ -55,6 +55,9 @@ namespace
     const char *vertexShaderSource = "./shaders/vertex.vs";
     const char *fragmentShaderSource = "./shaders/fragment.fs";
 
+    const char *lightVertexShaderSource = "./shaders/light_vertex.vs";
+    const char *lightFragmentShaderSource = "./shaders/light_fragment.fs";
+
     float oscDirection = 0.0;
 
     Camera camera;
@@ -65,6 +68,7 @@ namespace
 
     const glm::vec3 ambColor = glm::vec3(0.522f, 0.922f, 0.506f);
     const glm::vec3 lightColor = glm::vec3(0.369f, 0.722f, 0.941f);
+    const float lightRotationRadius = 30.0f;
 }
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -183,7 +187,7 @@ int main(int argc, const char *argv[])
 
     stbi_image_free(imageData);
 
-    //// Cubes shader
+    //// Cubes buffers
 
     uint VAOOrange;
     glGenVertexArrays(1, &VAOOrange);
@@ -212,6 +216,24 @@ int main(int argc, const char *argv[])
 
     glBindVertexArray(0);
 
+    //// Light source buffers
+
+    uint VAOLight;
+    glGenVertexArrays(1, &VAOLight);
+    glBindVertexArray(VAOLight);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    uint EBOLight;
+    glGenBuffers(1, &EBOLight);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOLight);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+
     {
         //// Shaders
 
@@ -219,6 +241,8 @@ int main(int argc, const char *argv[])
         shaderProgramOrange.use();
         glUniform1i(glGetUniformLocation(shaderProgramOrange, "textureSampler1"), 0);
         glUniform1i(glGetUniformLocation(shaderProgramOrange, "textureSampler2"), 1);
+
+        Shader lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
 
         //// Transformation stuff
 
@@ -242,10 +266,9 @@ int main(int argc, const char *argv[])
             const float oscX = std::cos(oscDirection);
             const float oscY = std::sin(oscDirection);
 
-            const float radius = 30.0f;
-            const float lightPosX = std::cos(time / 5.0f) * radius;
-            const float lightPosY = std::sin(time / 5.0f) * radius; 
-            const float lightPosZ = std::sin(time / 2.0f) * radius; 
+            const float lightPosX = std::cos(time / 5.0f) * lightRotationRadius;
+            const float lightPosY = std::sin(time / 5.0f) * lightRotationRadius;
+            const float lightPosZ = std::sin(time / 2.0f) * lightRotationRadius;
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
             glm::mat4 view = camera.GetViewMatrix();
@@ -276,7 +299,26 @@ int main(int argc, const char *argv[])
 
                     glBindVertexArray(vertexArray);
                     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+                    glBindVertexArray(0);
                 }
+            }
+
+            {
+                lightCubeShader.use();
+                glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), glm::vec3(lightPosX, lightPosY, lightPosZ));
+                lightModel = glm::scale(lightModel, glm::vec3(0.6f, 0.6f, 0.6f));
+
+                std::cout << lightModel[0][0] << lightModel[0][1] << lightModel[0][2] << lightModel[0][3] << std::endl;
+
+                lightCubeShader.setMatrix4("model", lightModel);
+                lightCubeShader.setMatrix4("view", view);
+                lightCubeShader.setMatrix4("projection", projection);
+
+                glBindVertexArray(VAOLight);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+                glBindVertexArray(0);
             }
 
             glfwSwapBuffers(mainWindow);
