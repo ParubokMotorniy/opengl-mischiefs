@@ -118,7 +118,7 @@ private:
         if (!success)
         {
             glGetProgramInfoLog(programId, sizeof(infoLog), NULL, infoLog);
-            std::cerr << "Porgam linking failed. Details: " << infoLog;
+            std::cerr << "Program linking failed. Details: " << infoLog;
         }
     }
 

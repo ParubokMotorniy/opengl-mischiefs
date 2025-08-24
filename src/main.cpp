@@ -52,9 +52,7 @@ namespace
 
     const char *vertexShaderSource = "./shaders/vertex.vs";
 
-    const char *fragmentShaderSourceOrange = "./shaders/fragment_orange.fs";
-
-    const char *fragmentShaderSourceGreen = "./shaders/fragment_green.fs";
+    const char *fragmentShaderSourceOrange = "./shaders/fragment.fs";
 
     float oscDirection = 0.0;
 
@@ -164,7 +162,7 @@ int main(int argc, const char *argv[])
 
     ////////////
 
-    imageData = stbi_load("./textures/nature.jpg", &width, &height, &numChannels, 0);
+    imageData = stbi_load("./textures/floppa.jpg", &width, &height, &numChannels, 0);
 
     uint texture2;
     glGenTextures(1, &texture2);
@@ -195,31 +193,7 @@ int main(int argc, const char *argv[])
     uint EBOOrange;
     glGenBuffers(1, &EBOOrange);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOOrange);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) / 2, indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_TRUE, 9 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_TRUE, 9 * sizeof(float), (void *)(7 * sizeof(float)));
-    glEnableVertexAttribArray(3);
-
-    glBindVertexArray(0);
-
-    //// Green
-
-    uint VAOGreen;
-    glGenVertexArrays(1, &VAOGreen);
-    glBindVertexArray(VAOGreen);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    uint EBOGreen;
-    glGenBuffers(1, &EBOGreen);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOGreen);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) / 2, indices + 18, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
@@ -240,18 +214,12 @@ int main(int argc, const char *argv[])
         glUniform1i(glGetUniformLocation(shaderProgramOrange, "textureSampler1"), 0);
         glUniform1i(glGetUniformLocation(shaderProgramOrange, "textureSampler2"), 1);
 
-        Shader shaderProgramGreen{vertexShaderSource, fragmentShaderSourceGreen};
-        shaderProgramGreen.use();
-        glUniform1i(glGetUniformLocation(shaderProgramGreen, "textureSampler1"), 0);
-        glUniform1i(glGetUniformLocation(shaderProgramGreen, "textureSampler2"), 1);
-
         //// Transformation stuff
 
         glm::mat4 model(1.0f);
         model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
         //// Render loop
-
         camera.LookAt(glm::vec3(10.0f, 10.0f, 10.0f));
         while (!glfwWindowShouldClose(mainWindow))
         {
@@ -263,9 +231,6 @@ int main(int argc, const char *argv[])
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             const float time = glfwGetTime();
-            const float rComponent = std::sin(time / 50) * 2.0f;
-            const float gComponent = std::sin(time / 25) * 2.0f;
-            const float bComponent = std::sin(time / 5) * 2.0f;
             const float oscFraction = std::sin(time) * 0.7f;
 
             const float oscX = std::cos(oscDirection);
@@ -278,11 +243,10 @@ int main(int argc, const char *argv[])
             {
                 const glm::mat4 customModel = glm::translate(model, glm::vec3((p % 2) * 10, p * 10, 0.0f));
 
-                for (auto [shaderProgram, vertexArray, oscFractionMultiplier] : {std::tuple<Shader *, uint, float>{&shaderProgramOrange, VAOOrange, 3.0f}, std::tuple<Shader *, uint, float>{&shaderProgramGreen, VAOGreen, 1.5f}})
+                for (auto [shaderProgram, vertexArray, oscFractionMultiplier] : {std::tuple<Shader *, uint, float>{&shaderProgramOrange, VAOOrange, 3.0f}})
                 {
                     shaderProgram->use();
 
-                    glUniform4f(glGetUniformLocation(*shaderProgram, "extColor"), rComponent, gComponent, bComponent, 1.0f);
                     glUniform3f(glGetUniformLocation(*shaderProgram, "oscillationDirection"), oscX, oscY, 0.0f);
                     glUniform1f(glGetUniformLocation(*shaderProgram, "oscillationFraction"), oscFraction * oscFractionMultiplier);
 
@@ -296,7 +260,7 @@ int main(int argc, const char *argv[])
                     glBindTexture(GL_TEXTURE_2D, texture2);
 
                     glBindVertexArray(vertexArray);
-                    glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
+                    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
                 }
             }
 
@@ -310,7 +274,6 @@ int main(int argc, const char *argv[])
     glDeleteBuffers(1, &VBO);
 
     glDeleteVertexArrays(1, &VAOOrange);
-    glDeleteVertexArrays(1, &VAOGreen);
 
     glfwTerminate();
 
