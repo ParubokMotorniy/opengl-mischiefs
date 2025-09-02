@@ -10,17 +10,13 @@ in vec2 texCoord;
 in vec3 vPos;
 in vec3 vNorm;
 
-//samplers
-uniform sampler2D textureSampler1;
-uniform sampler2D textureSampler2;
-
 //uniforms
 struct Material
 {
-    vec3 ambColor;
-    vec3 diffColor;
-    vec3 specColor;
+    sampler2D diffTextureSampler;
+    sampler2D specTextureSampler;
 };
+
 uniform Material currentMaterial; 
 
 struct Light
@@ -41,23 +37,23 @@ uniform vec3 viewPos;
 
 void main()
 {
-    vec4 texColor = mix(texture(textureSampler1, texCoord), texture(textureSampler2, texCoord), 0.5); 
+    vec4 diffColor = texture(currentMaterial.diffTextureSampler, texCoord);
+    vec4 specColor = texture(currentMaterial.specTextureSampler, texCoord);
     float intensityFallof = pow(currentLight.k, -currentLight.b * distance(viewPos, vPos));
 
     //ambient
-    vec3 ambFraction = currentMaterial.ambColor * currentLight.ambStrength;
+    vec3 ambFraction = diffColor.xyz * currentLight.ambStrength;
 
     //diffuse
     vec3 lightDir = normalize(currentLight.lightPos - vPos);
-    vec3 diffFraction = max(dot(lightDir, vNorm), 0.0f) * currentLight.diffStrength * texColor.xyz;
+    vec3 diffFraction = max(dot(lightDir, vNorm), 0.0f) * currentLight.diffStrength * diffColor.xyz;
 
     //specular
     int specAlpha = 32;
     vec3 viewDir = normalize(viewPos - vPos);
     vec3 reflectionDir = reflect(-lightDir, vNorm);
     float specMultiplier = pow(max(dot(viewDir, reflectionDir), 0.0f), specAlpha);
-    vec3 specFraction = currentLight.specStrength * specMultiplier * currentMaterial.specColor;
+    vec3 specFraction = currentLight.specStrength * specMultiplier * specColor.xyz * intensityFallof;
 
-    fragColor = vec4((ambFraction + diffFraction + specFraction) * intensityFallof, 1.0f);
-    // fragColor = texColor;
+    fragColor = vec4((ambFraction + diffFraction + specFraction), 1.0f);
 }

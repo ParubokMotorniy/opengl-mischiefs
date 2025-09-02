@@ -153,7 +153,7 @@ int main(int argc, const char *argv[])
     //// Textures
 
     int width, height, numChannels;
-    auto *imageData = stbi_load("./textures/black.jpg", &width, &height, &numChannels, 0);
+    auto *imageData = stbi_load("./textures/floppa.jpg", &width, &height, &numChannels, 0);
 
     uint texture1;
     glGenTextures(1, &texture1);
@@ -172,7 +172,7 @@ int main(int argc, const char *argv[])
 
     ////////////
 
-    imageData = stbi_load("./textures/purple.jpg", &width, &height, &numChannels, 0);
+    imageData = stbi_load("./textures/specular.png", &width, &height, &numChannels, 0);
 
     uint texture2;
     glGenTextures(1, &texture2);
@@ -241,8 +241,8 @@ int main(int argc, const char *argv[])
 
         Shader shaderProgramOrange{vertexShaderSource, fragmentShaderSource};
         shaderProgramOrange.use();
-        glUniform1i(glGetUniformLocation(shaderProgramOrange, "textureSampler1"), 0);
-        glUniform1i(glGetUniformLocation(shaderProgramOrange, "textureSampler2"), 1);
+        glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.diffTextureSampler"), 0);
+        glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.specTextureSampler"), 1);
 
         Shader lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
 
@@ -268,9 +268,9 @@ int main(int argc, const char *argv[])
             const float oscX = std::cos(oscDirection);
             const float oscY = std::sin(oscDirection);
 
-            const float lightPosX = std::cos(time / 5.0f) * lightRotationRadius;
-            const float lightPosY = std::sin(time / 5.0f) * lightRotationRadius;
-            const float lightPosZ = std::sin(time / 2.0f) * lightRotationRadius;
+            const float lightPosX = std::cos(time * 2.0f) * lightRotationRadius;
+            const float lightPosY = std::sin(time * 2.0f) * lightRotationRadius;
+            const float lightPosZ = std::sin(time * 3.0f);
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
             glm::mat4 view = camera.GetViewMatrix();
@@ -292,7 +292,7 @@ int main(int argc, const char *argv[])
 
                     glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.lightPos"), lightPosX, lightPosY, lightPosZ);
                     glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.diffStrength"), lightColor.x * oscFraction, lightColor.y * oscFraction, lightColor.z * oscFraction);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.specStrength"), 0.6f, 0.6f, 0.6f);
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.specStrength"), 0.8f, 0.8f, 0.8f);
                     glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.ambStrength"), 0.15f, 0.15f, 0.15f);
                     glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.k"), 1.2f);
                     glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.b"), 0.1f );
