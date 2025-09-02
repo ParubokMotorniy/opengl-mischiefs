@@ -15,21 +15,21 @@
 
 namespace
 {
-    constexpr size_t windowWidth = 960;
-    constexpr size_t windowHeight = 540;
+    constexpr size_t windowWidth = 1440;
+    constexpr size_t windowHeight = 810;
 
     //clang-format off
     float vertices[] = {
         // coords                  //color                    //shift     //texture
-        -5.0f, -5.0f, -5.0f,   0.318f, 0.89f, 0.263f,       0.1f,        1.0f, 1.0f,   // top right                0   4
-        -5.0f, -5.0f, 5.0f,    0.494f, 0.941f, 0.937f,      -0.04f,      1.0f, 0.0f, // bottom right             1 3 5 7
-        -5.0f, 5.0f, 5.0f,     0.839f, 0.192f, 0.353f,      0.3f,        0.5f, 0.5f,    // concavity right       2   6
+        -5.0f, -5.0f, -5.0f,   0.318f, 0.89f, 0.263f,       0.1f,        0.0f, 1.0f,   // top right                0   4
+        -5.0f, -5.0f, 5.0f,    0.494f, 0.941f, 0.937f,      -0.04f,      1.0f, 1.0f, // bottom right             1 3 5 7
+        -5.0f, 5.0f, 5.0f,     0.839f, 0.192f, 0.353f,      0.3f,        1.0f, 0.0f,    // concavity right       2   6
         -5.0f, 5.0f, -5.0f,    0.733f, 0.678f, 0.988f,      -0.5f,       0.0f, 0.0f,  // bottom left
 
-        5.0f, -5.0f, -5.0f,    0.91, 0.216, 0.922,          0.31f,       0.0f, 1.0f,    // top left
-        5.0f, -5.0f, 5.0f,     0.859f, 0.643f, 0.38f,        -0.15f,     0.5f, 0.5f, // concavity left
-        5.0f, 5.0f, 5.0f,      0.91, 0.216, 0.922,          0.014f,      0.0f, 1.0f,     // top left
-        5.0f, 5.0f, -5.0f,     0.859f, 0.643f, 0.38f,       -0.65f,      0.5f, 0.5f  // concavity left
+        5.0f, -5.0f, -5.0f,    0.91, 0.216, 0.922,          0.31f,       1.0f, 1.0f,    // top left
+        5.0f, -5.0f, 5.0f,     0.859f, 0.643f, 0.38f,        -0.15f,     1.0f, 0.0f, // concavity left
+        5.0f, 5.0f, 5.0f,      0.91, 0.216, 0.922,          0.014f,      0.0f, 0.0f,     // top left
+        5.0f, 5.0f, -5.0f,     0.859f, 0.643f, 0.38f,       -0.65f,      0.0f, 1.0f  // concavity left
     };
     //clang-format on
 
@@ -68,7 +68,9 @@ namespace
 
     const glm::vec3 ambColor = glm::vec3(0.522f, 0.922f, 0.506f);
     const glm::vec3 lightColor = glm::vec3(0.369f, 0.722f, 0.941f);
-    const float lightRotationRadius = 30.0f;
+    const glm::vec3 cubeDiffColor = glm::vec3(0.765f, 0.929f, 0.38f);
+    const glm::vec3 cubeSpecColor = glm::vec3(0.91f, 0.839f, 0.729f);
+    const float lightRotationRadius = 25.0f;
 }
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -283,9 +285,18 @@ int main(int argc, const char *argv[])
 
                     glUniform3f(glGetUniformLocation(*shaderProgram, "oscillationDirection"), oscX, oscY, 0.0f);
                     glUniform1f(glGetUniformLocation(*shaderProgram, "oscillationFraction"), oscFraction * oscFractionMultiplier);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "ambColor"), ambColor.x, ambColor.y, ambColor.z);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "lightPos"), lightPosX, lightPosY, lightPosZ);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
+
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentMaterial.ambColor"), ambColor.x, ambColor.y, ambColor.z);
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentMaterial.diffColor"), cubeDiffColor.x, cubeDiffColor.y, cubeDiffColor.z);
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentMaterial.specColor"), cubeSpecColor.x, cubeSpecColor.y, cubeSpecColor.z);
+
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.lightPos"), lightPosX, lightPosY, lightPosZ);
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.diffStrength"), lightColor.x * oscFraction, lightColor.y * oscFraction, lightColor.z * oscFraction);
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.specStrength"), 0.6f, 0.6f, 0.6f);
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.ambStrength"), 0.15f, 0.15f, 0.15f);
+                    glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.k"), 1.2f);
+                    glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.b"), 0.1f );
+
                     glUniform3f(glGetUniformLocation(*shaderProgram, "viewPos"), camera.Position.x, camera.Position.y, camera.Position.z);
 
                     shaderProgram->setMatrix4("model", customModel);
@@ -308,8 +319,6 @@ int main(int argc, const char *argv[])
                 lightCubeShader.use();
                 glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), glm::vec3(lightPosX, lightPosY, lightPosZ));
                 lightModel = glm::scale(lightModel, glm::vec3(0.6f, 0.6f, 0.6f));
-
-                std::cout << lightModel[0][0] << lightModel[0][1] << lightModel[0][2] << lightModel[0][3] << std::endl;
 
                 lightCubeShader.setMatrix4("model", lightModel);
                 lightCubeShader.setMatrix4("view", view);
