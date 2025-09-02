@@ -202,7 +202,7 @@ int main(int argc, const char *argv[])
 
         Texture2D diffuseTex{"./textures/floppa.jpg"};
         Texture2D specularTex{"./textures/specular.jpg"};
-        Texture2D emissionTex{"./textures/matrix.jpg"};
+        Texture2D emissionTex{"./textures/floppa_emission.jpg"};
 
         //// Shaders
 
