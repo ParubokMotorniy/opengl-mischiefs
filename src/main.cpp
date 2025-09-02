@@ -1,13 +1,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "stb_image.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "shader.h"
 #include "camera.h"
+#include "texture.h"
 
 #include <iostream>
 #include <cmath>
@@ -21,15 +21,15 @@ namespace
     //clang-format off
     float vertices[] = {
         // coords                  //color                    //shift     //texture
-        -5.0f, -5.0f, -5.0f,   0.318f, 0.89f, 0.263f,       0.1f,        0.0f, 1.0f,   // top right                0   4
-        -5.0f, -5.0f, 5.0f,    0.494f, 0.941f, 0.937f,      -0.04f,      1.0f, 1.0f, // bottom right             1 3 5 7
-        -5.0f, 5.0f, 5.0f,     0.839f, 0.192f, 0.353f,      0.3f,        1.0f, 0.0f,    // concavity right       2   6
-        -5.0f, 5.0f, -5.0f,    0.733f, 0.678f, 0.988f,      -0.5f,       0.0f, 0.0f,  // bottom left
+        -5.0f, -5.0f, -5.0f, 0.318f, 0.89f, 0.263f, 0.1f, 0.0f, 1.0f,   // top right                0   4
+        -5.0f, -5.0f, 5.0f, 0.494f, 0.941f, 0.937f, -0.04f, 1.0f, 1.0f, // bottom right             1 3 5 7
+        -5.0f, 5.0f, 5.0f, 0.839f, 0.192f, 0.353f, 0.3f, 1.0f, 0.0f,    // concavity right       2   6
+        -5.0f, 5.0f, -5.0f, 0.733f, 0.678f, 0.988f, -0.5f, 0.0f, 0.0f,  // bottom left
 
-        5.0f, -5.0f, -5.0f,    0.91, 0.216, 0.922,          0.31f,       1.0f, 1.0f,    // top left
-        5.0f, -5.0f, 5.0f,     0.859f, 0.643f, 0.38f,        -0.15f,     1.0f, 0.0f, // concavity left
-        5.0f, 5.0f, 5.0f,      0.91, 0.216, 0.922,          0.014f,      0.0f, 0.0f,     // top left
-        5.0f, 5.0f, -5.0f,     0.859f, 0.643f, 0.38f,       -0.65f,      0.0f, 1.0f  // concavity left
+        5.0f, -5.0f, -5.0f, 0.91, 0.216, 0.922, 0.31f, 1.0f, 1.0f,    // top left
+        5.0f, -5.0f, 5.0f, 0.859f, 0.643f, 0.38f, -0.15f, 1.0f, 0.0f, // concavity left
+        5.0f, 5.0f, 5.0f, 0.91, 0.216, 0.922, 0.014f, 0.0f, 0.0f,     // top left
+        5.0f, 5.0f, -5.0f, 0.859f, 0.643f, 0.38f, -0.65f, 0.0f, 1.0f  // concavity left
     };
     //clang-format on
 
@@ -150,45 +150,6 @@ int main(int argc, const char *argv[])
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_DEPTH_TEST);
 
-    //// Textures
-
-    int width, height, numChannels;
-    auto *imageData = stbi_load("./textures/floppa.jpg", &width, &height, &numChannels, 0);
-
-    uint texture1;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imageData);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    stbi_image_free(imageData);
-
-    ////////////
-
-    imageData = stbi_load("./textures/specular.png", &width, &height, &numChannels, 0);
-
-    uint texture2;
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imageData);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    stbi_image_free(imageData);
-
     //// Cubes buffers
 
     uint VAOOrange;
@@ -237,12 +198,19 @@ int main(int argc, const char *argv[])
     glBindVertexArray(0);
 
     {
+        //// Textures
+
+        Texture2D diffuseTex{"./textures/floppa.jpg"};
+        Texture2D specularTex{"./textures/specular.jpg"};
+        Texture2D emissionTex{"./textures/matrix.jpg"};
+
         //// Shaders
 
         Shader shaderProgramOrange{vertexShaderSource, fragmentShaderSource};
         shaderProgramOrange.use();
         glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.diffTextureSampler"), 0);
         glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.specTextureSampler"), 1);
+        glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.emissionTextureSampler"), 2);
 
         Shader lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
 
@@ -271,6 +239,7 @@ int main(int argc, const char *argv[])
             const float lightPosX = std::cos(time * 2.0f) * lightRotationRadius;
             const float lightPosY = std::sin(time * 2.0f) * lightRotationRadius;
             const float lightPosZ = std::sin(time * 3.0f);
+            const glm::vec3 normalizedLightPos = glm::normalize(glm::vec3(lightPosX, lightPosY, lightPosZ)); 
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
             glm::mat4 view = camera.GetViewMatrix();
@@ -291,11 +260,11 @@ int main(int argc, const char *argv[])
                     glUniform3f(glGetUniformLocation(*shaderProgram, "currentMaterial.specColor"), cubeSpecColor.x, cubeSpecColor.y, cubeSpecColor.z);
 
                     glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.lightPos"), lightPosX, lightPosY, lightPosZ);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.diffStrength"), lightColor.x * oscFraction, lightColor.y * oscFraction, lightColor.z * oscFraction);
+                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.diffStrength"), normalizedLightPos.x,normalizedLightPos.y,normalizedLightPos.z);
                     glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.specStrength"), 0.8f, 0.8f, 0.8f);
                     glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.ambStrength"), 0.15f, 0.15f, 0.15f);
                     glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.k"), 1.2f);
-                    glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.b"), 0.1f );
+                    glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.b"), 0.1f);
 
                     glUniform3f(glGetUniformLocation(*shaderProgram, "viewPos"), camera.Position.x, camera.Position.y, camera.Position.z);
 
@@ -304,9 +273,11 @@ int main(int argc, const char *argv[])
                     shaderProgram->setMatrix4("projection", projection);
 
                     glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, texture1);
+                    glBindTexture(GL_TEXTURE_2D, diffuseTex);
                     glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, texture2);
+                    glBindTexture(GL_TEXTURE_2D, specularTex);
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindTexture(GL_TEXTURE_2D, emissionTex);
 
                     glBindVertexArray(vertexArray);
                     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -319,6 +290,8 @@ int main(int argc, const char *argv[])
                 lightCubeShader.use();
                 glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), glm::vec3(lightPosX, lightPosY, lightPosZ));
                 lightModel = glm::scale(lightModel, glm::vec3(0.6f, 0.6f, 0.6f));
+
+                glUniform3f(glGetUniformLocation(lightCubeShader, "actualLightColor"), normalizedLightPos.x, normalizedLightPos.y, normalizedLightPos.z);
 
                 lightCubeShader.setMatrix4("model", lightModel);
                 lightCubeShader.setMatrix4("view", view);
@@ -338,7 +311,6 @@ int main(int argc, const char *argv[])
     //// Cleanup
 
     glDeleteBuffers(1, &VBO);
-
     glDeleteVertexArrays(1, &VAOOrange);
 
     glfwTerminate();
