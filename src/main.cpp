@@ -58,6 +58,9 @@ namespace
     const char *lightVertexShaderSource = "./shaders/light_vertex.vs";
     const char *lightFragmentShaderSource = "./shaders/light_fragment.fs";
 
+    const char *axesVertexShaderSource = "./shaders/axis_vertex.vs";
+    const char *axesFragmentShaderSource = "./shaders/axis_fragment.fs";
+
     float oscDirection = 0.0;
 
     Camera camera;
@@ -148,6 +151,7 @@ int main(int argc, const char *argv[])
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glLineWidth(5.0f);
     glEnable(GL_DEPTH_TEST);
 
     //// Cubes buffers
@@ -213,6 +217,7 @@ int main(int argc, const char *argv[])
         glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.emissionTextureSampler"), 2);
 
         Shader lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
+        Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource};
 
         //// Transformation stuff
 
@@ -239,51 +244,48 @@ int main(int argc, const char *argv[])
             const float lightPosX = std::cos(time * 2.0f) * lightRotationRadius;
             const float lightPosY = std::sin(time * 2.0f) * lightRotationRadius;
             const float lightPosZ = std::sin(time * 3.0f);
-            const glm::vec3 normalizedLightPos = glm::normalize(glm::vec3(lightPosX, lightPosY, lightPosZ)); 
+            const glm::vec3 normalizedLightPos = glm::normalize(glm::vec3(lightPosX, lightPosY, lightPosZ));
 
-            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
-            glm::mat4 view = camera.GetViewMatrix();
+            const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
+            const glm::mat4 view = camera.GetViewMatrix();
 
-            for (size_t p = 0; p < 2; ++p)
+            for (size_t p = 0; p < 3; ++p)
             {
-                const glm::mat4 customModel = glm::translate(model, glm::vec3(p * 10, p * 10, 0.0f));
+                const glm::mat4 customModel = glm::translate(model, glm::vec3(p * 10, p * 10, std::sin(p)));
 
-                for (auto [shaderProgram, vertexArray, oscFractionMultiplier] : {std::tuple<Shader *, uint, float>{&shaderProgramOrange, VAOOrange, 3.0f}})
-                {
-                    shaderProgram->use();
+                shaderProgramOrange.use();
 
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "oscillationDirection"), oscX, oscY, 0.0f);
-                    glUniform1f(glGetUniformLocation(*shaderProgram, "oscillationFraction"), oscFraction * oscFractionMultiplier);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "oscillationDirection"), oscX, oscY, 0.0f);
+                glUniform1f(glGetUniformLocation(shaderProgramOrange, "oscillationFraction"), oscFraction * 3.0f);
 
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentMaterial.ambColor"), ambColor.x, ambColor.y, ambColor.z);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentMaterial.diffColor"), cubeDiffColor.x, cubeDiffColor.y, cubeDiffColor.z);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentMaterial.specColor"), cubeSpecColor.x, cubeSpecColor.y, cubeSpecColor.z);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentMaterial.ambColor"), ambColor.x, ambColor.y, ambColor.z);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentMaterial.diffColor"), cubeDiffColor.x, cubeDiffColor.y, cubeDiffColor.z);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentMaterial.specColor"), cubeSpecColor.x, cubeSpecColor.y, cubeSpecColor.z);
 
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.lightPos"), lightPosX, lightPosY, lightPosZ);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.diffStrength"), normalizedLightPos.x,normalizedLightPos.y,normalizedLightPos.z);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.specStrength"), 0.8f, 0.8f, 0.8f);
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "currentLight.ambStrength"), 0.15f, 0.15f, 0.15f);
-                    glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.k"), 1.2f);
-                    glUniform1f(glGetUniformLocation(*shaderProgram, "currentLight.b"), 0.1f);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentLight.lightPos"), lightPosX, lightPosY, lightPosZ);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentLight.diffStrength"), normalizedLightPos.x, normalizedLightPos.y, normalizedLightPos.z);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentLight.specStrength"), 0.8f, 0.8f, 0.8f);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentLight.ambStrength"), 0.15f, 0.15f, 0.15f);
+                glUniform1f(glGetUniformLocation(shaderProgramOrange, "currentLight.k"), 1.2f);
+                glUniform1f(glGetUniformLocation(shaderProgramOrange, "currentLight.b"), 0.1f);
 
-                    glUniform3f(glGetUniformLocation(*shaderProgram, "viewPos"), camera.Position.x, camera.Position.y, camera.Position.z);
+                glUniform3f(glGetUniformLocation(shaderProgramOrange, "viewPos"), camera.Position.x, camera.Position.y, camera.Position.z);
 
-                    shaderProgram->setMatrix4("model", customModel);
-                    shaderProgram->setMatrix4("view", view);
-                    shaderProgram->setMatrix4("projection", projection);
+                shaderProgramOrange.setMatrix4("model", customModel);
+                shaderProgramOrange.setMatrix4("view", view);
+                shaderProgramOrange.setMatrix4("projection", projection);
 
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, diffuseTex);
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, specularTex);
-                    glActiveTexture(GL_TEXTURE2);
-                    glBindTexture(GL_TEXTURE_2D, emissionTex);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, diffuseTex);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, specularTex);
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, emissionTex);
 
-                    glBindVertexArray(vertexArray);
-                    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+                glBindVertexArray(VAOOrange);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-                    glBindVertexArray(0);
-                }
+                glBindVertexArray(0);
             }
 
             {
@@ -301,6 +303,16 @@ int main(int argc, const char *argv[])
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
                 glBindVertexArray(0);
+            }
+
+            {
+                worldAxesShader.use();
+
+                worldAxesShader.setMatrix4("viewMat", view);
+                worldAxesShader.setMatrix4("clipMat", projection);
+                worldAxesShader.setInt("axisLength", 100);
+
+                glDrawArrays(GL_LINES, 0, 6);
             }
 
             glfwSwapBuffers(mainWindow);
