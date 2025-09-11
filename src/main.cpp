@@ -18,7 +18,7 @@ namespace
     constexpr size_t windowWidth = 1440;
     constexpr size_t windowHeight = 810;
 
-    //TODO: fix winding order
+    // TODO: fix winding order
     //clang-format off
     float vertices[] = {
         // coords                  //color                    //shift     //texture
@@ -94,11 +94,13 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         oscDirection -= 0.1;
 
-    camera.ProcessKeyboard(MovementInput{
+    camera.processKeyboard(MovementInput{
                                glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS,
                                glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS,
                                glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS,
-                               glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS},
+                               glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS,
+                               glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS,
+                               glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS},
                            deltaTime);
 }
 
@@ -113,12 +115,13 @@ void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+        camera.processMouseMovement(xoffset, yoffset);
 }
 
 void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+    camera.processMouseScroll(static_cast<float>(yoffset));
 }
 
 int main(int argc, const char *argv[])
@@ -230,7 +233,7 @@ int main(int argc, const char *argv[])
         model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
         //// Render loop
-        camera.LookAt(glm::vec3(10.0f, 10.0f, 10.0f));
+        camera.lookAt(glm::vec3(10.0f, 10.0f, 10.0f));
         while (!glfwWindowShouldClose(mainWindow))
         {
             deltaTime = glfwGetTime() - previousTime;
@@ -251,8 +254,8 @@ int main(int argc, const char *argv[])
             const float lightPosZ = std::sin(time * 3.0f);
             const glm::vec3 normalizedLightPos = glm::normalize(glm::vec3(lightPosX, lightPosY, lightPosZ));
 
-            const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
-            const glm::mat4 view = camera.GetViewMatrix();
+            const glm::mat4 projection = glm::perspective(glm::radians(camera.zoom()), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
+            const glm::mat4 view = camera.getViewMatrix();
 
             {
                 glBindVertexArray(dummyVao);
@@ -261,12 +264,12 @@ int main(int argc, const char *argv[])
 
                 worldAxesShader.setMatrix4("viewMat", view);
                 worldAxesShader.setMatrix4("clipMat", projection);
-                //TODO: add proper rescaling of axes due to zoom
+                // TODO: add proper rescaling of axes due to zoom
                 worldAxesShader.setFloat("axisLength", 0.03l);
                 worldAxesShader.setFloat("thickness", 0.0005l);
-                worldAxesShader.setFloat("cameraDistance", glm::length(camera.Position));
+                worldAxesShader.setFloat("cameraDistance", glm::length(camera.position()));
                 worldAxesShader.setFloat("cameraNear", 0.1f);
-                
+
                 glDrawArrays(GL_POINTS, 0, 3);
 
                 glBindVertexArray(0);
@@ -285,14 +288,14 @@ int main(int argc, const char *argv[])
                 shaderProgramOrange.setVec3("currentMaterial.diffColor", cubeDiffColor);
                 shaderProgramOrange.setVec3("currentMaterial.specColor", cubeSpecColor);
 
-                shaderProgramOrange.setVec3 ("currentLight.lightPos", {lightPosX, lightPosY, lightPosZ});
+                shaderProgramOrange.setVec3("currentLight.lightPos", {lightPosX, lightPosY, lightPosZ});
                 shaderProgramOrange.setVec3("currentLight.diffStrength", normalizedLightPos);
                 shaderProgramOrange.setVec3("currentLight.specStrength", {0.8f, 0.8f, 0.8f});
                 shaderProgramOrange.setVec3("currentLight.ambStrength", {0.15f, 0.15f, 0.15f});
                 shaderProgramOrange.setFloat("currentLight.k", 1.2f);
                 shaderProgramOrange.setFloat("currentLight.b", 0.1f);
 
-                shaderProgramOrange.setVec3("viewPos", camera.Position);
+                shaderProgramOrange.setVec3("viewPos", camera.position());
 
                 shaderProgramOrange.setMatrix4("model", customModel);
                 shaderProgramOrange.setMatrix4("view", view);
