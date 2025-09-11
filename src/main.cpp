@@ -8,6 +8,9 @@
 #include "shader.h"
 #include "camera.h"
 #include "texture.h"
+#include "meshmanager.h"
+#include "texturemanager.h"
+#include "object.h"
 
 #include <iostream>
 #include <cmath>
@@ -17,41 +20,6 @@ namespace
 {
     constexpr size_t windowWidth = 1440;
     constexpr size_t windowHeight = 810;
-
-    // TODO: fix winding order
-    //clang-format off
-    float vertices[] = {
-        // coords                  //color                    //shift     //texture
-        -5.0f, -5.0f, -5.0f, 0.318f, 0.89f, 0.263f, 0.1f, 0.0f, 1.0f,   // top right                0   4
-        -5.0f, -5.0f, 5.0f, 0.494f, 0.941f, 0.937f, -0.04f, 1.0f, 1.0f, // bottom right             1 3 5 7
-        -5.0f, 5.0f, 5.0f, 0.839f, 0.192f, 0.353f, 0.3f, 1.0f, 0.0f,    // concavity right       2   6
-        -5.0f, 5.0f, -5.0f, 0.733f, 0.678f, 0.988f, -0.5f, 0.0f, 0.0f,  // bottom left
-
-        5.0f, -5.0f, -5.0f, 0.91, 0.216, 0.922, 0.31f, 1.0f, 1.0f,    // top left
-        5.0f, -5.0f, 5.0f, 0.859f, 0.643f, 0.38f, -0.15f, 1.0f, 0.0f, // concavity left
-        5.0f, 5.0f, 5.0f, 0.91, 0.216, 0.922, 0.014f, 0.0f, 0.0f,     // top left
-        5.0f, 5.0f, -5.0f, 0.859f, 0.643f, 0.38f, -0.65f, 0.0f, 1.0f  // concavity left
-    };
-    //clang-format on
-
-    uint indices[] = {
-        0, 1, 2,
-        2, 3, 0,
-
-        0, 4, 5,
-        5, 1, 0,
-
-        4, 5, 6,
-        6, 7, 4,
-
-        2, 3, 7,
-        7, 6, 2,
-
-        1, 2, 6,
-        6, 5, 1,
-
-        0, 3, 7,
-        7, 4, 0};
 
     const char *vertexShaderSource = "./shaders/vertex.vs";
     const char *fragmentShaderSource = "./shaders/fragment.fs";
@@ -63,18 +31,12 @@ namespace
     const char *axesFragmentShaderSource = "./shaders/axis_fragment.fs";
     const char *axesGeometryShaderSource = "./shaders/axis_geometry.gs";
 
-    float oscDirection = 0.0;
-
     Camera camera;
     float lastX{0.0f};
     float lastY{0.0f};
     float deltaTime{0.0f};
     float previousTime{0.0f};
 
-    const glm::vec3 ambColor = glm::vec3(0.522f, 0.922f, 0.506f);
-    const glm::vec3 lightColor = glm::vec3(0.369f, 0.722f, 0.941f);
-    const glm::vec3 cubeDiffColor = glm::vec3(0.765f, 0.929f, 0.38f);
-    const glm::vec3 cubeSpecColor = glm::vec3(0.91f, 0.839f, 0.729f);
     const float lightRotationRadius = 25.0f;
 }
 
@@ -83,16 +45,11 @@ void framebufferResizeCallback(GLFWwindow *window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+// TODO:move stuff to the camera or set up some observer pipeline
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        oscDirection += 0.1;
-
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        oscDirection -= 0.1;
 
     camera.processKeyboard(MovementInput{
                                glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS,
@@ -115,7 +72,7 @@ void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
         camera.processMouseMovement(xoffset, yoffset);
 }
 
@@ -123,6 +80,9 @@ void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
     camera.processMouseScroll(static_cast<float>(yoffset));
 }
+
+MeshManager *MeshManager::_instance = nullptr;
+TextureManager *TextureManager::_instance = nullptr;
 
 int main(int argc, const char *argv[])
 {
@@ -159,81 +119,63 @@ int main(int argc, const char *argv[])
 
     //// Cubes buffers
 
-    uint VAOOrange;
-    glGenVertexArrays(1, &VAOOrange);
-    glBindVertexArray(VAOOrange);
+    MeshManager::instance()->registerMesh("simple_cube",
+                                          Mesh{
+                                              {{-5.0f, -5.0f, -5.0f, 0.1f, 0.0f, -5.0f, -5.0f, -5.0f},
+                                               {-5.0f, -5.0f, 5.0f, -0.04f, 1.0f, -5.0f, -5.0f, 5.0f},
+                                               {-5.0f, 5.0f, 5.0f, 0.3f, 1.0f, -5.0f, 5.0f, 5.0f},
+                                               {-5.0f, 5.0f, -5.0f, -0.5f, 0.0f, -5.0f, 5.0f, -5.0f},
 
-    uint VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+                                               {5.0f, -5.0f, -5.0f, 0.31f, 1.0f, 5.0f, -5.0f, -5.0f},
+                                               {5.0f, -5.0f, 5.0f, -0.15f, 1.0f, 5.0f, -5.0f, 5.0f},
+                                               {5.0f, 5.0f, 5.0f, 0.014f, 0.0f, 5.0f, 5.0f, 5.0f},
+                                               {5.0f, 5.0f, -5.0f, -0.65f, 0.0f, 5.0f, 5.0f, -5.0f}},
 
-    uint EBOOrange;
-    glGenBuffers(1, &EBOOrange);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOOrange);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+                                              {0, 1, 2,
+                                               2, 3, 0,
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_TRUE, 9 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_TRUE, 9 * sizeof(float), (void *)(7 * sizeof(float)));
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(4);
+                                               0, 4, 5,
+                                               5, 1, 0,
 
-    glBindVertexArray(0);
+                                               4, 5, 6,
+                                               6, 7, 4,
 
-    //// Light source buffers
+                                               2, 3, 7,
+                                               7, 6, 2,
 
-    uint VAOLight;
-    glGenVertexArrays(1, &VAOLight);
-    glBindVertexArray(VAOLight);
+                                               1, 2, 6,
+                                               6, 5, 1,
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+                                               0, 3, 7,
+                                               7, 4, 0}});
+    TextureManager::instance()->registerTexture("big_floppa_diffuse", "./textures/floppa.jpg");
+    TextureManager::instance()->registerTexture("big_floppa_emission", "./textures/floppa_emission.jpg");
+    TextureManager::instance()->registerTexture("tex_specular", "./textures/specular.png");
 
-    uint EBOLight;
-    glGenBuffers(1, &EBOLight);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOLight);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    Material floppaCubeMaterial{.diffTextureName = "big_floppa_diffuse", .specTextureSampler = "tex_specular", .emissionTextureSampler = "big_floppa_emission"};
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
+    PrimitiveObject mainCube{.objMesh = "simple_cube", .objMaterial = floppaCubeMaterial, .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::identity<glm::mat4>(), .position = glm::vec3(0.0f, 0.0f, 0.0f)};
+    PrimitiveObject lightCube{.objMesh = "simple_cube", .scale = glm::vec3(0.5f, 0.5f, 0.5f)};
 
-    glBindVertexArray(0);
+    MeshManager::instance()->allocateMesh("simple_cube");
+    TextureManager::instance()->allocateTexture("tex_specular");
+    TextureManager::instance()->allocateTexture("big_floppa_emission");
+    TextureManager::instance()->allocateTexture("big_floppa_diffuse");
 
-    //// Dummy axes VAO
-    uint dummyVao;
-    glGenVertexArrays(1, &dummyVao);
-    glBindVertexArray(0);
+    // //// Dummy axes VAO
+    // uint dummyVao;
+    // glGenVertexArrays(1, &dummyVao);
+    // glBindVertexArray(0);
 
     {
-        //// Textures
-
-        Texture2D diffuseTex{"./textures/floppa.jpg"};
-        Texture2D specularTex{"./textures/specular.jpg"};
-        Texture2D emissionTex{"./textures/floppa_emission.jpg"};
-
         //// Shaders
 
-        Shader shaderProgramOrange{vertexShaderSource, fragmentShaderSource};
-        shaderProgramOrange.use();
-        glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.diffTextureSampler"), 0);
-        glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.specTextureSampler"), 1);
-        glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.emissionTextureSampler"), 2);
-
+        Shader shaderProgramMain{vertexShaderSource, fragmentShaderSource};
         Shader lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
-        Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
-
-        //// Transformation stuff
-
-        glm::mat4 model(1.0f);
-        model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        // Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
 
         //// Render loop
-        camera.lookAt(glm::vec3(10.0f, 10.0f, 10.0f));
+        camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
         while (!glfwWindowShouldClose(mainWindow))
         {
             deltaTime = glfwGetTime() - previousTime;
@@ -244,10 +186,6 @@ int main(int argc, const char *argv[])
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             const float time = glfwGetTime();
-            const float oscFraction = std::sin(time) * 0.7f;
-
-            const float oscX = std::cos(oscDirection);
-            const float oscY = std::sin(oscDirection);
 
             const float lightPosX = std::cos(time * 2.0f) * lightRotationRadius;
             const float lightPosY = std::sin(time * 2.0f) * lightRotationRadius;
@@ -257,65 +195,60 @@ int main(int argc, const char *argv[])
             const glm::mat4 projection = glm::perspective(glm::radians(camera.zoom()), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
             const glm::mat4 view = camera.getViewMatrix();
 
+            // {
+            //     glBindVertexArray(dummyVao);
+
+            //     worldAxesShader.use();
+
+            //     worldAxesShader.setMatrix4("viewMat", view);
+            //     worldAxesShader.setMatrix4("clipMat", projection);
+            //     // TODO: add proper rescaling of axes due to zoom
+            //     worldAxesShader.setFloat("axisLength", 0.03l);
+            //     worldAxesShader.setFloat("thickness", 0.0005l);
+            //     worldAxesShader.setFloat("cameraDistance", glm::length(camera.position()));
+            //     worldAxesShader.setFloat("cameraNear", 0.1f);
+
+            //     glDrawArrays(GL_POINTS, 0, 3);
+
+            //     glBindVertexArray(0);
+            // }
             {
-                glBindVertexArray(dummyVao);
+                shaderProgramMain.use();
 
-                worldAxesShader.use();
+                MeshManager::instance()->bindMesh(mainCube.objMesh);
 
-                worldAxesShader.setMatrix4("viewMat", view);
-                worldAxesShader.setMatrix4("clipMat", projection);
-                // TODO: add proper rescaling of axes due to zoom
-                worldAxesShader.setFloat("axisLength", 0.03l);
-                worldAxesShader.setFloat("thickness", 0.0005l);
-                worldAxesShader.setFloat("cameraDistance", glm::length(camera.position()));
-                worldAxesShader.setFloat("cameraNear", 0.1f);
+                shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(mainCube.objMaterial.diffTextureName));
+                shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(mainCube.objMaterial.specTextureSampler));
+                shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(mainCube.objMaterial.emissionTextureSampler));
 
-                glDrawArrays(GL_POINTS, 0, 3);
+                glm::mat4 model(1.0f);
+                model = glm::scale(model, mainCube.scale);
+                model = mainCube.rotation * model;
+                model = glm::translate(model, mainCube.position);
 
-                glBindVertexArray(0);
-            }
+                shaderProgramMain.setVec3("currentLight.lightPos", {lightPosX, lightPosY, lightPosZ});
+                shaderProgramMain.setVec3("currentLight.specStrength", {0.8f, 0.8f, 0.8f});
+                shaderProgramMain.setVec3("currentLight.diffStrength", normalizedLightPos);
+                shaderProgramMain.setVec3("currentLight.ambStrength", {0.15f, 0.15f, 0.15f});
+                shaderProgramMain.setFloat("currentLight.k", 1.2f);
+                shaderProgramMain.setFloat("currentLight.b", 0.1f);
 
-            for (size_t p = 0; p < 3; ++p)
-            {
-                const glm::mat4 customModel = glm::translate(model, glm::vec3(p * 10, p * 10, std::sin(p)));
+                shaderProgramMain.setVec3("viewPos", camera.position());
 
-                shaderProgramOrange.use();
+                shaderProgramMain.setMatrix4("model", model);
+                shaderProgramMain.setMatrix4("view", view);
+                shaderProgramMain.setMatrix4("projection", projection);
 
-                shaderProgramOrange.setVec3("oscillationDirection", glm::vec3(oscX, oscY, 0.0f));
-                shaderProgramOrange.setFloat("oscillationFraction", oscFraction * 3.0f);
-
-                shaderProgramOrange.setVec3("currentMaterial.ambColor", ambColor);
-                shaderProgramOrange.setVec3("currentMaterial.diffColor", cubeDiffColor);
-                shaderProgramOrange.setVec3("currentMaterial.specColor", cubeSpecColor);
-
-                shaderProgramOrange.setVec3("currentLight.lightPos", {lightPosX, lightPosY, lightPosZ});
-                shaderProgramOrange.setVec3("currentLight.diffStrength", normalizedLightPos);
-                shaderProgramOrange.setVec3("currentLight.specStrength", {0.8f, 0.8f, 0.8f});
-                shaderProgramOrange.setVec3("currentLight.ambStrength", {0.15f, 0.15f, 0.15f});
-                shaderProgramOrange.setFloat("currentLight.k", 1.2f);
-                shaderProgramOrange.setFloat("currentLight.b", 0.1f);
-
-                shaderProgramOrange.setVec3("viewPos", camera.position());
-
-                shaderProgramOrange.setMatrix4("model", customModel);
-                shaderProgramOrange.setMatrix4("view", view);
-                shaderProgramOrange.setMatrix4("projection", projection);
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, diffuseTex);
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, specularTex);
-                glActiveTexture(GL_TEXTURE2);
-                glBindTexture(GL_TEXTURE_2D, emissionTex);
-
-                glBindVertexArray(VAOOrange);
-                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-                glBindVertexArray(0);
+                glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(mainCube.objMesh)->numIndices(), GL_UNSIGNED_INT, 0);
+                MeshManager::instance()->unbindMesh();
+                TextureManager::instance()->unbindAllTextures();
             }
 
             {
                 lightCubeShader.use();
+
+                MeshManager::instance()->bindMesh("simple_cube");
+
                 glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), glm::vec3(lightPosX, lightPosY, lightPosZ));
                 lightModel = glm::scale(lightModel, glm::vec3(0.6f, 0.6f, 0.6f));
 
@@ -324,10 +257,8 @@ int main(int argc, const char *argv[])
                 lightCubeShader.setMatrix4("view", view);
                 lightCubeShader.setMatrix4("projection", projection);
 
-                glBindVertexArray(VAOLight);
-                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-                glBindVertexArray(0);
+                glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(mainCube.objMesh)->numIndices(), GL_UNSIGNED_INT, 0);
+                MeshManager::instance()->unbindMesh();
             }
 
             glfwSwapBuffers(mainWindow);
@@ -336,9 +267,8 @@ int main(int argc, const char *argv[])
         }
     }
     //// Cleanup
-
-    glDeleteBuffers(1, &VBO);
-    glDeleteVertexArrays(1, &VAOOrange);
+    MeshManager::instance()->cleanUpGracefully();
+    TextureManager::instance()->cleanUpGracefully();
 
     glfwTerminate();
 

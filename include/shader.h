@@ -14,6 +14,7 @@ class Shader
 public:
     Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath = nullptr)
     {
+        //TODO: add lazy evaluation of the shader
         const std::string &vShaderCode = readShaderSource(vertexPath);
         const std::string &fShaderCode = readShaderSource(fragmentPath);
 
@@ -29,9 +30,9 @@ public:
         glShaderSource(fragment, 1, &fPtr, NULL);
         compileShader(fragment);
 
-        ID = glCreateProgram();
-        glAttachShader(ID, vertex);
-        glAttachShader(ID, fragment);
+        _id = glCreateProgram();
+        glAttachShader(_id, vertex);
+        glAttachShader(_id, fragment);
 
         if (geometryPath != nullptr)
         {
@@ -42,15 +43,15 @@ public:
             unsigned int geometry = glCreateShader(GL_GEOMETRY_SHADER);
             glShaderSource(geometry, 1, &gPtr, NULL);
             compileShader(geometry);
-            glAttachShader(ID, geometry);
+            glAttachShader(_id, geometry);
 
-            linkProgram(ID);
+            linkProgram(_id);
 
             glDeleteShader(geometry);
         }
         else
         {
-            linkProgram(ID);
+            linkProgram(_id);
         }
 
         glDeleteShader(vertex);
@@ -59,35 +60,35 @@ public:
 
     ~Shader()
     {
-        glDeleteProgram(ID);
+        glDeleteProgram(_id);
     }
 
-    void use() const { glUseProgram(ID); }
+    void use() const { glUseProgram(_id); }
     
     void setBool(const std::string &name, bool value) const
     {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+        glUniform1i(glGetUniformLocation(_id, name.c_str()), (int)value);
     }
     void setInt(const std::string &name, int value) const
     {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+        glUniform1i(glGetUniformLocation(_id, name.c_str()), value);
     }
     void setFloat(const std::string &name, float value) const
     {
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+        glUniform1f(glGetUniformLocation(_id, name.c_str()), value);
     }
     void setMatrix4(const std::string &name, const glm::mat4 &mat)
     {
-        glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+        glUniformMatrix4fv(glGetUniformLocation(_id, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
     }
     void setVec3(const std::string &name, const glm::vec3 &vec)
     {
-        glUniform3f(glGetUniformLocation(ID, name.c_str()), vec.x, vec.y, vec.z);
+        glUniform3f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z);
     }
 
     operator int()
     {
-        return ID;
+        return _id;
     }
 
 private:
@@ -99,8 +100,8 @@ private:
         glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
         if (!success)
         {
-            glGetShaderInfoLog(shaderId, sizeof(infoLog), NULL, infoLog);
-            std::cerr << "Shader compilation failed. Details: " << infoLog;
+            glGetShaderInfoLog(shaderId, sizeof(_infoLog), NULL, _infoLog);
+            std::cerr << "Shader compilation failed. Details: " << _infoLog;
         }
     }
 
@@ -112,8 +113,8 @@ private:
         glGetProgramiv(programId, GL_LINK_STATUS, &success);
         if (!success)
         {
-            glGetProgramInfoLog(programId, sizeof(infoLog), NULL, infoLog);
-            std::cerr << "Program linking failed. Details: " << infoLog;
+            glGetProgramInfoLog(programId, sizeof(_infoLog), NULL, _infoLog);
+            std::cerr << "Program linking failed. Details: " << _infoLog;
         }
     }
 
@@ -141,7 +142,7 @@ private:
     }
 
 private:
-    // the program ID
-    unsigned int ID;
-    char infoLog[512];
+    // the program _id
+    unsigned int _id;
+    char _infoLog[512];
 };

@@ -46,6 +46,7 @@ public:
 
     void lookAt(const glm::vec3 &target)
     {
+        //TODO: make sure the camera does not snap after lookat
         _front = target - _position;
         _right = glm::normalize(glm::cross(_front, _worldUp));
         _up = glm::normalize(glm::cross(_right, _front));

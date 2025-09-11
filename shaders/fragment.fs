@@ -4,9 +4,7 @@
 out vec4 fragColor;
 
 //ins
-in vec4 outColor;
 in vec2 texCoord;
-
 in vec3 vPos;
 in vec3 vNorm;
 
@@ -40,8 +38,9 @@ void main()
 {
     vec4 diffColor = texture(currentMaterial.diffTextureSampler, texCoord);
     vec4 specColor = texture(currentMaterial.specTextureSampler, texCoord);
+
     float intensityFallof = pow(currentLight.k, -currentLight.b * distance(viewPos, vPos));
-    vec3 normVNorm = normalize(vNorm);
+    vec3 normVNorm = normalize(vNorm); //can interpolation denormalize it?
 
     //ambient
     vec3 ambFraction = diffColor.xyz * currentLight.ambStrength;
