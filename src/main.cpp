@@ -18,6 +18,7 @@ namespace
     constexpr size_t windowWidth = 1440;
     constexpr size_t windowHeight = 810;
 
+    //TODO: fix winding order
     //clang-format off
     float vertices[] = {
         // coords                  //color                    //shift     //texture
@@ -60,6 +61,7 @@ namespace
 
     const char *axesVertexShaderSource = "./shaders/axis_vertex.vs";
     const char *axesFragmentShaderSource = "./shaders/axis_fragment.fs";
+    const char *axesGeometryShaderSource = "./shaders/axis_geometry.gs";
 
     float oscDirection = 0.0;
 
@@ -114,8 +116,6 @@ void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
 void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
@@ -151,7 +151,7 @@ int main(int argc, const char *argv[])
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glLineWidth(5.0f);
+    // glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
     //// Cubes buffers
@@ -201,6 +201,11 @@ int main(int argc, const char *argv[])
 
     glBindVertexArray(0);
 
+    //// Dummy axes VAO
+    uint dummyVao;
+    glGenVertexArrays(1, &dummyVao);
+    glBindVertexArray(0);
+
     {
         //// Textures
 
@@ -217,7 +222,7 @@ int main(int argc, const char *argv[])
         glUniform1i(glGetUniformLocation(shaderProgramOrange, "currentMaterial.emissionTextureSampler"), 2);
 
         Shader lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
-        Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource};
+        Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
 
         //// Transformation stuff
 
@@ -249,27 +254,45 @@ int main(int argc, const char *argv[])
             const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
             const glm::mat4 view = camera.GetViewMatrix();
 
+            {
+                glBindVertexArray(dummyVao);
+
+                worldAxesShader.use();
+
+                worldAxesShader.setMatrix4("viewMat", view);
+                worldAxesShader.setMatrix4("clipMat", projection);
+                //TODO: add proper rescaling of axes due to zoom
+                worldAxesShader.setFloat("axisLength", 0.03l);
+                worldAxesShader.setFloat("thickness", 0.0005l);
+                worldAxesShader.setFloat("cameraDistance", glm::length(camera.Position));
+                worldAxesShader.setFloat("cameraNear", 0.1f);
+                
+                glDrawArrays(GL_POINTS, 0, 3);
+
+                glBindVertexArray(0);
+            }
+
             for (size_t p = 0; p < 3; ++p)
             {
                 const glm::mat4 customModel = glm::translate(model, glm::vec3(p * 10, p * 10, std::sin(p)));
 
                 shaderProgramOrange.use();
 
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "oscillationDirection"), oscX, oscY, 0.0f);
-                glUniform1f(glGetUniformLocation(shaderProgramOrange, "oscillationFraction"), oscFraction * 3.0f);
+                shaderProgramOrange.setVec3("oscillationDirection", glm::vec3(oscX, oscY, 0.0f));
+                shaderProgramOrange.setFloat("oscillationFraction", oscFraction * 3.0f);
 
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentMaterial.ambColor"), ambColor.x, ambColor.y, ambColor.z);
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentMaterial.diffColor"), cubeDiffColor.x, cubeDiffColor.y, cubeDiffColor.z);
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentMaterial.specColor"), cubeSpecColor.x, cubeSpecColor.y, cubeSpecColor.z);
+                shaderProgramOrange.setVec3("currentMaterial.ambColor", ambColor);
+                shaderProgramOrange.setVec3("currentMaterial.diffColor", cubeDiffColor);
+                shaderProgramOrange.setVec3("currentMaterial.specColor", cubeSpecColor);
 
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentLight.lightPos"), lightPosX, lightPosY, lightPosZ);
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentLight.diffStrength"), normalizedLightPos.x, normalizedLightPos.y, normalizedLightPos.z);
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentLight.specStrength"), 0.8f, 0.8f, 0.8f);
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "currentLight.ambStrength"), 0.15f, 0.15f, 0.15f);
-                glUniform1f(glGetUniformLocation(shaderProgramOrange, "currentLight.k"), 1.2f);
-                glUniform1f(glGetUniformLocation(shaderProgramOrange, "currentLight.b"), 0.1f);
+                shaderProgramOrange.setVec3 ("currentLight.lightPos", {lightPosX, lightPosY, lightPosZ});
+                shaderProgramOrange.setVec3("currentLight.diffStrength", normalizedLightPos);
+                shaderProgramOrange.setVec3("currentLight.specStrength", {0.8f, 0.8f, 0.8f});
+                shaderProgramOrange.setVec3("currentLight.ambStrength", {0.15f, 0.15f, 0.15f});
+                shaderProgramOrange.setFloat("currentLight.k", 1.2f);
+                shaderProgramOrange.setFloat("currentLight.b", 0.1f);
 
-                glUniform3f(glGetUniformLocation(shaderProgramOrange, "viewPos"), camera.Position.x, camera.Position.y, camera.Position.z);
+                shaderProgramOrange.setVec3("viewPos", camera.Position);
 
                 shaderProgramOrange.setMatrix4("model", customModel);
                 shaderProgramOrange.setMatrix4("view", view);
@@ -293,8 +316,7 @@ int main(int argc, const char *argv[])
                 glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), glm::vec3(lightPosX, lightPosY, lightPosZ));
                 lightModel = glm::scale(lightModel, glm::vec3(0.6f, 0.6f, 0.6f));
 
-                glUniform3f(glGetUniformLocation(lightCubeShader, "actualLightColor"), normalizedLightPos.x, normalizedLightPos.y, normalizedLightPos.z);
-
+                lightCubeShader.setVec3("actualLightColor", normalizedLightPos);
                 lightCubeShader.setMatrix4("model", lightModel);
                 lightCubeShader.setMatrix4("view", view);
                 lightCubeShader.setMatrix4("projection", projection);
@@ -303,16 +325,6 @@ int main(int argc, const char *argv[])
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
                 glBindVertexArray(0);
-            }
-
-            {
-                worldAxesShader.use();
-
-                worldAxesShader.setMatrix4("viewMat", view);
-                worldAxesShader.setMatrix4("clipMat", projection);
-                worldAxesShader.setInt("axisLength", 100);
-
-                glDrawArrays(GL_LINES, 0, 6);
             }
 
             glfwSwapBuffers(mainWindow);

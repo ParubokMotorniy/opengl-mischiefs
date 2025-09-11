@@ -12,54 +12,46 @@
 class Shader
 {
 public:
-    Shader(const char *vertexPath, const char *fragmentPath)
+    Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath = nullptr)
     {
-        std::string vertexCode;
-        std::string fragmentCode;
-        std::ifstream vShaderFile;
-        std::ifstream fShaderFile;
-        vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        try
-        {
-            vShaderFile.open(vertexPath);
-            fShaderFile.open(fragmentPath);
+        const std::string &vShaderCode = readShaderSource(vertexPath);
+        const std::string &fShaderCode = readShaderSource(fragmentPath);
 
-            std::stringstream vShaderStream, fShaderStream;
-            vShaderStream << vShaderFile.rdbuf();
-            fShaderStream << fShaderFile.rdbuf();
+        const char *vPtr = vShaderCode.c_str();
+        const char *fPtr = fShaderCode.c_str();
 
-            vShaderFile.close();
-            fShaderFile.close();
-
-            vertexCode = vShaderStream.str();
-            fragmentCode = fShaderStream.str();
-        }
-        catch (std::ifstream::failure &e)
-        {
-            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
-        }
-        const char *vShaderCode = vertexCode.c_str();
-        const char *fShaderCode = fragmentCode.c_str();
-        // 2. compile shaders
         unsigned int vertex, fragment;
-        // vertex shader
         vertex = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertex, 1, &vShaderCode, NULL);
+        glShaderSource(vertex, 1, &vPtr, NULL);
         compileShader(vertex);
 
-        // fragment Shader
         fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragment, 1, &fShaderCode, NULL);
+        glShaderSource(fragment, 1, &fPtr, NULL);
         compileShader(fragment);
 
-        // shader Program
         ID = glCreateProgram();
         glAttachShader(ID, vertex);
         glAttachShader(ID, fragment);
-        glLinkProgram(ID);
 
-        linkProgram(ID);
+        if (geometryPath != nullptr)
+        {
+            const std::string &gShaderCode = readShaderSource(geometryPath);
+
+            const char *gPtr = gShaderCode.c_str();
+
+            unsigned int geometry = glCreateShader(GL_GEOMETRY_SHADER);
+            glShaderSource(geometry, 1, &gPtr, NULL);
+            compileShader(geometry);
+            glAttachShader(ID, geometry);
+
+            linkProgram(ID);
+
+            glDeleteShader(geometry);
+        }
+        else
+        {
+            linkProgram(ID);
+        }
 
         glDeleteShader(vertex);
         glDeleteShader(fragment);
@@ -70,9 +62,8 @@ public:
         glDeleteProgram(ID);
     }
 
-    // use/activate the shader
     void use() const { glUseProgram(ID); }
-    // utility uniform functions
+    
     void setBool(const std::string &name, bool value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
@@ -88,6 +79,10 @@ public:
     void setMatrix4(const std::string &name, const glm::mat4 &mat)
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+    }
+    void setVec3(const std::string &name, const glm::vec3 &vec)
+    {
+        glUniform3f(glGetUniformLocation(ID, name.c_str()), vec.x, vec.y, vec.z);
     }
 
     operator int()
@@ -120,6 +115,29 @@ private:
             glGetProgramInfoLog(programId, sizeof(infoLog), NULL, infoLog);
             std::cerr << "Program linking failed. Details: " << infoLog;
         }
+    }
+
+    std::string readShaderSource(const char *shaderSource)
+    {
+        std::string shaderCode;
+        std::ifstream shaderFile;
+        shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        try
+        {
+            shaderFile.open(shaderSource);
+
+            std::stringstream shaderStream;
+            shaderStream << shaderFile.rdbuf();
+
+            shaderFile.close();
+
+            shaderCode = shaderStream.str();
+        }
+        catch (std::ifstream::failure &e)
+        {
+            std::cout << "SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+        }
+        return shaderCode;
     }
 
 private:
