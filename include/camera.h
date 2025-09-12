@@ -46,10 +46,12 @@ public:
 
     void lookAt(const glm::vec3 &target)
     {
-        //TODO: make sure the camera does not snap after lookat
-        _front = target - _position;
+        _front = glm::normalize(target - _position);
         _right = glm::normalize(glm::cross(_front, _worldUp));
         _up = glm::normalize(glm::cross(_right, _front));
+
+        _yaw = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::vec2(_front.x, _front.z)), glm::vec2(1.0f, 0.0f))));
+        _pitch = glm::degrees(glm::asin(_front.y));
     }
 
     void processKeyboard(MovementInput keysPressed, float deltaTime)
