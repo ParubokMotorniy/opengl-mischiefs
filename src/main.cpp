@@ -249,8 +249,8 @@ int main(int argc, const char *argv[])
                 worldAxesShader.setMatrix4("viewMat", view);
                 worldAxesShader.setMatrix4("clipMat", projection);
                 // TODO: add proper rescaling of axes due to zoom
-                worldAxesShader.setFloat("axisLength", 0.03l);
-                worldAxesShader.setFloat("thickness", 0.0005l);
+                worldAxesShader.setFloat("axisLength", 0.3l);
+                worldAxesShader.setFloat("thickness", 0.004l);
                 worldAxesShader.setFloat("cameraDistance", glm::length(camera.position()));
                 worldAxesShader.setFloat("cameraNear", 0.1f);
 

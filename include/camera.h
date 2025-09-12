@@ -10,14 +10,14 @@ struct MovementInput
 {
     uint8_t Forward : 1;
     uint8_t Backward : 1;
-    uint8_t _right : 1;
+    uint8_t Right : 1;
     uint8_t Left : 1;
-    uint8_t _up : 1;
+    uint8_t Up : 1;
     uint8_t Down : 1;
 
     bool isEmpty() const
     {
-        return Forward + Backward + _right + Left + _up + Down == 0;
+        return Forward + Backward + Right + Left + Up + Down == 0;
     }
 };
 
@@ -67,14 +67,16 @@ public:
             movementVector += projector(_front);
         if (keysPressed.Backward == 1)
             movementVector -= projector(_front);
-        if (keysPressed._right == 1)
+        if (keysPressed.Right == 1)
             movementVector += projector(_right);
         if (keysPressed.Left == 1)
             movementVector -= projector(_right);
-        if (keysPressed._up == 1)
+        if (keysPressed.Up == 1)
             movementVector += _worldUp;
         if (keysPressed.Down == 1)
             movementVector -= _worldUp;
+
+        assert(!glm::isnan(movementVector.x) && !glm::isnan(movementVector.y) && !glm::isnan(movementVector.z));
 
         float velocity = _movementSpeed * deltaTime;
         _position += glm::normalize(movementVector) * velocity;
