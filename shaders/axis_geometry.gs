@@ -21,10 +21,11 @@ int vertexID;
 
 out vec4 outColor;
 
+//rescales the vertex so that is appears to be of the same size in ndc
 vec4 rescaleVertex(vec3 inputVertex, vec3 linearDimensions)
 {
-    float scale = (viewMat * vec4(inputVertex, 1.0)).z;
-    return clipMat * viewMat * vec4(linearDimensions * scale * inputVertex, 1.0);
+    float scale = -(viewMat * vec4(inputVertex, 1.0)).z;
+    return clipMat * viewMat * vec4( linearDimensions * scale * inputVertex, 1.0);
 }
 
 void main()
@@ -36,6 +37,7 @@ void main()
                                vec2(0, -1.0),
                                vec2(-1.0, 0),
                                vec2(0, 1.0));
+                
 
     int directionMask = 0x01 << (vertId);
     outColor = vec4((directionMask & 0x01), (directionMask & 0x02) >> 1, (directionMask & 0x04) >> 2, 1.0);
@@ -63,7 +65,7 @@ void main()
             gl_Position = rescaleVertex(vec3(0, vertices[i % 4].xy), vec3(1.0, thickness, thickness));
             EmitVertex();
 
-            gl_Position = rescaleVertex(vec3(axisLength, vertices[i % 4].xy), vec3(axisLength, thickness, thickness));
+            gl_Position = rescaleVertex(vec3(-axisLength, vertices[i % 4].xy), vec3(axisLength, thickness, thickness));
             EmitVertex();
         }
     }
@@ -85,7 +87,7 @@ void main()
                 EmitVertex();
             }else if(vertId == 2)
             {
-                gl_Position = rescaleVertex(vec3(axisLength * k, vertices[j].xy), vec3(axisLength, thickness, thickness));
+                gl_Position = rescaleVertex(vec3(-axisLength * k, vertices[j].xy), vec3(axisLength, thickness, thickness));
                 
                 EmitVertex();
             }
