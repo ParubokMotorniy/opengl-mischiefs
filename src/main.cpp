@@ -7,6 +7,7 @@
 
 #include "shader.h"
 #include "camera.h"
+#include "quaternioncamera.h"
 #include "texture.h"
 #include "meshmanager.h"
 #include "texturemanager.h"
@@ -31,7 +32,7 @@ namespace
     const char *axesFragmentShaderSource = "./shaders/axis_fragment.fs";
     const char *axesGeometryShaderSource = "./shaders/axis_geometry.gs";
 
-    Camera camera{glm::vec3(10.f, 10.0f, -10.0f)};
+    Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
     float lastX{0.0f};
     float lastY{0.0f};
     float deltaTime{0.0f};
@@ -51,7 +52,7 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    camera.processKeyboard(MovementInput{
+    camera->processKeyboard(MovementInput{
                                glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS,
                                glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS,
                                glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS,
@@ -73,12 +74,12 @@ void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
     lastY = ypos;
 
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-        camera.processMouseMovement(xoffset, yoffset);
+        camera->processMouseMovement(xoffset, yoffset);
 }
 
 void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    camera.processMouseScroll(static_cast<float>(yoffset));
+    camera->processMouseScroll(static_cast<float>(yoffset));
 }
 
 MeshManager *MeshManager::_instance = nullptr;
@@ -221,7 +222,7 @@ int main(int argc, const char *argv[])
         Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
 
         //// Render loop
-        camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+        camera->lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
         while (!glfwWindowShouldClose(mainWindow))
         {
             deltaTime = glfwGetTime() - previousTime;
@@ -238,8 +239,8 @@ int main(int argc, const char *argv[])
             const float lightPosZ = std::sin(time * 3.0f);
             const glm::vec3 normalizedLightPos = glm::normalize(glm::vec3(lightPosX, lightPosY, lightPosZ));
 
-            const glm::mat4 projection = glm::perspective(glm::radians(camera.zoom()), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
-            const glm::mat4 view = camera.getViewMatrix();
+            const glm::mat4 projection = glm::perspective(glm::radians(camera->zoom()), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
+            const glm::mat4 view = camera->getViewMatrix();
 
             {
                 glBindVertexArray(dummyVao);
@@ -251,7 +252,7 @@ int main(int argc, const char *argv[])
                 // TODO: add proper rescaling of axes due to zoom
                 worldAxesShader.setFloat("axisLength", 0.3l);
                 worldAxesShader.setFloat("thickness", 0.004l);
-                worldAxesShader.setFloat("cameraDistance", glm::length(camera.position()));
+                worldAxesShader.setFloat("cameraDistance", glm::length(camera->position()));
                 worldAxesShader.setFloat("cameraNear", 0.1f);
 
                 glDrawArrays(GL_POINTS, 0, 3);
@@ -271,7 +272,7 @@ int main(int argc, const char *argv[])
                 shaderProgramMain.setMatrix4("view", view);
                 shaderProgramMain.setMatrix4("projection", projection);
 
-                shaderProgramMain.setVec3("viewPos", camera.position());
+                shaderProgramMain.setVec3("viewPos", camera->position());
 
                 for (const PrimitiveObject &obj : standardShaderObjects)
                 {

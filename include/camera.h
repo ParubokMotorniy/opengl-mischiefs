@@ -21,11 +21,13 @@ struct MovementInput
     }
 };
 
+//TODO: remove this c++ heresy
 const float YAW = 15.0f;
 const float PITCH = 0.0f;
 const float SPEED = 5.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
+const float ROLL = 0.0f;
 
 class Camera
 {
@@ -39,12 +41,12 @@ public:
         updateCameraVectors();
     }
 
-    glm::mat4 getViewMatrix()
+    virtual glm::mat4 getViewMatrix()
     {
         return glm::lookAt(_position, _position + _front, _up);
     }
 
-    void lookAt(const glm::vec3 &target)
+    virtual void lookAt(const glm::vec3 &target)
     {
         _front = glm::normalize(target - _position);
         _right = glm::normalize(glm::cross(_front, _worldUp));
@@ -54,7 +56,7 @@ public:
         _pitch = glm::degrees(glm::asin(_front.y));
     }
 
-    void processKeyboard(MovementInput keysPressed, float deltaTime)
+    virtual void processKeyboard(MovementInput keysPressed, float deltaTime)
     {
         if (keysPressed.isEmpty())
             return;
@@ -82,7 +84,7 @@ public:
         _position += glm::normalize(movementVector) * velocity;
     }
 
-    void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    virtual void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
     {
         xoffset *= _mouseSensitivity;
         yoffset *= _mouseSensitivity;
@@ -101,7 +103,7 @@ public:
         updateCameraVectors();
     }
 
-    void processMouseScroll(float yoffset)
+    virtual void processMouseScroll(float yoffset)
     {
         _zoom -= (float)yoffset;
         if (_zoom < 1.0f)
@@ -110,7 +112,7 @@ public:
             _zoom = 45.0f;
     }
 
-    float zoom()
+    virtual float zoom()
     {
         return _zoom;
     }
@@ -132,17 +134,19 @@ private:
         _up = glm::normalize(glm::cross(_right, _front));
     }
 
-private:
+//TODO: move camera to a higher precision internals for smoother motion
+protected:
     glm::vec3 _position;
     glm::vec3 _front;
     glm::vec3 _up;
     glm::vec3 _right;
     glm::vec3 _worldUp;
 
-    float _yaw;
-    float _pitch;
-
     float _movementSpeed;
     float _mouseSensitivity;
+    
+private:
     float _zoom;
+    float _yaw;
+    float _pitch;
 };
