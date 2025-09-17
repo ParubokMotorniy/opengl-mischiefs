@@ -38,7 +38,7 @@ namespace
     float deltaTime{0.0f};
     float previousTime{0.0f};
 
-    const float lightRotationRadius = 25.0f;
+    const float lightRotationRadius = 40.0f;
 }
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -205,10 +205,10 @@ int main(int argc, const char *argv[])
     TextureManager::instance()->allocateTexture("big_floppa_emission");
     TextureManager::instance()->allocateTexture("big_floppa_diffuse");
 
-    std::vector<PrimitiveObject> standardShaderObjects = {{.objMesh = "simple_cube", .objMaterial = floppaCubeMaterial, .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::identity<glm::mat4>(), .position = glm::vec3(7.0f, 7.0f, 7.0f)}};
+    std::vector<PrimitiveObject> standardShaderObjects = {{.objMesh = "simple_cube", .objMaterial = floppaCubeMaterial, .rotation = glm::identity<glm::mat4>(), .position = glm::vec3(-10.0f, 10.0f, -10.0f)}};
     std::vector<PrimitiveObject> cubeLightObjects = {{.objMesh = "simple_cube", .scale = glm::vec3(0.5f, 0.5f, 0.5f)}};
-    std::vector<PrimitiveObject> voronoiseObjects = {{.objMesh = "half_cube_down", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(7.0f, -7.0f, 7.0f)}};
-    std::vector<PrimitiveObject> voronoiDistancesObjects = {{.objMesh = "half_cube_up", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(7.0f, -7.0f, 7.0f)}};
+    std::vector<PrimitiveObject> voronoiseObjects = {{.objMesh = "half_cube_down", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
+    std::vector<PrimitiveObject> voronoiDistancesObjects = {{.objMesh = "half_cube_up", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
 
     // //// Dummy axes VAO
     uint dummyVao;
@@ -225,7 +225,7 @@ int main(int argc, const char *argv[])
         Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
 
         //// Render loop
-        camera->lookAt(glm::vec3(7.0f, 7.0f, 7.0f));
+        camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
         while (!glfwWindowShouldClose(mainWindow))
         {
             deltaTime = glfwGetTime() - previousTime;
@@ -237,9 +237,9 @@ int main(int argc, const char *argv[])
 
             const float time = glfwGetTime();
 
-            const float lightPosX = std::cos(time * 2.0f) * lightRotationRadius;
+            const float lightPosX = std::cos(time * 1.5f) * lightRotationRadius;
             const float lightPosY = std::sin(time * 2.0f) * lightRotationRadius;
-            const float lightPosZ = std::sin(time * 3.0f);
+            const float lightPosZ = std::sin(time * 2.5f) * lightRotationRadius;
             const glm::vec3 normalizedLightPos = glm::normalize(glm::vec3(lightPosX, lightPosY, lightPosZ));
 
             const glm::mat4 projection = glm::perspective(glm::radians(camera->zoom()), (float)windowWidth / windowHeight, 0.1f, 1000.0f);
@@ -252,7 +252,6 @@ int main(int argc, const char *argv[])
 
                 worldAxesShader.setMatrix4("viewMat", view);
                 worldAxesShader.setMatrix4("clipMat", projection);
-                // TODO: add proper rescaling of axes due to zoom
                 worldAxesShader.setFloat("axisLength", 0.3l);
                 worldAxesShader.setFloat("thickness", 0.004l);
                 worldAxesShader.setFloat("cameraDistance", glm::length(camera->position()));

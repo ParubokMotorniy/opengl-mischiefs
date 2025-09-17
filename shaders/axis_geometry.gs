@@ -65,7 +65,7 @@ void main()
             gl_Position = rescaleVertex(vec3(0, vertices[i % 4].xy), vec3(1.0, thickness, thickness));
             EmitVertex();
 
-            gl_Position = rescaleVertex(vec3(-axisLength, vertices[i % 4].xy), vec3(axisLength, thickness, thickness));
+            gl_Position = rescaleVertex(vec3(axisLength, vertices[i % 4].xy), vec3(axisLength, thickness, thickness));
             EmitVertex();
         }
     }
@@ -87,7 +87,7 @@ void main()
                 EmitVertex();
             }else if(vertId == 2)
             {
-                gl_Position = rescaleVertex(vec3(-axisLength * k, vertices[j].xy), vec3(axisLength, thickness, thickness));
+                gl_Position = rescaleVertex(vec3(axisLength * k, vertices[j].xy), vec3(axisLength, thickness, thickness));
                 
                 EmitVertex();
             }

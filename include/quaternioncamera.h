@@ -94,7 +94,6 @@ private:
 
         if (glm::abs(_right.y) > 1.0e-4) // this thing removes unintended roll buildup from the camera
         {
-            std::cout << "Correcting the roll!" << std::endl;
             _right = glm::normalize(glm::vec3(-glm::sign(_front.z), 0.0f, -glm::sign(_front.z) * (-_front.x / _front.z)));
             _up = glm::normalize(glm::cross(_right, _front));
         }

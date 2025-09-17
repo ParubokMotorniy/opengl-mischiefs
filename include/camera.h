@@ -78,19 +78,8 @@ public:
 
     virtual void processKeyboard(const KeyboardInput &keysPressed, float deltaTime)
     {
-        std::cout << "Keys: " << (int)keysPressed.Forward << " "
-                  << (int)keysPressed.Backward << " "
-                  << (int)keysPressed.Right << " "
-                  << (int)keysPressed.Left << " "
-                  << (int)keysPressed.Up << " "
-                  << (int)keysPressed.Down << " "
-                  << (int)keysPressed.PeekRight << " "
-                  << (int)keysPressed.PeekLeft << " "
-                                                  "\n";
-
         if (keysPressed.motionIsZero())
         {
-            std::cout << "Motion is zero!" << std::endl;
             return;
         }
 
@@ -125,8 +114,6 @@ public:
         movementVector = glm::normalize(movementVector) * velocity;
 
         assert(!glm::isnan(movementVector.x) && !glm::isnan(movementVector.y) && !glm::isnan(movementVector.z));
-
-        std::cout << "Motion vector: " << movementVector.x << " " << movementVector.y << " " << movementVector.z << std::endl;
 
         _position += movementVector;
     }
