@@ -36,7 +36,7 @@ public:
         updateCameraVectors();
     }
 
-    virtual void processKeyboard(KeyboardInput keysPressed, float deltaTime) override
+    virtual void processKeyboard(const KeyboardInput &keysPressed, float deltaTime) override
     {
         const auto roll = getRoll();
         const auto cacheUp = _up;

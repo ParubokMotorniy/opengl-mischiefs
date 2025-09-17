@@ -8,14 +8,14 @@
 
 struct KeyboardInput
 {
-    uint8_t Forward : 1;
-    uint8_t Backward : 1;
-    uint8_t Right : 1;
-    uint8_t Left : 1;
-    uint8_t Up : 1;
-    uint8_t Down : 1;
-    uint8_t PeekRight : 1;
-    uint8_t PeekLeft : 1;
+    uint8_t Forward : 1 = 0;
+    uint8_t Backward : 1 = 0;
+    uint8_t Right : 1 = 0;
+    uint8_t Left : 1 = 0;
+    uint8_t Up : 1 = 0;
+    uint8_t Down : 1 = 0;
+    uint8_t PeekRight : 1 = 0;
+    uint8_t PeekLeft : 1 = 0;
 
     bool motionIsZero() const
     {
@@ -76,10 +76,23 @@ public:
         _pitch = glm::degrees(glm::asin(_front.y));
     }
 
-    virtual void processKeyboard(KeyboardInput keysPressed, float deltaTime)
+    virtual void processKeyboard(const KeyboardInput &keysPressed, float deltaTime)
     {
+        std::cout << "Keys: " << (int)keysPressed.Forward << " "
+                  << (int)keysPressed.Backward << " "
+                  << (int)keysPressed.Right << " "
+                  << (int)keysPressed.Left << " "
+                  << (int)keysPressed.Up << " "
+                  << (int)keysPressed.Down << " "
+                  << (int)keysPressed.PeekRight << " "
+                  << (int)keysPressed.PeekLeft << " "
+                                                  "\n";
+
         if (keysPressed.motionIsZero())
+        {
+            std::cout << "Motion is zero!" << std::endl;
             return;
+        }
 
         const auto projector = [](const glm::vec3 &input)
         { return glm::vec3(input.x, 0.0f, input.z); };
@@ -112,6 +125,8 @@ public:
         movementVector = glm::normalize(movementVector) * velocity;
 
         assert(!glm::isnan(movementVector.x) && !glm::isnan(movementVector.y) && !glm::isnan(movementVector.z));
+
+        std::cout << "Motion vector: " << movementVector.x << " " << movementVector.y << " " << movementVector.z << std::endl;
 
         _position += movementVector;
     }

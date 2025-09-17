@@ -52,6 +52,7 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    //key ghosting does not allow some combinations of peek and diagonal motion :(
     camera->processKeyboard(KeyboardInput{
                                 glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS,
                                 glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS,
