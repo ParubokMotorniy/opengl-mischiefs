@@ -224,7 +224,7 @@ int main(int argc, const char *argv[])
         Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
 
         //// Render loop
-        camera->lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+        camera->lookAt(glm::vec3(7.0f, 7.0f, 7.0f));
         while (!glfwWindowShouldClose(mainWindow))
         {
             deltaTime = glfwGetTime() - previousTime;

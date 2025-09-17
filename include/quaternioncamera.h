@@ -24,6 +24,18 @@ public:
         return roll.has_value() ? glm::lookAt(_position, _position + _front, roll.value() * _up) : glm::lookAt(_position, _position + _front, _up);
     }
 
+    virtual void lookAt(const glm::vec3 &target) override
+    {
+        const auto targetDir = glm::normalize(target - _position);
+        const auto rotationAngle = glm::acos(glm::dot(_front, targetDir));
+
+        const auto rotationAxis = glm::normalize(glm::cross(_front, targetDir));
+        const auto targetRotation = glm::angleAxis(rotationAngle, rotationAxis);
+
+        _cameraRotation = glm::normalize(targetRotation  * _cameraRotation);
+        updateCameraVectors();
+    }
+
     virtual void processKeyboard(KeyboardInput keysPressed, float deltaTime) override
     {
         const auto roll = getRoll();
@@ -80,7 +92,7 @@ private:
 
         // TODO: come up with a more sophisticated control system
 
-        if (glm::abs(_right.y) > 1.0e-5) // this thing removes unintended roll buildup from the camera
+        if (glm::abs(_right.y) > 1.0e-4) // this thing removes unintended roll buildup from the camera
         {
             std::cout << "Correcting the roll!" << std::endl;
             _right = glm::normalize(glm::vec3(-glm::sign(_front.z), 0.0f, -glm::sign(_front.z) * (-_front.x / _front.z)));
