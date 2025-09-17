@@ -52,7 +52,7 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    //key ghosting does not allow some combinations of peek and diagonal motion :(
+    // key ghosting does not allow some combinations of peek and diagonal motion :(
     camera->processKeyboard(KeyboardInput{
                                 glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS,
                                 glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS,
@@ -205,10 +205,11 @@ int main(int argc, const char *argv[])
     TextureManager::instance()->allocateTexture("big_floppa_emission");
     TextureManager::instance()->allocateTexture("big_floppa_diffuse");
 
-    std::vector<PrimitiveObject> standardShaderObjects = {{.objMesh = "simple_cube", .objMaterial = floppaCubeMaterial, .rotation = glm::identity<glm::mat4>(), .position = glm::vec3(-10.0f, 10.0f, -10.0f)}};
+    std::vector<PrimitiveObject> standardShaderObjects = {{.objMesh = "simple_cube", .objMaterial = floppaCubeMaterial, .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(-10.0f, 10.0f, -10.0f)}};
     std::vector<PrimitiveObject> cubeLightObjects = {{.objMesh = "simple_cube", .scale = glm::vec3(0.5f, 0.5f, 0.5f)}};
     std::vector<PrimitiveObject> voronoiseObjects = {{.objMesh = "half_cube_down", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
     std::vector<PrimitiveObject> voronoiDistancesObjects = {{.objMesh = "half_cube_up", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
+    std::vector<PrimitiveObject *> objectsWithAxes = {&standardShaderObjects[0], &voronoiseObjects[0], &voronoiDistancesObjects[0]};
 
     // //// Dummy axes VAO
     uint dummyVao;
@@ -246,22 +247,6 @@ int main(int argc, const char *argv[])
             const glm::mat4 view = camera->getViewMatrix();
 
             {
-                glBindVertexArray(dummyVao);
-
-                worldAxesShader.use();
-
-                worldAxesShader.setMatrix4("viewMat", view);
-                worldAxesShader.setMatrix4("clipMat", projection);
-                worldAxesShader.setFloat("axisLength", 0.3l);
-                worldAxesShader.setFloat("thickness", 0.004l);
-                worldAxesShader.setFloat("cameraDistance", glm::length(camera->position()));
-                worldAxesShader.setFloat("cameraNear", 0.1f);
-
-                glDrawArrays(GL_POINTS, 0, 3);
-
-                glBindVertexArray(0);
-            }
-            {
                 shaderProgramMain.use();
 
                 shaderProgramMain.setVec3("currentLight.lightPos", {lightPosX, lightPosY, lightPosZ}); // TODO: generalize for multiple sources
@@ -284,12 +269,7 @@ int main(int argc, const char *argv[])
                     shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(standardShaderObjects[0].objMaterial.specTextureSampler));
                     shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(standardShaderObjects[0].objMaterial.emissionTextureSampler));
 
-                    glm::mat4 model(1.0f);
-                    model = glm::scale(model, obj.scale);
-                    model = obj.rotation * model;
-                    model = glm::translate(model, obj.position);
-
-                    shaderProgramMain.setMatrix4("model", model);
+                    shaderProgramMain.setMatrix4("model", obj.computeModelMatrix());
 
                     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(obj.objMesh)->numIndices(), GL_UNSIGNED_INT, 0);
                     MeshManager::instance()->unbindMesh();
@@ -308,12 +288,8 @@ int main(int argc, const char *argv[])
                 for (const PrimitiveObject &obj : voronoiseObjects)
                 {
                     MeshManager::instance()->bindMesh(obj.objMesh);
-                    glm::mat4 model(1.0f);
-                    model = glm::scale(model, obj.scale);
-                    model = obj.rotation * model;
-                    model = glm::translate(model, obj.position);
 
-                    voronoiseShader.setMatrix4("model", model);
+                    voronoiseShader.setMatrix4("model", obj.computeModelMatrix());
 
                     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(obj.objMesh)->numIndices(), GL_UNSIGNED_INT, 0);
                     MeshManager::instance()->unbindMesh();
@@ -330,12 +306,8 @@ int main(int argc, const char *argv[])
                 for (const PrimitiveObject &obj : voronoiDistancesObjects)
                 {
                     MeshManager::instance()->bindMesh(obj.objMesh);
-                    glm::mat4 model(1.0f);
-                    model = glm::scale(model, obj.scale);
-                    model = obj.rotation * model;
-                    model = glm::translate(model, obj.position);
 
-                    voronoiDistancesShader.setMatrix4("model", model);
+                    voronoiDistancesShader.setMatrix4("model", obj.computeModelMatrix());
 
                     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(obj.objMesh)->numIndices(), GL_UNSIGNED_INT, 0);
                     MeshManager::instance()->unbindMesh();
@@ -364,6 +336,27 @@ int main(int argc, const char *argv[])
             }
 
             {
+                glDisable(GL_DEPTH_TEST);
+                worldAxesShader.use();
+                
+                glBindVertexArray(dummyVao);
+
+                worldAxesShader.setFloat("axisLength", 0.25l);
+                worldAxesShader.setFloat("thickness", 0.002l);
+                worldAxesShader.setMatrix4("viewMat", view);
+                worldAxesShader.setMatrix4("projectionMat", projection);
+
+                for(const PrimitiveObject *obj : objectsWithAxes)
+                {
+                    worldAxesShader.setMatrix4("modelMat", obj->computeModelMatrixNoScale());
+                    glDrawArrays(GL_POINTS, 0, 3);
+                }
+
+                worldAxesShader.setMatrix4("modelMat", glm::identity<glm::mat4>()); //draws global axes
+                glDrawArrays(GL_POINTS, 0, 3);
+
+                glBindVertexArray(0);
+                glEnable(GL_DEPTH_TEST);
             }
 
             glfwSwapBuffers(mainWindow);

@@ -1,15 +1,12 @@
 #version 400 core
 
 
-uniform float cameraNear;
-uniform float cameraDistance;
-// uniform float fov;
-
 uniform float thickness;
 uniform float axisLength;
 
+uniform mat4 modelMat;
 uniform mat4 viewMat;
-uniform mat4 clipMat;
+uniform mat4 projectionMat;
 
 layout (points) in;
 layout (triangle_strip, max_vertices = 18) out;
@@ -24,21 +21,19 @@ out vec4 outColor;
 //rescales the vertex so that is appears to be of the same size in ndc
 vec4 rescaleVertex(vec3 inputVertex, vec3 linearDimensions)
 {
-    float scale = -(viewMat * vec4(inputVertex, 1.0)).z;
-    return clipMat * viewMat * vec4( linearDimensions * scale * inputVertex, 1.0);
+    float scale = -(viewMat * modelMat * vec4(inputVertex, 1.0)).z;
+    return projectionMat * viewMat * modelMat * vec4( linearDimensions * scale * inputVertex, 1.0);
 }
+
+vec2 vertices[4] = vec2[4](vec2(1.0, 0),
+                               vec2(0, -1.0),
+                               vec2(-1.0, 0),
+                               vec2(0, 1.0));
 
 void main()
 {
     int vertId = gsIn[0].vertexID; 
-    mat4 mvpMat = clipMat * viewMat;
-
-    vec2 vertices[4] = vec2[4](vec2(1.0, 0),
-                               vec2(0, -1.0),
-                               vec2(-1.0, 0),
-                               vec2(0, 1.0));
-                
-
+            
     int directionMask = 0x01 << (vertId);
     outColor = vec4((directionMask & 0x01), (directionMask & 0x02) >> 1, (directionMask & 0x04) >> 2, 1.0);
 
