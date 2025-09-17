@@ -1,42 +1,12 @@
 #pragma once
 
+#include "window.h"
+
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <cmath>
-
-struct KeyboardInput
-{
-    uint8_t Forward : 1 = 0;
-    uint8_t Backward : 1 = 0;
-    uint8_t Right : 1 = 0;
-    uint8_t Left : 1 = 0;
-    uint8_t Up : 1 = 0;
-    uint8_t Down : 1 = 0;
-    uint8_t PeekRight : 1 = 0;
-    uint8_t PeekLeft : 1 = 0;
-
-    bool motionIsZero() const
-    {
-        return fMotionIsZero() && rMotionIsZero() && uMotionIsZero();
-    }
-
-    bool fMotionIsZero() const
-    {
-        return (Forward - Backward) == 0;
-    }
-
-    bool rMotionIsZero() const
-    {
-        return (Right - Left) == 0;
-    }
-
-    bool uMotionIsZero() const
-    {
-        return (Up - Down) == 0;
-    }
-};
 
 // TODO: remove this c++ heresy
 const float YAW = 15.0f;

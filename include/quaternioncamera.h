@@ -1,13 +1,14 @@
 #pragma once
 
 #include "camera.h"
+#include "window.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include <iostream>
 #include <optional>
 
-#include <GLFW/glfw3.h>
 
 class QuaternionCamera : public Camera
 {

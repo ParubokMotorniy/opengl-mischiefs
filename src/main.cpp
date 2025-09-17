@@ -12,6 +12,7 @@
 #include "meshmanager.h"
 #include "texturemanager.h"
 #include "object.h"
+#include "window.h"
 
 #include <iostream>
 #include <cmath>
@@ -22,6 +23,7 @@ namespace
     constexpr size_t windowWidth = 1440;
     constexpr size_t windowHeight = 810;
 
+    // TODO: add some shader source manager
     const char *vertexShaderSource = "./shaders/vertex_standard.vs";
     const char *fragmentShaderSource = "./shaders/fragment_standard.fs";
 
@@ -32,57 +34,12 @@ namespace
     const char *axesFragmentShaderSource = "./shaders/axis_fragment.fs";
     const char *axesGeometryShaderSource = "./shaders/axis_geometry.gs";
 
+    const char *voronoiDistanceFragmentShaderSource = "./shaders/voronoi_distances.fs";
+    const char *voronoiseFragmentShaderSource = "./shaders/voronoise.fs";
+
     Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
-    float lastX{0.0f};
-    float lastY{0.0f};
     float deltaTime{0.0f};
     float previousTime{0.0f};
-
-    const float lightRotationRadius = 40.0f;
-}
-
-void framebufferResizeCallback(GLFWwindow *window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
-
-// TODO:move stuff to the camera or set up some observer pipeline
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    // key ghosting does not allow some combinations of peek and diagonal motion :(
-    camera->processKeyboard(KeyboardInput{
-                                glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS,
-                                glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS,
-                                glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS,
-                                glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS,
-                                glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS,
-                                glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS,
-                                glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS,
-                                glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS},
-                            deltaTime);
-}
-
-void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
-{
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-
-    lastX = xpos;
-    lastY = ypos;
-
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-        camera->processMouseMovement(xoffset, yoffset);
-}
-
-void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
-{
-    camera->processMouseScroll(static_cast<float>(yoffset));
 }
 
 MeshManager *MeshManager::_instance = nullptr;
@@ -91,27 +48,17 @@ TextureManager *TextureManager::_instance = nullptr;
 int main(int argc, const char *argv[])
 {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    Window mainWindow(windowWidth, windowHeight, "opengl-mischiefs");
 
-    GLFWwindow *mainWindow = glfwCreateWindow(windowWidth, windowHeight, "Engine", NULL, NULL);
-    if (mainWindow == NULL)
+    if (mainWindow.getRawWindow() == nullptr)
     {
-        std::cerr << "Window creation failed" << std::endl;
-        glfwTerminate();
+        std::cerr << "Failed to create a main window!" << std::endl;
         return -1;
     }
 
-    glfwMakeContextCurrent(mainWindow);
-    glfwSetFramebufferSizeCallback(mainWindow, framebufferResizeCallback);
-    glfwSetCursorPosCallback(mainWindow, mouseCallback);
-    glfwSetScrollCallback(mainWindow, scrollCallback);
-    glfwSetInputMode(mainWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::cerr << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
@@ -211,6 +158,19 @@ int main(int argc, const char *argv[])
     std::vector<PrimitiveObject> voronoiDistancesObjects = {{.objMesh = "half_cube_up", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
     std::vector<PrimitiveObject *> objectsWithAxes = {&standardShaderObjects[0], &voronoiseObjects[0], &voronoiDistancesObjects[0]};
 
+    mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, float deltaTime)
+                                      { camPtr->processKeyboard(input, deltaTime); });
+    mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, Window::MouseMotionDescriptor descriptor)
+                                      { 
+                                        if(input.MouseRight == 1)
+                                        {
+                                            camPtr->processMouseMovement(descriptor.deltaPosX, descriptor.deltaPosY);
+                                        } });
+    mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor)
+                                      { camPtr->processMouseScroll(descriptor.deltaScrollY); });
+    mainWindow.subscribeEventListener([](int w, int h)
+                                      { glViewport(0, 0, w, h); });
+
     // //// Dummy axes VAO
     uint dummyVao;
     glGenVertexArrays(1, &dummyVao);
@@ -221,18 +181,20 @@ int main(int argc, const char *argv[])
 
         Shader shaderProgramMain{vertexShaderSource, fragmentShaderSource};
         Shader lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
-        Shader voronoiseShader{vertexShaderSource, "./shaders/voronoise.fs"};
-        Shader voronoiDistancesShader{vertexShaderSource, "./shaders/voronoi_distances.fs"};
+        Shader voronoiseShader{vertexShaderSource, voronoiseFragmentShaderSource};
+        Shader voronoiDistancesShader{vertexShaderSource, voronoiDistanceFragmentShaderSource};
         Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
+        const float lightRotationRadius = 40.0f;
 
         //// Render loop
         camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
-        while (!glfwWindowShouldClose(mainWindow))
+        while (!mainWindow.shouldClose())
         {
+            // TODO: move time management to a separate class
             deltaTime = glfwGetTime() - previousTime;
             previousTime = glfwGetTime();
 
-            processInput(mainWindow);
+            mainWindow.update(deltaTime);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -338,7 +300,7 @@ int main(int argc, const char *argv[])
             {
                 glDisable(GL_DEPTH_TEST);
                 worldAxesShader.use();
-                
+
                 glBindVertexArray(dummyVao);
 
                 worldAxesShader.setFloat("axisLength", 0.25l);
@@ -346,20 +308,21 @@ int main(int argc, const char *argv[])
                 worldAxesShader.setMatrix4("viewMat", view);
                 worldAxesShader.setMatrix4("projectionMat", projection);
 
-                for(const PrimitiveObject *obj : objectsWithAxes)
+                // TODO: do with instancing in the future
+                for (const PrimitiveObject *obj : objectsWithAxes)
                 {
                     worldAxesShader.setMatrix4("modelMat", obj->computeModelMatrixNoScale());
                     glDrawArrays(GL_POINTS, 0, 3);
                 }
 
-                worldAxesShader.setMatrix4("modelMat", glm::identity<glm::mat4>()); //draws global axes
+                worldAxesShader.setMatrix4("modelMat", glm::identity<glm::mat4>()); // draws global axes
                 glDrawArrays(GL_POINTS, 0, 3);
 
                 glBindVertexArray(0);
                 glEnable(GL_DEPTH_TEST);
             }
 
-            glfwSwapBuffers(mainWindow);
+            glfwSwapBuffers(mainWindow.getRawWindow());
 
             glfwPollEvents();
         }
