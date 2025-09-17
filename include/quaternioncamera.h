@@ -5,6 +5,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <iostream>
+#include <optional>
 
 #include <GLFW/glfw3.h>
 
@@ -18,43 +19,34 @@ public:
 
     virtual glm::mat4 getViewMatrix()
     {
-        return glm::lookAt(_position, _position + _front, _up);
+        const auto roll = getRoll();
+
+        return roll.has_value() ? glm::lookAt(_position, _position + _front, roll.value() * _up) : glm::lookAt(_position, _position + _front, _up);
     }
 
-    virtual void processKeyboard(MovementInput keysPressed, float deltaTime) override
+    virtual void processKeyboard(KeyboardInput keysPressed, float deltaTime) override
     {
-        if (keysPressed.isEmpty())
-            return;
+        const auto roll = getRoll();
+        const auto cacheUp = _up;
+        const auto cacheRight = _right;
 
-        const auto projector = [](const glm::vec3 &input)
-        { return glm::normalize(glm::vec3(input.x, 0.0f, input.z)); };
+        _up = roll.has_value() ? roll.value() * _up : _up;
+        _right = roll.has_value() ? roll.value() * _right : _right;
 
-        glm::vec3 movementVector(0.0f);
-        if (keysPressed.Forward == 1)
-            movementVector += projector(_front);
-        if (keysPressed.Backward == 1)
-            movementVector -= projector(_front);
-        if (keysPressed.Right == 1)
-            movementVector += projector(_right);
-        if (keysPressed.Left == 1)
-            movementVector -= projector(_right);
-        if (keysPressed.Up == 1)
-            movementVector += _worldUp;
-        if (keysPressed.Down == 1)
-            movementVector -= _worldUp;
+        Camera::processKeyboard(keysPressed, deltaTime);
 
-        assert(!glm::isnan(movementVector.x) && !glm::isnan(movementVector.y) && !glm::isnan(movementVector.z));
+        _up = cacheUp;
+        _right = cacheRight;
 
-        float velocity = _movementSpeed * deltaTime;
-        _position += glm::normalize(movementVector) * velocity;
+        _previousInput = keysPressed;
     }
 
     virtual void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) override
     {
         xoffset *= _mouseSensitivity;
         yoffset *= _mouseSensitivity;
-        
-        const glm::quat yQDelta = glm::angleAxis(glm::radians(xoffset), _worldUp);
+
+        const glm::quat yQDelta = glm::angleAxis(glm::radians(-xoffset), _worldUp);
         _cameraRotation = glm::normalize(yQDelta * _cameraRotation);
         updateCameraVectors();
 
@@ -64,20 +56,39 @@ public:
     }
 
 private:
+    std::optional<glm::quat> getRoll()
+    {
+        if (_previousInput.PeekLeft == 1 ^ _previousInput.PeekRight == 1)
+        {
+            float peekAmount = 0.0f;
+
+            if (_previousInput.PeekLeft == 1)
+                peekAmount = -15.0f;
+            else if (_previousInput.PeekRight == 1)
+                peekAmount = 15.0f;
+
+            return glm::angleAxis(glm::radians(peekAmount), _front);
+        }
+        return std::nullopt;
+    }
+
     void updateCameraVectors()
     {
         _up = glm::normalize(_cameraRotation * glm::vec3(0.0f, 1.0f, 0.0f));
         _front = glm::normalize(_cameraRotation * glm::vec3(0.0f, 0.0f, 1.0f));
         _right = glm::normalize(glm::cross(_front, _up));
 
-        if(glm::abs(_right.y) > 1.0e-5)
+        // TODO: come up with a more sophisticated control system
+
+        if (glm::abs(_right.y) > 1.0e-5) // this thing removes unintended roll buildup from the camera
         {
             std::cout << "Correcting the roll!" << std::endl;
-            _right = glm::normalize(glm::vec3(-glm::sign(_front.z), 0.0f,-glm::sign(_front.z)*(-_front.x/_front.z)));
+            _right = glm::normalize(glm::vec3(-glm::sign(_front.z), 0.0f, -glm::sign(_front.z) * (-_front.x / _front.z)));
             _up = glm::normalize(glm::cross(_right, _front));
         }
     }
 
 private:
     glm::quat _cameraRotation;
+    KeyboardInput _previousInput;
 };

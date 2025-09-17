@@ -6,7 +6,7 @@
 
 #include <cmath>
 
-struct MovementInput
+struct KeyboardInput
 {
     uint8_t Forward : 1;
     uint8_t Backward : 1;
@@ -14,14 +14,16 @@ struct MovementInput
     uint8_t Left : 1;
     uint8_t Up : 1;
     uint8_t Down : 1;
+    uint8_t PeekRight : 1;
+    uint8_t PeekLeft : 1;
 
-    bool isEmpty() const
+    bool motionIsZero() const
     {
         return Forward + Backward + Right + Left + Up + Down == 0;
     }
 };
 
-//TODO: remove this c++ heresy
+// TODO: remove this c++ heresy
 const float YAW = 15.0f;
 const float PITCH = 0.0f;
 const float SPEED = 5.0f;
@@ -31,6 +33,9 @@ const float ROLL = 0.0f;
 
 class Camera
 {
+
+    // TODO: make the parent camera use getter wrappers over the camera axes instead of raw values
+
 public:
     Camera(glm::vec3 position = glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : _front(glm::vec3(0.0f, 0.0f, -1.0f)), _movementSpeed(SPEED), _mouseSensitivity(SENSITIVITY), _zoom(ZOOM)
     {
@@ -56,9 +61,9 @@ public:
         _pitch = glm::degrees(glm::asin(_front.y));
     }
 
-    virtual void processKeyboard(MovementInput keysPressed, float deltaTime)
+    virtual void processKeyboard(KeyboardInput keysPressed, float deltaTime)
     {
-        if (keysPressed.isEmpty())
+        if (keysPressed.motionIsZero())
             return;
 
         const auto projector = [](const glm::vec3 &input)
@@ -134,7 +139,7 @@ private:
         _up = glm::normalize(glm::cross(_right, _front));
     }
 
-//TODO: move camera to a higher precision internals for smoother motion
+    // TODO: move camera to a higher precision internals for smoother motion
 protected:
     glm::vec3 _position;
     glm::vec3 _front;
@@ -144,7 +149,7 @@ protected:
 
     float _movementSpeed;
     float _mouseSensitivity;
-    
+
 private:
     float _zoom;
     float _yaw;
