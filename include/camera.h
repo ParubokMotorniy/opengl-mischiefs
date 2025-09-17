@@ -19,7 +19,22 @@ struct KeyboardInput
 
     bool motionIsZero() const
     {
-        return Forward + Backward + Right + Left + Up + Down == 0;
+        return fMotionIsZero() && rMotionIsZero() && uMotionIsZero();
+    }
+
+    bool fMotionIsZero() const
+    {
+        return (Forward - Backward) == 0;
+    }
+
+    bool rMotionIsZero() const
+    {
+        return (Right - Left) == 0;
+    }
+
+    bool uMotionIsZero() const
+    {
+        return (Up - Down) == 0;
     }
 };
 
@@ -67,26 +82,38 @@ public:
             return;
 
         const auto projector = [](const glm::vec3 &input)
-        { return glm::normalize(glm::vec3(input.x, 0.0f, input.z)); };
+        { return glm::vec3(input.x, 0.0f, input.z); };
 
-        glm::vec3 movementVector(0.0f);
-        if (keysPressed.Forward == 1)
-            movementVector += projector(_front);
-        if (keysPressed.Backward == 1)
-            movementVector -= projector(_front);
-        if (keysPressed.Right == 1)
-            movementVector += projector(_right);
-        if (keysPressed.Left == 1)
-            movementVector -= projector(_right);
-        if (keysPressed.Up == 1)
-            movementVector += _worldUp;
-        if (keysPressed.Down == 1)
-            movementVector -= _worldUp;
+        glm::vec3 movementVector(0.0f, 0.0f, 0.0f);
+
+        if (!keysPressed.fMotionIsZero())
+        {
+            if (keysPressed.Forward == 1)
+                movementVector += projector(_front);
+            if (keysPressed.Backward == 1)
+                movementVector -= projector(_front);
+        }
+        if (!keysPressed.rMotionIsZero())
+        {
+            if (keysPressed.Right == 1)
+                movementVector += projector(_right);
+            if (keysPressed.Left == 1)
+                movementVector -= projector(_right);
+        }
+        if (!keysPressed.uMotionIsZero())
+        {
+            if (keysPressed.Up == 1)
+                movementVector += _worldUp;
+            if (keysPressed.Down == 1)
+                movementVector -= _worldUp;
+        }
+
+        float velocity = _movementSpeed * deltaTime;
+        movementVector = glm::normalize(movementVector) * velocity;
 
         assert(!glm::isnan(movementVector.x) && !glm::isnan(movementVector.y) && !glm::isnan(movementVector.z));
 
-        float velocity = _movementSpeed * deltaTime;
-        _position += glm::normalize(movementVector) * velocity;
+        _position += movementVector;
     }
 
     virtual void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
