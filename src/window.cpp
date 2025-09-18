@@ -93,7 +93,7 @@ void Window::update(float deltaTime)
             listener(_lastInput, {_lastMouseDeltaX, _lastMouseDeltaY}); },
         [this, deltaTime](const ScrollEventsListener &listener)
         {
-            if (_dirtyScrollDelta)
+            if (!_dirtyScrollDelta)
                 return;
             listener(_lastInput, {_lastScrollDeltaX, _lastScrollDeltaY});
         }};

@@ -7,22 +7,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <cmath>
-
-// TODO: remove this c++ heresy
-const float YAW = 15.0f;
-const float PITCH = 0.0f;
-const float SPEED = 5.0f;
-const float SENSITIVITY = 0.1f;
-const float ZOOM = 45.0f;
-const float ROLL = 0.0f;
-
 class Camera
 {
 
     // TODO: make the parent camera use getter wrappers over the camera axes instead of raw values
 
 public:
-    Camera(glm::vec3 position = glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : _front(glm::vec3(0.0f, 0.0f, -1.0f)), _movementSpeed(SPEED), _mouseSensitivity(SENSITIVITY), _zoom(ZOOM)
+    Camera(glm::vec3 position = glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = 15.0f, float pitch = 0.0f, float camSpeed  = 8.0f, float camSensitivity = 0.12f) : _front(glm::vec3(0.0f, 0.0f, -1.0f)), _movementSpeed(camSpeed), _mouseSensitivity(camSensitivity), _zoom(45.0f)
     {
         _position = position;
         _worldUp = up;

@@ -5,7 +5,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "shader.h"
+#include "shaderprogram.h"
+#include "geometryshaderprogram.h"
 #include "camera.h"
 #include "quaternioncamera.h"
 #include "texture.h"
@@ -179,11 +180,21 @@ int main(int argc, const char *argv[])
     {
         //// Shaders
 
-        Shader shaderProgramMain{vertexShaderSource, fragmentShaderSource};
-        Shader lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
-        Shader voronoiseShader{vertexShaderSource, voronoiseFragmentShaderSource};
-        Shader voronoiDistancesShader{vertexShaderSource, voronoiDistanceFragmentShaderSource};
-        Shader worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
+        ShaderProgram shaderProgramMain{vertexShaderSource, fragmentShaderSource};
+        shaderProgramMain.initializeShaderProgram();
+
+        ShaderProgram lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
+        lightCubeShader.initializeShaderProgram();
+
+        ShaderProgram voronoiseShader{vertexShaderSource, voronoiseFragmentShaderSource};
+        voronoiseShader.initializeShaderProgram();
+
+        ShaderProgram voronoiDistancesShader{vertexShaderSource, voronoiDistanceFragmentShaderSource};
+        voronoiDistancesShader.initializeShaderProgram();
+
+        GeometryShaderProgram worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
+        worldAxesShader.initializeShaderProgram();
+        
         const float lightRotationRadius = 40.0f;
 
         //// Render loop

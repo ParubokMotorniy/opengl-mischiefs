@@ -13,7 +13,7 @@
 class QuaternionCamera : public Camera
 {
 public:
-    QuaternionCamera(glm::vec3 position = glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH, float roll = ROLL) : Camera(position, up, yaw, pitch), _cameraRotation(glm::vec3(glm::radians(pitch), glm::radians(yaw), glm::radians(roll)))
+    QuaternionCamera(glm::vec3 position = glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = 15.0f, float pitch = 0.0f, float camSpeed  = 8.0f, float camSensitivity = 0.12f) : Camera(position, up, yaw, pitch), _cameraRotation(glm::vec3(glm::radians(pitch), glm::radians(yaw), glm::radians(0.0f)))
     {
         updateCameraVectors();
     }

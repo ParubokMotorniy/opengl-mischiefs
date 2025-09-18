@@ -9,14 +9,19 @@
 #include <sstream>
 #include <iostream>
 
-class Shader
+class ShaderProgram
 {
 public:
-    Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath = nullptr)
+    ShaderProgram(const char *vertexPath, const char *fragmentPath) : _vertexPath(vertexPath), _fragmentPath(fragmentPath)
     {
-        //TODO: add lazy evaluation of the shader
-        const std::string &vShaderCode = readShaderSource(vertexPath);
-        const std::string &fShaderCode = readShaderSource(fragmentPath);
+    }
+
+    void initializeShaderProgram()
+    {
+        _id = glCreateProgram();
+
+        const std::string &vShaderCode = readShaderSource(_vertexPath);
+        const std::string &fShaderCode = readShaderSource(_fragmentPath);
 
         const char *vPtr = vShaderCode.c_str();
         const char *fPtr = fShaderCode.c_str();
@@ -30,41 +35,24 @@ public:
         glShaderSource(fragment, 1, &fPtr, NULL);
         compileShader(fragment);
 
-        _id = glCreateProgram();
         glAttachShader(_id, vertex);
         glAttachShader(_id, fragment);
+        compileAndAttachNecessaryShaders(_id);
 
-        if (geometryPath != nullptr)
-        {
-            const std::string &gShaderCode = readShaderSource(geometryPath);
-
-            const char *gPtr = gShaderCode.c_str();
-
-            unsigned int geometry = glCreateShader(GL_GEOMETRY_SHADER);
-            glShaderSource(geometry, 1, &gPtr, NULL);
-            compileShader(geometry);
-            glAttachShader(_id, geometry);
-
-            linkProgram(_id);
-
-            glDeleteShader(geometry);
-        }
-        else
-        {
-            linkProgram(_id);
-        }
+        linkProgram(_id);
 
         glDeleteShader(vertex);
         glDeleteShader(fragment);
+        deleteShaders();
     }
 
-    ~Shader()
+    ~ShaderProgram()
     {
         glDeleteProgram(_id);
     }
 
     void use() const { glUseProgram(_id); }
-    
+
     void setBool(const std::string &name, bool value) const
     {
         glUniform1i(glGetUniformLocation(_id, name.c_str()), (int)value);
@@ -95,7 +83,11 @@ public:
         return _id;
     }
 
-private:
+protected:
+    virtual void compileAndAttachNecessaryShaders(uint id) {}
+
+    virtual void deleteShaders() {}
+
     void compileShader(uint shaderId)
     {
         glCompileShader(shaderId);
@@ -140,13 +132,16 @@ private:
         }
         catch (std::ifstream::failure &e)
         {
-            std::cout << "SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+            std::cout << "Failed to read the shader file: " << e.what() << std::endl;
         }
         return shaderCode;
     }
 
-private:
-    // the program _id
-    unsigned int _id;
+protected:
     char _infoLog[512];
+
+private:
+    unsigned int _id;
+    const char *_vertexPath = nullptr;
+    const char *_fragmentPath = nullptr;
 };
