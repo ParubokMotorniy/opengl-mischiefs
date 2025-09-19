@@ -46,22 +46,38 @@ namespace
 
 void Window::processInput()
 {
-    auto *winPtr = _window;
-    if (glfwGetKey(winPtr, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(winPtr, true);
+    if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(_window, true);
 
-    // // // key ghosting does not allow some combinations of peek and diagonal motion :(
-    _lastInput = KeyboardInput{
-        glfwGetKey(winPtr, GLFW_KEY_W) == GLFW_PRESS,
-        glfwGetKey(winPtr, GLFW_KEY_S) == GLFW_PRESS,
-        glfwGetKey(winPtr, GLFW_KEY_D) == GLFW_PRESS,
-        glfwGetKey(winPtr, GLFW_KEY_A) == GLFW_PRESS,
-        glfwGetKey(winPtr, GLFW_KEY_SPACE) == GLFW_PRESS,
-        glfwGetKey(winPtr, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS,
-        glfwGetKey(winPtr, GLFW_KEY_E) == GLFW_PRESS,
-        glfwGetKey(winPtr, GLFW_KEY_Q) == GLFW_PRESS,
-        glfwGetMouseButton(winPtr, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS,
-        glfwGetMouseButton(winPtr, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS};
+    // key ghosting does not allow some combinations of peek and diagonal motion :(
+    const auto currentInput =
+        KeyboardInput(
+            glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_SPACE) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_Q) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_E) == GLFW_PRESS,
+            glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS,
+            glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS,
+            glfwGetKey(_window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS);
+
+    _releasedKeys = KeyboardInput{!currentInput.Forward && _lastInput.Forward,
+                                  !currentInput.Backward && _lastInput.Backward,
+                                  !currentInput.Right && _lastInput.Right,
+                                  !currentInput.Left && _lastInput.Left,
+                                  !currentInput.Up && _lastInput.Up,
+                                  !currentInput.Down && _lastInput.Down,
+                                  !currentInput.PeekLeft && _lastInput.PeekLeft,
+                                  !currentInput.PeekRight && _lastInput.PeekRight,
+                                  !currentInput.MouseLeft && _lastInput.MouseLeft,
+                                  !currentInput.MouseRight && _lastInput.MouseRight,
+                                  !currentInput.CtrlLeft && _lastInput.CtrlLeft,
+                                  !currentInput.CtrlRight && _lastInput.CtrlRight};
+    _lastInput = currentInput;
 }
 
 bool Window::shouldClose() const
@@ -80,7 +96,7 @@ void Window::update(float deltaTime)
     // TODO: remove repeated flag checking. It's slow.
     const auto visitor = overloaded{
         [this, deltaTime](const KeyboardEventsListener &listener) -> void
-        { listener(_lastInput, deltaTime); },
+        { listener(_lastInput, _releasedKeys, deltaTime); },
         [this, deltaTime](const FrameBufferResizeEventsListener &listener) -> void
         { 
             if(!_dirtyViewportDelta)

@@ -10,16 +10,19 @@
 
 struct KeyboardInput
 {
+    //TODO: probably turn it into an enum
     uint8_t Forward : 1 = 0;
     uint8_t Backward : 1 = 0;
-    uint8_t Right : 1 = 0;
     uint8_t Left : 1 = 0;
+    uint8_t Right : 1 = 0;
     uint8_t Up : 1 = 0;
     uint8_t Down : 1 = 0;
-    uint8_t PeekRight : 1 = 0;
     uint8_t PeekLeft : 1 = 0;
+    uint8_t PeekRight : 1 = 0;
     uint8_t MouseLeft : 1 = 0;
     uint8_t MouseRight : 1 = 0;
+    uint8_t CtrlLeft : 1 = 0;
+    uint8_t CtrlRight : 1 = 0;
 
     bool motionIsZero() const
     {
@@ -45,7 +48,7 @@ struct KeyboardInput
 class Window
 {
 public:
-    using KeyboardEventsListener = std::function<void(KeyboardInput, float)>;
+    using KeyboardEventsListener = std::function<void(KeyboardInput, KeyboardInput, float)>; // pressed now; released, deltaTime
     using FrameBufferResizeEventsListener = std::function<void(int, int)>;
 
     struct MouseMotionDescriptor
@@ -68,7 +71,7 @@ public:
     virtual void update(float deltaTime);
 
     template <typename ListenerType>
-    void subscribeEventListener(ListenerType&& listener)
+    void subscribeEventListener(ListenerType &&listener)
     {
         _eventListeners.emplace_back(EventListener(std::move(listener)));
     }
@@ -78,6 +81,7 @@ private:
 
 private:
     KeyboardInput _lastInput;
+    KeyboardInput _releasedKeys;
 
     float _lastMouseDeltaX = 0;
     float _lastMouseDeltaY = 0;

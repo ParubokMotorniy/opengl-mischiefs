@@ -41,6 +41,8 @@ namespace
     Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
     float deltaTime{0.0f};
     float previousTime{0.0f};
+    const float lightRotationRadius = 40.0f;
+    bool renderAxes = true;
 }
 
 MeshManager *MeshManager::_instance = nullptr;
@@ -159,7 +161,11 @@ int main(int argc, const char *argv[])
     std::vector<PrimitiveObject> voronoiDistancesObjects = {{.objMesh = "half_cube_up", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
     std::vector<PrimitiveObject *> objectsWithAxes = {&standardShaderObjects[0], &voronoiseObjects[0], &voronoiDistancesObjects[0]};
 
-    mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, float deltaTime)
+    mainWindow.subscribeEventListener([&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime)
+                                      { 
+                                        if(releasedKeys.CtrlLeft)
+                                            renderAxes = !renderAxes; });
+    mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime)
                                       { camPtr->processKeyboard(input, deltaTime); });
     mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, Window::MouseMotionDescriptor descriptor)
                                       { 
@@ -194,8 +200,6 @@ int main(int argc, const char *argv[])
 
         GeometryShaderProgram worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
         worldAxesShader.initializeShaderProgram();
-        
-        const float lightRotationRadius = 40.0f;
 
         //// Render loop
         camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
@@ -308,6 +312,7 @@ int main(int argc, const char *argv[])
                 }
             }
 
+            if (renderAxes)
             {
                 glDisable(GL_DEPTH_TEST);
                 worldAxesShader.use();
