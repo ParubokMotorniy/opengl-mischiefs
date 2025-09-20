@@ -8,13 +8,17 @@
 class Texture2D
 {
 public:
-    Texture2D(const char *textureSourcePath)
+    Texture2D(const char *textureSourcePath) : _textureSourcePath(textureSourcePath) {}
+    void allocateTexture()
     {
-        int width, height, numChannels;
-        auto *imageData = stbi_load(textureSourcePath, &width, &height, &numChannels, 0);
+        if (_textureId != 0)
+            return;
 
-        glGenTextures(1, &textureId);
-        glBindTexture(GL_TEXTURE_2D, textureId);
+        int width, height, numChannels;
+        auto *imageData = stbi_load(_textureSourcePath, &width, &height, &numChannels, 0);
+
+        glGenTextures(1, &_textureId);
+        glBindTexture(GL_TEXTURE_2D, _textureId);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
@@ -27,15 +31,31 @@ public:
 
         stbi_image_free(imageData);
     }
-    operator int()
+
+    void deallocateTexture()
     {
-        return textureId;
+        if (_textureId = 0)
+            return;
+        glDeleteTextures(1, &_textureId);
+        _textureId = 0;
     }
+
+    bool isAllocated() const noexcept
+    {
+        return _textureId != 0;
+    }
+
+    operator int() const
+    {
+        return _textureId;
+    }
+
     ~Texture2D()
     {
-        glDeleteTextures(1, &textureId);
+        deallocateTexture();
     }
 
 private:
-    uint textureId = 0;
+    uint _textureId = 0;
+    const char *_textureSourcePath = nullptr;
 };

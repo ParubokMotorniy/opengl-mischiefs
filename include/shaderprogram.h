@@ -9,13 +9,19 @@
 #include <sstream>
 #include <iostream>
 
-class Shader
+class ShaderProgram
 {
 public:
-    Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath = nullptr)
+    ShaderProgram(const char *vertexPath, const char *fragmentPath) : _vertexPath(vertexPath), _fragmentPath(fragmentPath)
     {
-        const std::string &vShaderCode = readShaderSource(vertexPath);
-        const std::string &fShaderCode = readShaderSource(fragmentPath);
+    }
+
+    void initializeShaderProgram()
+    {
+        _id = glCreateProgram();
+
+        const std::string &vShaderCode = readShaderSource(_vertexPath);
+        const std::string &fShaderCode = readShaderSource(_fragmentPath);
 
         const char *vPtr = vShaderCode.c_str();
         const char *fPtr = fShaderCode.c_str();
@@ -29,68 +35,59 @@ public:
         glShaderSource(fragment, 1, &fPtr, NULL);
         compileShader(fragment);
 
-        ID = glCreateProgram();
-        glAttachShader(ID, vertex);
-        glAttachShader(ID, fragment);
+        glAttachShader(_id, vertex);
+        glAttachShader(_id, fragment);
+        compileAndAttachNecessaryShaders(_id);
 
-        if (geometryPath != nullptr)
-        {
-            const std::string &gShaderCode = readShaderSource(geometryPath);
-
-            const char *gPtr = gShaderCode.c_str();
-
-            unsigned int geometry = glCreateShader(GL_GEOMETRY_SHADER);
-            glShaderSource(geometry, 1, &gPtr, NULL);
-            compileShader(geometry);
-            glAttachShader(ID, geometry);
-
-            linkProgram(ID);
-
-            glDeleteShader(geometry);
-        }
-        else
-        {
-            linkProgram(ID);
-        }
+        linkProgram(_id);
 
         glDeleteShader(vertex);
         glDeleteShader(fragment);
+        deleteShaders();
     }
 
-    ~Shader()
+    ~ShaderProgram()
     {
-        glDeleteProgram(ID);
+        glDeleteProgram(_id);
     }
 
-    void use() const { glUseProgram(ID); }
-    
+    void use() const { glUseProgram(_id); }
+
     void setBool(const std::string &name, bool value) const
     {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+        glUniform1i(glGetUniformLocation(_id, name.c_str()), (int)value);
     }
     void setInt(const std::string &name, int value) const
     {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+        glUniform1i(glGetUniformLocation(_id, name.c_str()), value);
     }
     void setFloat(const std::string &name, float value) const
     {
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+        glUniform1f(glGetUniformLocation(_id, name.c_str()), value);
     }
     void setMatrix4(const std::string &name, const glm::mat4 &mat)
     {
-        glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+        glUniformMatrix4fv(glGetUniformLocation(_id, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
     }
     void setVec3(const std::string &name, const glm::vec3 &vec)
     {
-        glUniform3f(glGetUniformLocation(ID, name.c_str()), vec.x, vec.y, vec.z);
+        glUniform3f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z);
+    }
+    void setVec4(const std::string &name, const glm::vec4 &vec)
+    {
+        glUniform4f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z, vec.w);
     }
 
     operator int()
     {
-        return ID;
+        return _id;
     }
 
-private:
+protected:
+    virtual void compileAndAttachNecessaryShaders(uint id) {}
+
+    virtual void deleteShaders() {}
+
     void compileShader(uint shaderId)
     {
         glCompileShader(shaderId);
@@ -99,8 +96,8 @@ private:
         glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
         if (!success)
         {
-            glGetShaderInfoLog(shaderId, sizeof(infoLog), NULL, infoLog);
-            std::cerr << "Shader compilation failed. Details: " << infoLog;
+            glGetShaderInfoLog(shaderId, sizeof(_infoLog), NULL, _infoLog);
+            std::cerr << "Shader compilation failed. Details: " << _infoLog;
         }
     }
 
@@ -112,8 +109,8 @@ private:
         glGetProgramiv(programId, GL_LINK_STATUS, &success);
         if (!success)
         {
-            glGetProgramInfoLog(programId, sizeof(infoLog), NULL, infoLog);
-            std::cerr << "Program linking failed. Details: " << infoLog;
+            glGetProgramInfoLog(programId, sizeof(_infoLog), NULL, _infoLog);
+            std::cerr << "Program linking failed. Details: " << _infoLog;
         }
     }
 
@@ -135,13 +132,16 @@ private:
         }
         catch (std::ifstream::failure &e)
         {
-            std::cout << "SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+            std::cout << "Failed to read the shader file: " << e.what() << std::endl;
         }
         return shaderCode;
     }
 
+protected:
+    char _infoLog[512];
+
 private:
-    // the program ID
-    unsigned int ID;
-    char infoLog[512];
+    unsigned int _id;
+    const char *_vertexPath = nullptr;
+    const char *_fragmentPath = nullptr;
 };
