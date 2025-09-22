@@ -1,5 +1,7 @@
 ### opengl-mischiefs engine
 
+**API: OpenGL**
+
 In-engine How-to:
 + Navigation: W-A-S-D=planar motion. Space=Up. LShift=Down. Q=Peek left. E=Peek right.
 + Zoom: mouse scroll.

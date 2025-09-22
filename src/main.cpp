@@ -18,6 +18,7 @@
 #include <iostream>
 #include <cmath>
 #include <tuple>
+#include <cstdint>
 
 namespace
 {
@@ -25,18 +26,18 @@ namespace
     constexpr size_t windowHeight = 810;
 
     // TODO: add some shader source manager
-    const char *vertexShaderSource = "./shaders/vertex_standard.vs";
-    const char *fragmentShaderSource = "./shaders/fragment_standard.fs";
+    const char *vertexShaderSource = ENGINE_SHADERS "/vertex_standard.vs";
+    const char *fragmentShaderSource = ENGINE_SHADERS "/fragment_standard.fs";
 
-    const char *lightVertexShaderSource = "./shaders/light_vertex.vs";
-    const char *lightFragmentShaderSource = "./shaders/light_fragment.fs";
+    const char *lightVertexShaderSource = ENGINE_SHADERS "/light_vertex.vs";
+    const char *lightFragmentShaderSource = ENGINE_SHADERS "/light_fragment.fs";
 
-    const char *axesVertexShaderSource = "./shaders/axis_vertex.vs";
-    const char *axesFragmentShaderSource = "./shaders/axis_fragment.fs";
-    const char *axesGeometryShaderSource = "./shaders/axis_geometry.gs";
+    const char *axesVertexShaderSource = ENGINE_SHADERS "/axis_vertex.vs";
+    const char *axesFragmentShaderSource = ENGINE_SHADERS "/axis_fragment.fs";
+    const char *axesGeometryShaderSource = ENGINE_SHADERS "/axis_geometry.gs";
 
-    const char *voronoiDistanceFragmentShaderSource = "./shaders/voronoi_distances.fs";
-    const char *voronoiseFragmentShaderSource = "./shaders/voronoise.fs";
+    const char *voronoiDistanceFragmentShaderSource = ENGINE_SHADERS "/voronoi_distances.fs";
+    const char *voronoiseFragmentShaderSource = ENGINE_SHADERS "/voronoise.fs";
 
     Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
     float deltaTime{0.0f};
@@ -44,9 +45,6 @@ namespace
     const float lightRotationRadius = 40.0f;
     bool renderAxes = true;
 }
-
-MeshManager *MeshManager::_instance = nullptr;
-TextureManager *TextureManager::_instance = nullptr;
 
 int main(int argc, const char *argv[])
 {
@@ -142,9 +140,9 @@ int main(int argc, const char *argv[])
                                                                  1, 0, 4,
                                                                  6, 7, 3}});
 
-    TextureManager::instance()->registerTexture("big_floppa_diffuse", "./textures/floppa.jpg");
-    TextureManager::instance()->registerTexture("big_floppa_emission", "./textures/floppa_emission.jpg");
-    TextureManager::instance()->registerTexture("tex_specular", "./textures/specular.png");
+    TextureManager::instance()->registerTexture("big_floppa_diffuse", ENGINE_TEXTURES "/floppa.jpg");
+    TextureManager::instance()->registerTexture("big_floppa_emission", ENGINE_TEXTURES "/floppa_emission.jpg");
+    TextureManager::instance()->registerTexture("tex_specular", ENGINE_TEXTURES "/specular.png");
 
     Material floppaCubeMaterial{.diffTextureName = "big_floppa_diffuse", .specTextureSampler = "tex_specular", .emissionTextureSampler = "big_floppa_emission"};
 
@@ -179,7 +177,7 @@ int main(int argc, const char *argv[])
                                       { glViewport(0, 0, w, h); });
 
     // //// Dummy axes VAO
-    uint dummyVao;
+    uint32_t dummyVao;
     glGenVertexArrays(1, &dummyVao);
     glBindVertexArray(0);
 

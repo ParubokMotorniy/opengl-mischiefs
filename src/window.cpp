@@ -4,9 +4,10 @@
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_lastViewportWidth = width;
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_lastViewportHeight = height;
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_dirtyViewportDelta = true;
+    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
+    currentWindow->_lastViewportWidth = width;
+    currentWindow->_lastViewportHeight = height;
+    currentWindow->_dirtyViewportDelta = true;
 }
 
 void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
@@ -23,16 +24,20 @@ void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_lastMouseDeltaX = xoffset;
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_lastMouseDeltaY = yoffset;
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_dirtyMouseDelta = true;
+    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
+
+    currentWindow->_lastMouseDeltaX = xoffset;
+    currentWindow->_lastMouseDeltaY = yoffset;
+    currentWindow->_dirtyMouseDelta = true;
 }
 
 void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_lastScrollDeltaX = xoffset;
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_lastScrollDeltaY = yoffset;
-    static_cast<Window *>(glfwGetWindowUserPointer(window))->_dirtyScrollDelta = true;
+    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
+
+    currentWindow->_lastScrollDeltaX = xoffset;
+    currentWindow->_lastScrollDeltaY = yoffset;
+    currentWindow->_dirtyScrollDelta = true;
 }
 
 namespace
