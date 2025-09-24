@@ -24,5 +24,5 @@ public:
 
 private:
     uint32_t _textureId = 0;
-    const char *_textureSourcePath = nullptr;
+    std::string _textureSourcePath;
 };

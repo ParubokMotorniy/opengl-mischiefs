@@ -23,4 +23,5 @@ target_link_libraries(${PROJECT_NAME}
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ROOT="${PROJECT_SOURCE_DIR}" 
                                                    ENGINE_SHADERS="${PROJECT_SOURCE_DIR}/shaders" 
-                                                   ENGINE_TEXTURES="${PROJECT_SOURCE_DIR}/textures")
+                                                   ENGINE_TEXTURES="${PROJECT_SOURCE_DIR}/textures"
+                                                   ENGINE_MODELS="${PROJECT_SOURCE_DIR}/models")

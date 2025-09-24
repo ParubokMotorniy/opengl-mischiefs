@@ -14,6 +14,7 @@
 #include "texturemanager.h"
 #include "object.h"
 #include "window.h"
+#include "modelloader.h"
 
 #include <iostream>
 #include <cmath>
@@ -42,7 +43,7 @@ namespace
     Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
     float deltaTime{0.0f};
     float previousTime{0.0f};
-    const float lightRotationRadius = 40.0f;
+    const float lightRotationRadius = 70.0f;
     bool renderAxes = true;
 }
 
@@ -71,8 +72,41 @@ int main(int argc, const char *argv[])
 
     //// Cubes buffers
 
-    MeshManager::instance()->registerMesh("simple_cube",
-                                          Mesh{
+    MeshManager::instance()->registerMesh(
+        Mesh{
+            {{-5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f},
+             {-5.0f, -5.0f, 5.0f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f},
+             {-5.0f, 5.0f, 5.0f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f},
+             {-5.0f, 5.0f, -5.0f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f},
+
+             {5.0f, -5.0f, -5.0f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f},
+             {5.0f, -5.0f, 5.0f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f},
+             {5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f},
+             {5.0f, 5.0f, -5.0f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f}},
+
+            {0, 1, 2,
+             2, 3, 0,
+
+             0, 4, 5,
+             5, 1, 0,
+
+             4, 5, 6,
+             6, 7, 4,
+
+             2, 3, 7,
+             7, 6, 2,
+
+             1, 2, 6,
+             6, 5, 1,
+
+             0, 3, 7,
+             7, 4, 0}},
+        "simple_cube");
+
+    //   0  4
+    // 1 3 5 7
+    // 2   6
+    MeshManager::instance()->registerMesh(Mesh{
                                               {{-5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f},
                                                {-5.0f, -5.0f, 5.0f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f},
                                                {-5.0f, 5.0f, 5.0f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f},
@@ -83,68 +117,38 @@ int main(int argc, const char *argv[])
                                                {5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f},
                                                {5.0f, 5.0f, -5.0f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f}},
 
-                                              {0, 1, 2,
-                                               2, 3, 0,
+                                              {3, 0, 1,
+                                               2, 1, 5,
+                                               6, 5, 4,
+                                               7, 4, 0,
+                                               4, 5, 1,
+                                               3, 2, 6}},
+                                          "half_cube_up");
 
-                                               0, 4, 5,
-                                               5, 1, 0,
+    MeshManager::instance()->registerMesh(Mesh{
+                                              {{-5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f},
+                                               {-5.0f, -5.0f, 5.0f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f},
+                                               {-5.0f, 5.0f, 5.0f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f},
+                                               {-5.0f, 5.0f, -5.0f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f},
 
-                                               4, 5, 6,
-                                               6, 7, 4,
+                                               {5.0f, -5.0f, -5.0f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f},
+                                               {5.0f, -5.0f, 5.0f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f},
+                                               {5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f},
+                                               {5.0f, 5.0f, -5.0f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f}},
 
-                                               2, 3, 7,
-                                               7, 6, 2,
-
-                                               1, 2, 6,
-                                               6, 5, 1,
-
+                                              {1, 2, 3,
+                                               5, 6, 2,
+                                               4, 7, 6,
                                                0, 3, 7,
-                                               7, 4, 0}});
+                                               1, 0, 4,
+                                               6, 7, 3}},
+                                          "half_cube_down");
 
-    //   0  4
-    // 1 3 5 7
-    // 2   6
-    MeshManager::instance()->registerMesh("half_cube_up", Mesh{
-                                                              {{-5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f},
-                                                               {-5.0f, -5.0f, 5.0f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f},
-                                                               {-5.0f, 5.0f, 5.0f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f},
-                                                               {-5.0f, 5.0f, -5.0f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f},
+    TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/floppa.jpg", "big_floppa_diffuse");
+    TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg", "big_floppa_emission");
+    TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/specular.png", "tex_specular");
 
-                                                               {5.0f, -5.0f, -5.0f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f},
-                                                               {5.0f, -5.0f, 5.0f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f},
-                                                               {5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f},
-                                                               {5.0f, 5.0f, -5.0f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f}},
-
-                                                              {3, 0, 1,
-                                                               2, 1, 5,
-                                                               6, 5, 4,
-                                                               7, 4, 0,
-                                                               4, 5, 1,
-                                                               3, 2, 6}});
-
-    MeshManager::instance()->registerMesh("half_cube_down", Mesh{
-                                                                {{-5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f},
-                                                                 {-5.0f, -5.0f, 5.0f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f},
-                                                                 {-5.0f, 5.0f, 5.0f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f},
-                                                                 {-5.0f, 5.0f, -5.0f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f},
-
-                                                                 {5.0f, -5.0f, -5.0f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f},
-                                                                 {5.0f, -5.0f, 5.0f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f},
-                                                                 {5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f},
-                                                                 {5.0f, 5.0f, -5.0f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f}},
-
-                                                                {1, 2, 3,
-                                                                 5, 6, 2,
-                                                                 4, 7, 6,
-                                                                 0, 3, 7,
-                                                                 1, 0, 4,
-                                                                 6, 7, 3}});
-
-    TextureManager::instance()->registerTexture("big_floppa_diffuse", ENGINE_TEXTURES "/floppa.jpg");
-    TextureManager::instance()->registerTexture("big_floppa_emission", ENGINE_TEXTURES "/floppa_emission.jpg");
-    TextureManager::instance()->registerTexture("tex_specular", ENGINE_TEXTURES "/specular.png");
-
-    Material floppaCubeMaterial{.diffTextureName = "big_floppa_diffuse", .specTextureSampler = "tex_specular", .emissionTextureSampler = "big_floppa_emission"};
+    Material floppaCubeMaterial{.diffTextureName = "big_floppa_diffuse", .specTextureName = "tex_specular", .emissionTextureName = "big_floppa_emission"};
 
     MeshManager::instance()->allocateMesh("simple_cube");
     MeshManager::instance()->allocateMesh("half_cube_up");
@@ -153,7 +157,12 @@ int main(int argc, const char *argv[])
     TextureManager::instance()->allocateTexture("big_floppa_emission");
     TextureManager::instance()->allocateTexture("big_floppa_diffuse");
 
+    //"Tank - WW1" (https://skfb.ly/oqRNY) by Andy Woodhead is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+    Model tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS "/tank/tank.obj");
+    tankModel.allocateModel();
+
     std::vector<PrimitiveObject> standardShaderObjects = {{.objMesh = "simple_cube", .objMaterials = {floppaCubeMaterial}, .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(-10.0f, 10.0f, -10.0f)}};
+    std::vector<Model *> standardShaderModels = {&tankModel};
     std::vector<PrimitiveObject> cubeLightObjects = {{.objMesh = "simple_cube", .scale = glm::vec3(0.5f, 0.5f, 0.5f)}};
     std::vector<PrimitiveObject> voronoiseObjects = {{.objMesh = "half_cube_down", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
     std::vector<PrimitiveObject> voronoiDistancesObjects = {{.objMesh = "half_cube_up", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
@@ -236,21 +245,37 @@ int main(int argc, const char *argv[])
 
                 shaderProgramMain.setVec3("viewPos", camera->position());
 
-                for (const PrimitiveObject &obj : standardShaderObjects)
+                auto standardShaderLauncher = [&](const PrimitiveObject &obj)
                 {
                     MeshManager::instance()->bindMesh(obj.objMesh);
 
-                    shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].diffTextureName));
-                    shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].specTextureSampler));
-                    shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].emissionTextureSampler));
+                    if (!obj.objMaterials.empty())
+                    {
+                        shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].specTextureName));
+                        shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].emissionTextureName));
+                        shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].diffTextureName));
+                    }
 
                     shaderProgramMain.setMatrix4("model", obj.computeModelMatrix());
 
                     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(obj.objMesh)->numIndices(), GL_UNSIGNED_INT, 0);
+
                     MeshManager::instance()->unbindMesh();
+                    TextureManager::instance()->unbindAllTextures();
+                };
+
+                for (const PrimitiveObject &obj : standardShaderObjects)
+                {
+                    standardShaderLauncher(obj);
                 }
 
-                TextureManager::instance()->unbindAllTextures();
+                for (const Model *model : standardShaderModels)
+                {
+                    for (const auto &obj : model->modelComponents)
+                    {
+                        standardShaderLauncher(obj);
+                    }
+                }
             }
 
             {

@@ -7,9 +7,9 @@
 #pragma pack(push, 1)
 struct Vertex
 {
-    float coordinates[3];
-    float texCoordinates[2];
-    float normal[3];
+    float coordinates[3] = {0.0f, 0.0f, 0.0f};
+    float texCoordinates[2] = {0.0f, 0.0f};
+    float normal[3] = {0.0f, 0.0f, 0.0f};
 };
 #pragma pack(pop)
 

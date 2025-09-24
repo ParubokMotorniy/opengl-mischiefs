@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mesh.h"
+#include "types.h"
 
 #include <vector>
 #include <unordered_map>
@@ -13,17 +14,22 @@ class MeshManager
 public:
     static MeshManager *instance();
 
-    void registerMesh(const std::string name, const Mesh &&mesh);
+    MeshManager(const MeshManager &other) = delete;
+    MeshManager(MeshManager &&other) = delete;
 
-    void unregisterMesh(const std::string meshName);
+    MeshManager &operator=(const MeshManager &other) = delete;
+    MeshManager &operator=(MeshManager &&other) = delete;
+
+    void registerMesh(const Mesh &&mesh, const std::string &name);
+    [[nodiscard]] std::string registerMesh(const Mesh &&mesh);
+    void unregisterMesh(const std::string &meshName);
+    [[nodiscard]] bool meshRegistered(const MeshIdentifier &mId);
 
     void allocateMesh(const std::string &meshName);
+    void deallocateMesh(const std::string &meshName);
 
     void bindMesh(const std::string &meshName);
-
     void unbindMesh();
-
-    void deallocateMesh(const std::string &meshName);
 
     void cleanUpGracefully();
 
@@ -34,7 +40,6 @@ private:
 
 private:
     // TODO: rework not to use string as identifiers. Convenient but expensive
-    static MeshManager *_instance;
-    std::unordered_map<std::string, Mesh> _meshes;
+    std::unordered_map<MeshIdentifier, Mesh> _meshes;
     uint32_t _boundMesh = 0;
 };

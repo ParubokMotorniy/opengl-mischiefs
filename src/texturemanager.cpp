@@ -3,13 +3,19 @@
 #include <cstring>
 #include <glad/glad.h>
 
-TextureManager *TextureManager::_instance = nullptr;
+#include "randomnamer.h"
 
 TextureManager *TextureManager::instance()
 {
-    if (_instance == nullptr)
-        _instance = new TextureManager();
-    return _instance;
+    static TextureManager instance;
+    return &instance;
+}
+
+std::string TextureManager::registerTexture(const char *textureSource)
+{
+    const auto rName = RandomNamer::instance()->getRandomName(10);
+    registerTexture(textureSource, rName);
+    return rName;
 }
 
 TextureManager::TextureManager()
@@ -17,9 +23,14 @@ TextureManager::TextureManager()
     std::memset(_boundTextures, 0, MAX_TEXTURES);
 }
 
-void TextureManager::registerTexture(const std::string &texName, const char *textureSource)
+void TextureManager::registerTexture(const char *textureSource, const std::string &texName)
 {
     _textures.insert_or_assign(texName, Texture2D(textureSource));
+}
+
+bool TextureManager::textureRegistered(const TextureIdentifier &texName) const
+{
+    return _textures.contains(texName);
 }
 
 void TextureManager::allocateTexture(const std::string &texName)
@@ -62,7 +73,14 @@ int TextureManager::bindTexture(const std::string &texName)
 
 std::tuple<int, int, int> TextureManager::bindMaterial(const Material &mat)
 {
-    return {bindTexture(mat.diffTextureName), bindTexture(mat.specTextureSampler), bindTexture(mat.emissionTextureSampler)};
+    return {bindTexture(mat.diffTextureName), bindTexture(mat.specTextureName), bindTexture(mat.emissionTextureName)};
+}
+
+void TextureManager::allocateMaterial(const Material &mat)
+{
+    allocateTexture(mat.diffTextureName);
+    allocateTexture(mat.specTextureName);
+    allocateTexture(mat.emissionTextureName);
 }
 
 void TextureManager::unbindTexture(int textureId)

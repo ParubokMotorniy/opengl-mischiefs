@@ -6,13 +6,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // one primitive (for now) object means:
-//  + one mesh
-//  + one material
-//  + one texture
+// + one mesh
+// + multiple materials
 
 struct PrimitiveObject
 {
-    std::string objMesh;
+    MeshIdentifier objMesh;
     std::vector<Material> objMaterials;
 
     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -29,7 +28,7 @@ struct PrimitiveObject
         return modelM;
     }
 
-    glm::mat4 computeModelMatrixNoScale() const 
+    glm::mat4 computeModelMatrixNoScale() const
     {
         glm::mat4 modelM = glm::identity<glm::mat4>();
         modelM = rotation * modelM;

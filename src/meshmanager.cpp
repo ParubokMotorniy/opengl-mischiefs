@@ -1,24 +1,23 @@
 #include "meshmanager.h"
 
+#include "randomnamer.h"
+
 #include <glad/glad.h>
 
 #include <cassert>
 
-MeshManager *MeshManager::_instance = nullptr;
-
 MeshManager *MeshManager::instance()
 {
-    if (_instance == nullptr)
-        _instance = new MeshManager();
-    return _instance;
+    static MeshManager instance;
+    return &instance;
 }
 
-void MeshManager::registerMesh(const std::string name, const Mesh &&mesh)
+void MeshManager::registerMesh(const Mesh &&mesh, const std::string &name)
 {
     _meshes.insert_or_assign(name, mesh);
 }
 
-void MeshManager::unregisterMesh(const std::string meshName)
+void MeshManager::unregisterMesh(const std::string &meshName)
 {
     const auto meshPtr = _meshes.find(meshName);
     assert(meshPtr != _meshes.end());
@@ -29,6 +28,18 @@ void MeshManager::unregisterMesh(const std::string meshName)
         return;
 
     _meshes.erase(meshName);
+}
+
+std::string MeshManager::registerMesh(const Mesh &&mesh)
+{
+    const auto rName = RandomNamer::instance()->getRandomName(10);
+    registerMesh(std::move(mesh), rName);
+    return rName;
+}
+
+bool MeshManager::meshRegistered(const MeshIdentifier &mId)
+{
+   return _meshes.contains(mId);
 }
 
 void MeshManager::allocateMesh(const std::string &meshName)

@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
+#include "types.h"
 
-//TODO: add manager for materials
+// TODO: add manager for materials
 
 struct Material
 {
-    std::string diffTextureName;
-    std::string specTextureSampler;
-    std::string emissionTextureSampler;
+    TextureIdentifier diffTextureName = "";
+    TextureIdentifier specTextureName = "";
+    TextureIdentifier emissionTextureName = "";
 };
