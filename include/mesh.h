@@ -1,4 +1,5 @@
 #pragma once
+#include "material.h"
 
 #include <vector>
 #include <cstdint>

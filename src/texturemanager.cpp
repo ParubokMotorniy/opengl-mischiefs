@@ -35,13 +35,13 @@ int TextureManager::bindTexture(const std::string &texName)
 {
     const auto texture = _textures.find(texName);
     if (texture == _textures.end())
-        return 0;
+        return -1;
     if (!texture->second.isAllocated())
-        return 0;
-    if (_numBoundTextures == MAX_TEXTURES)
-        return 0;
+        return -1;
     if (int location = isTextureBound(texture->second); location != -1)
         return location;
+    if (_numBoundTextures == MAX_TEXTURES)
+        return -1;
 
     for (int q = 0; q < MAX_TEXTURES; ++q)
     {
@@ -55,7 +55,14 @@ int TextureManager::bindTexture(const std::string &texName)
         }
     }
 
-    return 0;
+    assert(false); // to catch cases in debug when the engine can't support more shaders
+
+    return -1;
+}
+
+std::tuple<int, int, int> TextureManager::bindMaterial(const Material &mat)
+{
+    return {bindTexture(mat.diffTextureName), bindTexture(mat.specTextureSampler), bindTexture(mat.emissionTextureSampler)};
 }
 
 void TextureManager::unbindTexture(int textureId)

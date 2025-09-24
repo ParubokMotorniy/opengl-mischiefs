@@ -13,7 +13,7 @@
 struct PrimitiveObject
 {
     std::string objMesh;
-    Material objMaterial;
+    std::vector<Material> objMaterials;
 
     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::mat4 rotation = glm::identity<glm::mat4>();

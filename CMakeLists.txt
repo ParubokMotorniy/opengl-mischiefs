@@ -18,6 +18,7 @@ target_link_libraries(${PROJECT_NAME}
     Xrandr
     Xi
     dl
+    assimp
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ROOT="${PROJECT_SOURCE_DIR}" 

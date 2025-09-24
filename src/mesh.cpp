@@ -2,6 +2,8 @@
 
 #include <glad/glad.h>
 
+#include <cstddef>
+
 Mesh::Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint32_t> &&meshIndices) : vertices(std::move(meshVertices)), indices(std::move(meshIndices)) {}
 
 void Mesh::allocateMesh()
@@ -24,9 +26,9 @@ void Mesh::allocateMesh()
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0); // space coords
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)offsetof(Vertex, texCoordinates));
     glEnableVertexAttribArray(1); // texture coords
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(5 * sizeof(float)));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)offsetof(Vertex, normal));
     glEnableVertexAttribArray(2); // normals
 
     glBindVertexArray(0);

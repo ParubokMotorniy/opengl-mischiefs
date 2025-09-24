@@ -153,7 +153,7 @@ int main(int argc, const char *argv[])
     TextureManager::instance()->allocateTexture("big_floppa_emission");
     TextureManager::instance()->allocateTexture("big_floppa_diffuse");
 
-    std::vector<PrimitiveObject> standardShaderObjects = {{.objMesh = "simple_cube", .objMaterial = floppaCubeMaterial, .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(-10.0f, 10.0f, -10.0f)}};
+    std::vector<PrimitiveObject> standardShaderObjects = {{.objMesh = "simple_cube", .objMaterials = {floppaCubeMaterial}, .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(-10.0f, 10.0f, -10.0f)}};
     std::vector<PrimitiveObject> cubeLightObjects = {{.objMesh = "simple_cube", .scale = glm::vec3(0.5f, 0.5f, 0.5f)}};
     std::vector<PrimitiveObject> voronoiseObjects = {{.objMesh = "half_cube_down", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
     std::vector<PrimitiveObject> voronoiDistancesObjects = {{.objMesh = "half_cube_up", .scale = glm::vec3(1.0f, 1.0f, 1.0f), .rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 1.0f)), .position = glm::vec3(10.0f, -10.0f, 10.0f)}};
@@ -240,9 +240,9 @@ int main(int argc, const char *argv[])
                 {
                     MeshManager::instance()->bindMesh(obj.objMesh);
 
-                    shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(standardShaderObjects[0].objMaterial.diffTextureName));
-                    shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(standardShaderObjects[0].objMaterial.specTextureSampler));
-                    shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(standardShaderObjects[0].objMaterial.emissionTextureSampler));
+                    shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].diffTextureName));
+                    shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].specTextureSampler));
+                    shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(obj.objMaterials[0].emissionTextureSampler));
 
                     shaderProgramMain.setMatrix4("model", obj.computeModelMatrix());
 
