@@ -71,7 +71,8 @@ int main(int argc, const char *argv[])
     glEnable(GL_DEPTH_TEST);
 
     //// Cubes buffers
-
+    // TODO: make sure the cubes reuse the same mesh but index vertices in their cutsom way
+    // TODO: add base plane with checked texture and anisotropic filtering
     MeshManager::instance()->registerMesh(
         Mesh{
             {{-5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f},
@@ -190,6 +191,7 @@ int main(int argc, const char *argv[])
     glGenVertexArrays(1, &dummyVao);
     glBindVertexArray(0);
 
+    // TODO: make sure the meshes are organized by shaders and rendered in batches, in instanced fashion
     {
         //// Shaders
 
@@ -260,6 +262,7 @@ int main(int argc, const char *argv[])
 
                     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(obj.objMesh)->numIndices(), GL_UNSIGNED_INT, 0);
 
+                    // TODO: unbind things only if the next thing to be drawn uses something else -> save some performance
                     MeshManager::instance()->unbindMesh();
                     TextureManager::instance()->unbindAllTextures();
                 };

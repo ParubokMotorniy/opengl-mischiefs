@@ -1,19 +1,16 @@
 #pragma once
 
+#include "singleton.h"
+
 #include <string>
 #include <random>
 
-class RandomNamer
+class RandomNamer : public SystemSingleton<RandomNamer>
 {
 public:
-    static RandomNamer *instance();
+    friend class SystemSingleton;
+
     [[nodiscard]] std::string getRandomName(size_t nameLength);
-
-    RandomNamer(const RandomNamer &other) = delete;
-    RandomNamer(RandomNamer &&other) = delete;
-
-    RandomNamer &operator=(const RandomNamer &other) = delete;
-    RandomNamer &operator=(RandomNamer &&other) = delete;
 
 private:
     RandomNamer();

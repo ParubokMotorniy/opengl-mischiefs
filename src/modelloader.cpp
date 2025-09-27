@@ -2,12 +2,6 @@
 
 #include <iostream>
 
-ModelLoader *ModelLoader::instance()
-{
-    static ModelLoader instance;
-    return &instance;
-}
-
 ModelLoader::ModelLoader() = default;
 
 Model ModelLoader::loadModel(std::string const &path, bool flipTexturesOnLoad)

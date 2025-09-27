@@ -5,12 +5,6 @@
 
 #include "randomnamer.h"
 
-TextureManager *TextureManager::instance()
-{
-    static TextureManager instance;
-    return &instance;
-}
-
 std::string TextureManager::registerTexture(const char *textureSource)
 {
     const auto rName = RandomNamer::instance()->getRandomName(10);

@@ -2,6 +2,7 @@
 
 #include "mesh.h"
 #include "types.h"
+#include "singleton.h"
 
 #include <vector>
 #include <unordered_map>
@@ -9,16 +10,10 @@
 #include <cstdint>
 #include <unordered_set>
 
-class MeshManager
+class MeshManager : public SystemSingleton<MeshManager>
 {
 public:
-    static MeshManager *instance();
-
-    MeshManager(const MeshManager &other) = delete;
-    MeshManager(MeshManager &&other) = delete;
-
-    MeshManager &operator=(const MeshManager &other) = delete;
-    MeshManager &operator=(MeshManager &&other) = delete;
+    friend class SystemSingleton;
 
     void registerMesh(const Mesh &&mesh, const std::string &name);
     [[nodiscard]] std::string registerMesh(const Mesh &&mesh);

@@ -14,19 +14,15 @@
 #include "material.h"
 #include "randomnamer.h"
 #include "utils.h"
+#include "singleton.h"
 
 // shamefully adapted from learnopengl
 
-class ModelLoader
+//TODO: add mesh transform loading
+class ModelLoader : public SystemSingleton<ModelLoader>
 {
 public:
-    static ModelLoader *instance();
-
-    ModelLoader(const ModelLoader &other) = delete;
-    ModelLoader(ModelLoader &&other) = delete;
-
-    ModelLoader &operator=(const ModelLoader &other) = delete;
-    ModelLoader &operator=(ModelLoader &&other) = delete;
+    friend class SystemSingleton;
 
     Model loadModel(std::string const &path, bool flipTexturesOnLoad = false);
 

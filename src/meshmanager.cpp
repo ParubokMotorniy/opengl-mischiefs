@@ -6,12 +6,6 @@
 
 #include <cassert>
 
-MeshManager *MeshManager::instance()
-{
-    static MeshManager instance;
-    return &instance;
-}
-
 void MeshManager::registerMesh(const Mesh &&mesh, const std::string &name)
 {
     _meshes.insert_or_assign(name, mesh);
