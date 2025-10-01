@@ -9,6 +9,10 @@
 #include <sstream>
 #include <iostream>
 #include <cstdint>
+#include <queue>
+
+#include "meshmanager.h"
+#include "objectmanager.h"
 
 class ShaderProgram
 {
@@ -33,6 +37,9 @@ public:
 
     void setVec4(const std::string &name, const glm::vec4 &vec);
 
+    void addObject(GameObjectIdentifier gId);
+    void runShader();
+
     operator int()
     {
         return _id;
@@ -40,10 +47,10 @@ public:
 
 protected:
     virtual void compileAndAttachNecessaryShaders(uint32_t id);
-
     virtual void deleteShaders();
+    virtual void updateUniforms();
+    
     void compileShader(uint32_t shaderId);
-
     void linkProgram(uint32_t programId);
 
     std::string readShaderSource(const char *shaderSource);
@@ -55,4 +62,15 @@ private:
     unsigned int _id;
     const char *_vertexPath = nullptr;
     const char *_fragmentPath = nullptr;
+
+    struct MeshOrderer
+    {
+        bool operator()(const GameObjectIdentifier &gId1, const GameObjectIdentifier &gId2)
+        {
+            const MeshIdentifier mId1 = ObjectManager::instance()->getObject(gId1).getIdentifierForComponent(ComponentType::MESH);
+            const MeshIdentifier mId2 = ObjectManager::instance()->getObject(gId2).getIdentifierForComponent(ComponentType::MESH);
+            return mId1 <= mId2;
+        }
+    };
+    std::priority_queue<GameObjectIdentifier, std::vector<GameObjectIdentifier>, MeshOrderer> _orderedShaderObjects;
 };

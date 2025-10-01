@@ -27,7 +27,7 @@ struct Mesh
 
     ~Mesh();
 
-    operator int()
+    operator int() const
     {
         return id;
     }

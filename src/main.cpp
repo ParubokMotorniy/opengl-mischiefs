@@ -18,6 +18,7 @@
 #include "transformmanager.h"
 #include "objectmanager.h"
 #include "materialmanager.h"
+#include "instancer.h"
 
 #include <iostream>
 #include <cmath>
@@ -163,29 +164,52 @@ int main(int argc, const char *argv[])
 
     //"Tank - WW1" (https://skfb.ly/oqRNY) by Andy Woodhead is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
     GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS "/tank/tank.obj");
-    
 
-    GameObject &floppaCube = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+    GameObject &floppaCube1 = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
     {
-        floppaCube.addComponent(Component(ComponentType::MESH, simpleCubeMesh));
-        floppaCube.addComponent(Component(ComponentType::BASIC_MATERIAL, floppaMaterial));
-        floppaCube.addComponent(Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform()));
-    }
-    std::vector<GameObject *> standardShaderObjects = {&floppaCube};
+        floppaCube1.addComponent(Component(ComponentType::MESH, simpleCubeMesh));
+        floppaCube1.addComponent(Component(ComponentType::BASIC_MATERIAL, floppaMaterial));
 
-    GameObject &upperCube = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
-    {
-        upperCube.addComponent(Component(ComponentType::MESH, simpleCubeMeshUp));
-        upperCube.addComponent(Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform()));
+        TransformIdentifier tId = TransformManager::instance()->registerNewTransform();
+        floppaCube1.addComponent(Component(ComponentType::TRANSFORM, tId));
+        TransformManager::instance()->getTransform(tId)->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     }
-    std::vector<GameObject *> voronoiDistancesObjects = {&upperCube};
 
-    GameObject &lowerCube = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+    GameObject &floppaCube2 = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
     {
-        lowerCube.addComponent(Component(ComponentType::MESH, simpleCubeMeshDown));
-        lowerCube.addComponent(Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform()));
+        floppaCube2.addComponent(Component(ComponentType::MESH, simpleCubeMesh));
+        floppaCube2.addComponent(Component(ComponentType::BASIC_MATERIAL, floppaMaterial));
+
+        TransformIdentifier tId = TransformManager::instance()->registerNewTransform();
+        floppaCube2.addComponent(Component(ComponentType::TRANSFORM, tId));
+        TransformManager::instance()->getTransform(tId)->setPosition(glm::vec3(10.0f, 10.0f, 10.0f));
     }
-    std::vector<GameObject *> voronoiseObjects = {&lowerCube};
+
+    GameObject &floppaCube3 = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+    {
+        floppaCube3.addComponent(Component(ComponentType::MESH, simpleCubeMesh));
+        floppaCube3.addComponent(Component(ComponentType::BASIC_MATERIAL, floppaMaterial));
+
+        TransformIdentifier tId = TransformManager::instance()->registerNewTransform();
+        floppaCube3.addComponent(Component(ComponentType::TRANSFORM, tId));
+        TransformManager::instance()->getTransform(tId)->setPosition(glm::vec3(-10.0f, -10.0f, -10.0f));
+    }
+
+    // std::vector<GameObject *> standardShaderObjects = {&floppaCube};
+
+    // GameObject &upperCube = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+    // {
+    //     upperCube.addComponent(Component(ComponentType::MESH, simpleCubeMeshUp));
+    //     upperCube.addComponent(Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform()));
+    // }
+    // std::vector<GameObject *> voronoiDistancesObjects = {&upperCube};
+
+    // GameObject &lowerCube = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+    // {
+    //     lowerCube.addComponent(Component(ComponentType::MESH, simpleCubeMeshDown));
+    //     lowerCube.addComponent(Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform()));
+    // }
+    // std::vector<GameObject *> voronoiseObjects = {&lowerCube};
 
     // std::vector<Model *> standardShaderModels = {&tankModel};
     // std::vector<GameObject> cubeLightObjects = {{.objMesh = "simple_cube", .scale = glm::vec3(0.5f, 0.5f, 0.5f)}};
@@ -219,6 +243,9 @@ int main(int argc, const char *argv[])
 
         ShaderProgram shaderProgramMain{vertexShaderSource, fragmentShaderSource};
         shaderProgramMain.initializeShaderProgram();
+        shaderProgramMain.addObject(floppaCube1);
+        shaderProgramMain.addObject(floppaCube2);
+        shaderProgramMain.addObject(floppaCube3);
 
         ShaderProgram lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
         lightCubeShader.initializeShaderProgram();
@@ -269,32 +296,40 @@ int main(int argc, const char *argv[])
 
                 shaderProgramMain.setVec3("viewPos", camera->position());
 
-                auto standardShaderLauncher = [&](const GameObject *obj)
-                {
-                    const MeshIdentifier meshId = obj->getIdentifierForComponent(ComponentType::MESH);
-                    MeshManager::instance()->bindMesh(meshId);
+                const BasicMaterial &bm = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()->getMaterial(floppaCube1.getIdentifierForComponent(ComponentType::BASIC_MATERIAL));
+                shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(bm.diffTextureName));
+                shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(bm.specTextureName));
+                shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(bm.emissionTextureName));
 
-                    if (const MaterialIdentifier mi = obj->getIdentifierForComponent(ComponentType::BASIC_MATERIAL); mi != InvalidIdentifier)
-                    {
-                        const BasicMaterial &bm = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()->getMaterial(mi);
-                        shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(bm.diffTextureName));
-                        shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(bm.specTextureName));
-                        shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(bm.emissionTextureName));
-                    }
+                shaderProgramMain.runShader();
+                TextureManager::instance()->unbindAllTextures();
 
-                    shaderProgramMain.setMatrix4("model", TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
+                // auto standardShaderLauncher = [&](const GameObject *obj)
+                // {
+                //     const MeshIdentifier meshId = obj->getIdentifierForComponent(ComponentType::MESH);
+                //     MeshManager::instance()->bindMesh(meshId);
 
-                    glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
+                //     if (const MaterialIdentifier mi = obj->getIdentifierForComponent(ComponentType::BASIC_MATERIAL); mi != InvalidIdentifier)
+                //     {
+                //         const BasicMaterial &bm = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()->getMaterial(mi);
+                //         shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(bm.diffTextureName));
+                //         shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(bm.specTextureName));
+                //         shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(bm.emissionTextureName));
+                //     }
 
-                    // TODO: unbind things only if the next thing to be drawn uses something else -> save some performance
-                    MeshManager::instance()->unbindMesh();
-                    TextureManager::instance()->unbindAllTextures();
-                };
+                //     shaderProgramMain.setMatrix4("model", TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
 
-                for (const GameObject *obj : standardShaderObjects)
-                {
-                    standardShaderLauncher(obj);
-                }
+                //     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
+
+                //     // TODO: unbind things only if the next thing to be drawn uses something else -> save some performance
+                //     MeshManager::instance()->unbindMesh();
+                //     TextureManager::instance()->unbindAllTextures();
+                // };
+
+                // for (const GameObject *obj : standardShaderObjects)
+                // {
+                //     standardShaderLauncher(obj);
+                // }
 
                 // for (const Model *model : standardShaderModels)
                 // {
@@ -305,45 +340,45 @@ int main(int argc, const char *argv[])
                 // }
             }
 
-            {
-                voronoiseShader.use();
-                voronoiseShader.setVec3("iResolution", glm::vec3(windowWidth, windowHeight, 0.0f));
-                voronoiseShader.setFloat("iTime", time);
-                voronoiseShader.setMatrix4("view", view);
-                voronoiseShader.setMatrix4("projection", projection);
+            // {
+            //     voronoiseShader.use();
+            //     voronoiseShader.setVec3("iResolution", glm::vec3(windowWidth, windowHeight, 0.0f));
+            //     voronoiseShader.setFloat("iTime", time);
+            //     voronoiseShader.setMatrix4("view", view);
+            //     voronoiseShader.setMatrix4("projection", projection);
 
-                for (const GameObject *obj : voronoiseObjects)
-                {
-                    const MeshIdentifier meshId = obj->getIdentifierForComponent(ComponentType::MESH);
-                    MeshManager::instance()->bindMesh(meshId);
+            //     for (const GameObject *obj : voronoiseObjects)
+            //     {
+            //         const MeshIdentifier meshId = obj->getIdentifierForComponent(ComponentType::MESH);
+            //         MeshManager::instance()->bindMesh(meshId);
 
-                    voronoiseShader.setMatrix4("model", TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
+            //         voronoiseShader.setMatrix4("model", TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
 
-                    glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
-                    MeshManager::instance()->unbindMesh();
-                }
-            }
+            //         glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
+            //         MeshManager::instance()->unbindMesh();
+            //     }
+            // }
 
-            {
-                voronoiDistancesShader.use();
-                voronoiDistancesShader.setVec3("iResolution", glm::vec3(1.0f, 1.0f, 0.0f));
-                voronoiDistancesShader.setFloat("iTime", time);
-                voronoiDistancesShader.setMatrix4("view", view);
-                voronoiDistancesShader.setMatrix4("projection", projection);
+            // {
+            //     voronoiDistancesShader.use();
+            //     voronoiDistancesShader.setVec3("iResolution", glm::vec3(1.0f, 1.0f, 0.0f));
+            //     voronoiDistancesShader.setFloat("iTime", time);
+            //     voronoiDistancesShader.setMatrix4("view", view);
+            //     voronoiDistancesShader.setMatrix4("projection", projection);
 
-                for (const GameObject *obj : voronoiDistancesObjects)
-                {
-                    const MeshIdentifier meshId = obj->getIdentifierForComponent(ComponentType::MESH);
-                    MeshManager::instance()->bindMesh(meshId);
+            //     for (const GameObject *obj : voronoiDistancesObjects)
+            //     {
+            //         const MeshIdentifier meshId = obj->getIdentifierForComponent(ComponentType::MESH);
+            //         MeshManager::instance()->bindMesh(meshId);
 
-                    voronoiDistancesShader.setMatrix4("model", TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
+            //         voronoiDistancesShader.setMatrix4("model", TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
 
-                    glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
-                    MeshManager::instance()->unbindMesh();
-                }
+            //         glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
+            //         MeshManager::instance()->unbindMesh();
+            //     }
 
-                TextureManager::instance()->unbindAllTextures();
-            }
+            //     TextureManager::instance()->unbindAllTextures();
+            // }
 
             // {
             //     lightCubeShader.use();
