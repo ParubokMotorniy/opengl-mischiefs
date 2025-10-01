@@ -79,19 +79,6 @@ void ShaderProgram::addObject(GameObjectIdentifier gId)
     _orderedShaderObjects.push(gId);
 }
 
-template <class T, class Container, class Compare>
-Container &getContainer(std::priority_queue<T, Container, Compare> &pq)
-{
-    struct Hacked : std::priority_queue<T, Container, Compare>
-    {
-        static Container &get(std::priority_queue<T, Container, Compare> &q)
-        {
-            return q.*&Hacked::c;
-        }
-    };
-    return Hacked::get(pq);
-}
-
 void ShaderProgram::runShader() // TODO: make instancing virtual as well
 {
     const InstancedDataGenerator modelMatrixCol0 = InstancedDataGenerator{sizeof(glm::vec4), 4, 3, GL_FLOAT, false, [](int8_t *destination, GameObjectIdentifier gId)
@@ -123,7 +110,6 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
 
     // TODO: in the future, bind the textures bindlessly
     use();
-    updateUniforms();
 
     const std::vector<GameObjectIdentifier> &shaderObjects = getContainer(_orderedShaderObjects);
     auto meshStart = shaderObjects.cbegin();
@@ -142,7 +128,7 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
 
             glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0, meshEnd - meshStart);
 
-            // glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
+            glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
 
             MeshManager::instance()->unbindMesh();
             meshStart = meshEnd;
@@ -156,9 +142,6 @@ void ShaderProgram::compileAndAttachNecessaryShaders(uint32_t id) {}
 
 void ShaderProgram::deleteShaders() {}
 
-void ShaderProgram::updateUniforms()
-{
-}
 
 void ShaderProgram::compileShader(uint32_t shaderId)
 {

@@ -149,6 +149,8 @@ int main(int argc, const char *argv[])
                                                                                          6, 7, 3}},
                                                                                     "half_cube_down");
 
+    const MeshIdentifier dummyAxesMesh = MeshManager::instance()->registerMesh(Mesh(), "dummy_mesh");
+
     const TextureIdentifier floppaDiff = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/floppa.jpg", "big_floppa_diffuse");
     const TextureIdentifier specular = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/specular.png", "tex_specular");
     const TextureIdentifier floppaEm = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg", "big_floppa_emission");
@@ -158,12 +160,14 @@ int main(int argc, const char *argv[])
     MeshManager::instance()->allocateMesh(simpleCubeMesh);
     MeshManager::instance()->allocateMesh(simpleCubeMeshUp);
     MeshManager::instance()->allocateMesh(simpleCubeMeshDown);
+    MeshManager::instance()->allocateMesh(dummyAxesMesh);
+
     TextureManager::instance()->allocateTexture(floppaDiff);
     TextureManager::instance()->allocateTexture(floppaEm);
     TextureManager::instance()->allocateTexture(specular);
 
     //"Tank - WW1" (https://skfb.ly/oqRNY) by Andy Woodhead is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
-    GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS "/tank/tank.obj");
+    // GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS "/tank/tank.obj");
 
     GameObject &floppaCube1 = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
     {
@@ -243,21 +247,51 @@ int main(int argc, const char *argv[])
 
         ShaderProgram shaderProgramMain{vertexShaderSource, fragmentShaderSource};
         shaderProgramMain.initializeShaderProgram();
-        shaderProgramMain.addObject(floppaCube1);
-        shaderProgramMain.addObject(floppaCube2);
-        shaderProgramMain.addObject(floppaCube3);
 
-        ShaderProgram lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
-        lightCubeShader.initializeShaderProgram();
+        // ShaderProgram lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
+        // lightCubeShader.initializeShaderProgram();
 
-        ShaderProgram voronoiseShader{vertexShaderSource, voronoiseFragmentShaderSource};
-        voronoiseShader.initializeShaderProgram();
+        // ShaderProgram voronoiseShader{vertexShaderSource, voronoiseFragmentShaderSource};
+        // voronoiseShader.initializeShaderProgram();
 
-        ShaderProgram voronoiDistancesShader{vertexShaderSource, voronoiDistanceFragmentShaderSource};
-        voronoiDistancesShader.initializeShaderProgram();
+        // ShaderProgram voronoiDistancesShader{vertexShaderSource, voronoiDistanceFragmentShaderSource};
+        // voronoiDistancesShader.initializeShaderProgram();
 
         GeometryShaderProgram worldAxesShader{axesVertexShaderSource, axesFragmentShaderSource, axesGeometryShaderSource};
         worldAxesShader.initializeShaderProgram();
+
+        for (int k = 100; k < 300; ++k)
+        {
+            ///
+
+            GameObject &floppaCube = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+
+            floppaCube.addComponent(Component(ComponentType::MESH, simpleCubeMesh));
+            floppaCube.addComponent(Component(ComponentType::BASIC_MATERIAL, floppaMaterial));
+
+            const TransformIdentifier tId = TransformManager::instance()->registerNewTransform();
+            floppaCube.addComponent(Component(ComponentType::TRANSFORM, tId));
+
+            Transform *t = TransformManager::instance()->getTransform(tId);
+            t->setPosition(glm::vec3(k * std::sin(k), k * std::cos(k), -k * std::sin(k)));
+            t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k), glm::vec3(50.0f - k, 1.0f, 0.0f)));
+            t->setScale(glm::vec3(std::max((k % 20) / 10.0f, 0.1f)));
+
+            shaderProgramMain.addObject(floppaCube);
+
+            ///
+
+            GameObject &floppaAxes = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+            floppaAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
+            floppaAxes.addComponent(Component(ComponentType::TRANSFORM, tId));
+
+            worldAxesShader.addObject(floppaAxes);
+        }
+
+        GameObject &worldAxes = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+        worldAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
+        worldAxes.addComponent(Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform()));
+        worldAxesShader.addObject(worldAxes);
 
         //// Render loop
         camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
@@ -303,41 +337,6 @@ int main(int argc, const char *argv[])
 
                 shaderProgramMain.runShader();
                 TextureManager::instance()->unbindAllTextures();
-
-                // auto standardShaderLauncher = [&](const GameObject *obj)
-                // {
-                //     const MeshIdentifier meshId = obj->getIdentifierForComponent(ComponentType::MESH);
-                //     MeshManager::instance()->bindMesh(meshId);
-
-                //     if (const MaterialIdentifier mi = obj->getIdentifierForComponent(ComponentType::BASIC_MATERIAL); mi != InvalidIdentifier)
-                //     {
-                //         const BasicMaterial &bm = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()->getMaterial(mi);
-                //         shaderProgramMain.setInt("currentMaterial.diffTextureSampler", TextureManager::instance()->bindTexture(bm.diffTextureName));
-                //         shaderProgramMain.setInt("currentMaterial.specTextureSampler", TextureManager::instance()->bindTexture(bm.specTextureName));
-                //         shaderProgramMain.setInt("currentMaterial.emissionTextureSampler", TextureManager::instance()->bindTexture(bm.emissionTextureName));
-                //     }
-
-                //     shaderProgramMain.setMatrix4("model", TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
-
-                //     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
-
-                //     // TODO: unbind things only if the next thing to be drawn uses something else -> save some performance
-                //     MeshManager::instance()->unbindMesh();
-                //     TextureManager::instance()->unbindAllTextures();
-                // };
-
-                // for (const GameObject *obj : standardShaderObjects)
-                // {
-                //     standardShaderLauncher(obj);
-                // }
-
-                // for (const Model *model : standardShaderModels)
-                // {
-                //     for (const auto &obj : model->modelComponents)
-                //     {
-                //         standardShaderLauncher(obj);
-                //     }
-                // }
             }
 
             // {
@@ -399,31 +398,20 @@ int main(int argc, const char *argv[])
             //     }
             // }
 
-            // if (renderAxes)
-            // {
-            //     glDisable(GL_DEPTH_TEST);
-            //     worldAxesShader.use();
+            if (renderAxes)
+            {
+                glDisable(GL_DEPTH_TEST);
+                worldAxesShader.use();
 
-            //     glBindVertexArray(dummyVao);
+                worldAxesShader.setFloat("axisLength", 0.25l);
+                worldAxesShader.setFloat("thickness", 0.002l);
+                worldAxesShader.setMatrix4("viewMat", view);
+                worldAxesShader.setMatrix4("projectionMat", projection);
 
-            //     worldAxesShader.setFloat("axisLength", 0.25l);
-            //     worldAxesShader.setFloat("thickness", 0.002l);
-            //     worldAxesShader.setMatrix4("viewMat", view);
-            //     worldAxesShader.setMatrix4("projectionMat", projection);
+                worldAxesShader.runShader();
 
-            //     // TODO: do with instancing in the future
-            //     for (const GameObject *obj : objectsWithAxes)
-            //     {
-            //         worldAxesShader.setMatrix4("modelMat", obj->computeModelMatrixNoScale());
-            //         glDrawArrays(GL_POINTS, 0, 3);
-            //     }
-
-            //     worldAxesShader.setMatrix4("modelMat", glm::identity<glm::mat4>()); // draws global axes
-            //     glDrawArrays(GL_POINTS, 0, 3);
-
-            //     glBindVertexArray(0);
-            //     glEnable(GL_DEPTH_TEST);
-            // }
+                glEnable(GL_DEPTH_TEST);
+            }
 
             glfwSwapBuffers(mainWindow.getRawWindow());
 

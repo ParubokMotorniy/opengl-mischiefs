@@ -1,10 +1,8 @@
 #version 400 core
 
-
 uniform float thickness;
 uniform float axisLength;
 
-uniform mat4 modelMat;
 uniform mat4 viewMat;
 uniform mat4 projectionMat;
 
@@ -14,6 +12,7 @@ layout (triangle_strip, max_vertices = 18) out;
 in VS_OUT
 {
 int vertexID;
+mat4 modelMat;
 } gsIn[]; //one at input
 
 out vec4 outColor;
@@ -21,8 +20,8 @@ out vec4 outColor;
 //rescales the vertex so that is appears to be of the same size in ndc
 vec4 rescaleVertex(vec3 inputVertex, vec3 linearDimensions)
 {
-    float scale = -(viewMat * modelMat * vec4(inputVertex, 1.0)).z;
-    return projectionMat * viewMat * modelMat * vec4( linearDimensions * scale * inputVertex, 1.0);
+    float scale = -(viewMat * gsIn[0].modelMat * vec4(inputVertex, 1.0)).z;
+    return projectionMat * viewMat * gsIn[0].modelMat * vec4( linearDimensions * scale * inputVertex, 1.0);
 }
 
 vec2 vertices[4] = vec2[4](vec2(1.0, 0),

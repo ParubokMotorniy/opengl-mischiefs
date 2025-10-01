@@ -15,6 +15,7 @@ struct Vertex
 
 struct Mesh
 {
+    Mesh() = default;
     Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint32_t> &&meshIndices);
 
     void allocateMesh();

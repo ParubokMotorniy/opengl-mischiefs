@@ -14,23 +14,27 @@ void Mesh::allocateMesh()
     glGenVertexArrays(1, &id);
     glBindVertexArray(id);
 
-    uint32_t VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, verticesSize(), vertices.data(), GL_STATIC_DRAW);
+    if (verticesSize() > 0 && indicesSize() > 0)
+    {
 
-    uint32_t EBOOrange;
-    glGenBuffers(1, &EBOOrange);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOOrange);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesSize(), indices.data(), GL_STATIC_DRAW);
+        uint32_t VBO;
+        glGenBuffers(1, &VBO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, verticesSize(), vertices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0); // space coords
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)offsetof(Vertex, texCoordinates));
-    glEnableVertexAttribArray(1); // texture coords
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)offsetof(Vertex, normal));
-    glEnableVertexAttribArray(2); // normals
+        uint32_t EBOOrange;
+        glGenBuffers(1, &EBOOrange);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOOrange);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesSize(), indices.data(), GL_STATIC_DRAW);
 
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+        glEnableVertexAttribArray(0); // space coords
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)offsetof(Vertex, texCoordinates));
+        glEnableVertexAttribArray(1); // texture coords
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)offsetof(Vertex, normal));
+        glEnableVertexAttribArray(2); // normals
+    }
+    
     glBindVertexArray(0);
 }
 

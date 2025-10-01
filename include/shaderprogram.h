@@ -38,7 +38,7 @@ public:
     void setVec4(const std::string &name, const glm::vec4 &vec);
 
     void addObject(GameObjectIdentifier gId);
-    void runShader();
+    virtual void runShader();
 
     operator int()
     {
@@ -48,8 +48,7 @@ public:
 protected:
     virtual void compileAndAttachNecessaryShaders(uint32_t id);
     virtual void deleteShaders();
-    virtual void updateUniforms();
-    
+
     void compileShader(uint32_t shaderId);
     void linkProgram(uint32_t programId);
 
@@ -58,11 +57,7 @@ protected:
 protected:
     char _infoLog[512];
 
-private:
-    unsigned int _id;
-    const char *_vertexPath = nullptr;
-    const char *_fragmentPath = nullptr;
-
+    // TODO: ideally these shouldn't be protected but private
     struct MeshOrderer
     {
         bool operator()(const GameObjectIdentifier &gId1, const GameObjectIdentifier &gId2)
@@ -73,4 +68,22 @@ private:
         }
     };
     std::priority_queue<GameObjectIdentifier, std::vector<GameObjectIdentifier>, MeshOrderer> _orderedShaderObjects;
+
+    template <class T, class Container, class Compare>
+    Container &getContainer(std::priority_queue<T, Container, Compare> &pq)
+    {
+        struct Wrapper : std::priority_queue<T, Container, Compare>
+        {
+            static Container &get(std::priority_queue<T, Container, Compare> &q)
+            {
+                return q.*&Wrapper::c;
+            }
+        };
+        return Wrapper::get(pq);
+    }
+
+private:
+    unsigned int _id;
+    const char *_vertexPath = nullptr;
+    const char *_fragmentPath = nullptr;
 };

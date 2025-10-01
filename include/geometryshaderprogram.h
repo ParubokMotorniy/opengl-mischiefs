@@ -8,6 +8,7 @@ public:
     GeometryShaderProgram(const char *vertexPath,
                           const char *fragmentPath,
                           const char *geometryPath = nullptr);
+    void runShader() override;
 
 protected:
     void compileAndAttachNecessaryShaders(uint id) override;
