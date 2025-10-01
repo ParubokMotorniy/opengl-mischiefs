@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-RandomNamer::RandomNamer() : _charDist(50, 255)
+RandomNamer::RandomNamer() : _charDist(64, 90)
 {
     std::random_device rd;
     _generator = std::mt19937(rd());

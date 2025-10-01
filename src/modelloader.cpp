@@ -1,17 +1,19 @@
 #include "modelloader.h"
+#include "objectmanager.h"
+#include "materialmanager.h"
 
 #include <iostream>
 
 ModelLoader::ModelLoader() = default;
 
-Model ModelLoader::loadModel(std::string const &path, bool flipTexturesOnLoad)
+GameObjectIdentifier ModelLoader::loadModel(std::string const &path, bool flipTexturesOnLoad)
 {
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace | aiProcess_OptimizeMeshes);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
         std::cout << "Failed to load model wit assimp: " << importer.GetErrorString() << ". Model: " << path << std::endl;
-        return Model();
+        return InvalidIdentifier;
     }
 
     if (flipTexturesOnLoad)
@@ -20,35 +22,43 @@ Model ModelLoader::loadModel(std::string const &path, bool flipTexturesOnLoad)
                                       {if(ifFlip)
                                         stbi_set_flip_vertically_on_load(false); });
 
-    return processNode(scene->mRootNode, scene, path.substr(0, path.find_last_of('/')));
+    GameObject &loadedObject = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+
+    processNode(scene->mRootNode, scene, path.substr(0, path.find_last_of('/')), loadedObject);
+
+    return loadedObject;
 }
 
-Model ModelLoader::processNode(aiNode *node, const aiScene *scene, const std::string &modelRoot)
+GameObjectIdentifier ModelLoader::processNode(aiNode *node, const aiScene *scene, const std::string &modelRoot, GameObjectIdentifier parentObject)
 {
-    Model nodeModel;
+    GameObject &nodeObject = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
+
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        nodeModel.modelComponents.push_back(processMesh(mesh, scene, modelRoot));
+        nodeObject.addChildObject(processMesh(mesh, scene, modelRoot));
     }
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        nodeModel += processNode(node->mChildren[i], scene, modelRoot);
+        nodeObject.addChildObject(processNode(node->mChildren[i], scene, modelRoot, nodeObject));
     }
 
-    return nodeModel;
+    ObjectManager::instance()->getObject(parentObject).addChildObject(nodeObject);
+
+    return nodeObject;
 }
 
-PrimitiveObject ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene, const std::string &modelRoot)
+GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene, const std::string &modelRoot)
 {
-    MeshIdentifier meshName = mesh->mName.length == 0 ? RandomNamer::instance()->getRandomName(10) : MeshIdentifier(mesh->mName.C_Str());
+    GameObject &meshContainer = ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
 
-    if (!MeshManager::instance()->meshRegistered(meshName))
+    MeshIdentifier meshId = InvalidIdentifier;
+
+    if (meshId = MeshManager::instance()->meshRegistered(mesh->mName.C_Str()); meshId == InvalidIdentifier)
     {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
 
-        // walk through each of the mesh's vertices
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
         {
             Vertex vertex;
@@ -73,7 +83,6 @@ PrimitiveObject ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene, con
             vertices.push_back(vertex);
         }
 
-        // walk through each of the mesh's faces and retrieve indices
         for (unsigned int i = 0; i < mesh->mNumFaces; i++)
         {
             aiFace face = mesh->mFaces[i];
@@ -81,44 +90,39 @@ PrimitiveObject ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene, con
                 indices.push_back(face.mIndices[j]);
         }
 
-        MeshManager::instance()->registerMesh(Mesh{std::move(vertices), std::move(indices)}, meshName);
+        meshId = mesh->mName.length == 0 ? MeshManager::instance()->registerMesh(Mesh{std::move(vertices), std::move(indices)}).second : MeshManager::instance()->registerMesh(Mesh{std::move(vertices), std::move(indices)}, std::string(mesh->mName.C_Str()));
     }
 
     aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
 
-    std::vector<TextureIdentifier> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, modelRoot);
-    std::vector<TextureIdentifier> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, modelRoot);
-    std::vector<TextureIdentifier> emissionMaps = loadMaterialTextures(material, aiTextureType_EMISSION_COLOR, modelRoot);
+    TextureIdentifier diffuseMap = loadMaterialTextures(material, aiTextureType_DIFFUSE, modelRoot);
+    TextureIdentifier specularMap = loadMaterialTextures(material, aiTextureType_SPECULAR, modelRoot);
+    TextureIdentifier emissionMap = loadMaterialTextures(material, aiTextureType_EMISSION_COLOR, modelRoot);
 
-    const auto maxTexVecLength = std::ranges::max({diffuseMaps.size(), specularMaps.size(), emissionMaps.size()});
-    diffuseMaps.resize(maxTexVecLength);
-    specularMaps.resize(maxTexVecLength);
-    emissionMaps.resize(maxTexVecLength);
+    const auto [mName, mi] = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()->registerMaterial(BasicMaterial{diffuseMap, specularMap, emissionMap});
 
-    std::vector<Material> materials;
-    materials.reserve(maxTexVecLength);
-    for (int y = 0; y < maxTexVecLength; ++y)
-    {
-        materials.emplace_back(Material{diffuseMaps[y], specularMaps[y], emissionMaps[y]});
-    }
+    // TODO: add all components to the local object
 
-    return PrimitiveObject{meshName, materials};
+    meshContainer.addComponent(Component(ComponentType::MESH, meshId));
+    meshContainer.addComponent(Component(ComponentType::BASIC_MATERIAL, mi));
+    return meshContainer;
 }
 
-std::vector<TextureIdentifier> ModelLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type, const std::string &modelRoot)
+// allows only one texture of a particular type
+TextureIdentifier ModelLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type, const std::string &modelRoot)
 {
-    std::vector<TextureIdentifier> textures;
+    TextureIdentifier texture = InvalidIdentifier;
 
-    for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+    for (unsigned int i = 0; i < mat->GetTextureCount(type) && i < 1; i++)
     {
         aiString str;
         mat->GetTexture(type, i, &str);
-        TextureIdentifier id = str.C_Str();
-        if (!TextureManager::instance()->textureRegistered(id))
+        const std::string texName = str.C_Str();
+        if (texture = TextureManager::instance()->textureRegistered(texName); texture == InvalidIdentifier)
         {
-            TextureManager::instance()->registerTexture((modelRoot + '/' + str.C_Str()).c_str(), str.C_Str());
+            texture = TextureManager::instance()->registerTexture((modelRoot + '/' + str.C_Str()).c_str(), texName);
         }
-        textures.push_back(id);
     }
-    return textures;
+
+    return texture;
 }

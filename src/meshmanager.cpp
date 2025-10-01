@@ -5,56 +5,63 @@
 #include <glad/glad.h>
 
 #include <cassert>
+#include <algorithm>
 
-void MeshManager::registerMesh(const Mesh &&mesh, const std::string &name)
+TextureIdentifier MeshManager::registerMesh(const Mesh &&mesh, const std::string &name)
 {
-    _meshes.insert_or_assign(name, mesh);
+    if(const TextureIdentifier ti = meshRegistered(name); ti != InvalidIdentifier)
+        return ti;
+
+    _meshes.emplace(++_identifiers, NamedMesh{name, mesh});
+    return _identifiers;
 }
 
-void MeshManager::unregisterMesh(const std::string &meshName)
+void MeshManager::unregisterMesh(MeshIdentifier id)
 {
-    const auto meshPtr = _meshes.find(meshName);
+    const auto meshPtr = _meshes.find(id);
     assert(meshPtr != _meshes.end());
     if (meshPtr == _meshes.end())
         return;
 
-    if (_boundMesh != 0 && meshPtr->second == _boundMesh)
+    if (_boundMesh != 0 && meshPtr->second.componentData == _boundMesh)
         return;
 
-    _meshes.erase(meshName);
+    _meshes.erase(id);
 }
 
-std::string MeshManager::registerMesh(const Mesh &&mesh)
+std::pair<std::string, MeshIdentifier> MeshManager::registerMesh(const Mesh &&mesh)
 {
     const auto rName = RandomNamer::instance()->getRandomName(10);
-    registerMesh(std::move(mesh), rName);
-    return rName;
+    const auto id = registerMesh(std::move(mesh), rName);
+    return std::make_pair(rName, id);
 }
 
-bool MeshManager::meshRegistered(const MeshIdentifier &mId)
+MeshIdentifier MeshManager::meshRegistered(const std::string &meshName)
 {
-   return _meshes.contains(mId);
+    const auto meshPtr = std::ranges::find_if(_meshes, [&meshName](const auto &pair){return pair.second.componentName == meshName;}); 
+    return  meshPtr == _meshes.end() ? InvalidIdentifier : meshPtr->first;
 }
 
-void MeshManager::allocateMesh(const std::string &meshName)
+void MeshManager::allocateMesh(MeshIdentifier id)
 {
-    const auto meshPtr = _meshes.find(meshName);
+    const auto meshPtr = _meshes.find(id);
     if (meshPtr == _meshes.end())
         return;
 
-    meshPtr->second.allocateMesh();
+    meshPtr->second.componentData.allocateMesh();
 }
 
-void MeshManager::bindMesh(const std::string &meshName)
+void MeshManager::bindMesh(MeshIdentifier id)
 {
     if (_boundMesh != 0)
         return;
-    const auto meshPtr = _meshes.find(meshName);
+    const auto meshPtr = _meshes.find(id);
     if (meshPtr == _meshes.end())
         return;
+    auto &mesh = meshPtr->second.componentData;
 
-    meshPtr->second.bindMesh();
-    _boundMesh = meshPtr->second;
+    mesh.bindMesh();
+    _boundMesh = mesh;
 }
 
 void MeshManager::unbindMesh()
@@ -65,13 +72,13 @@ void MeshManager::unbindMesh()
     _boundMesh = 0;
 }
 
-void MeshManager::deallocateMesh(const std::string &meshName)
+void MeshManager::deallocateMesh(MeshIdentifier id)
 {
-    auto meshPtr = _meshes.find(meshName);
+    auto meshPtr = _meshes.find(id);
     if (meshPtr == _meshes.end())
         return;
 
-    meshPtr->second.deallocateMesh();
+    meshPtr->second.componentData.deallocateMesh();
 }
 
 void MeshManager::cleanUpGracefully()
@@ -80,8 +87,8 @@ void MeshManager::cleanUpGracefully()
     _meshes.clear();
 }
 
-const Mesh *MeshManager::getMesh(const std::string &meshName)
+const Mesh *MeshManager::getMesh(MeshIdentifier id)
 {
-    auto meshPtr = _meshes.find(meshName);
-    return meshPtr == _meshes.end() ? nullptr : &meshPtr->second;
+    auto meshPtr = _meshes.find(id);
+    return meshPtr == _meshes.end() ? nullptr : &meshPtr->second.componentData;
 }

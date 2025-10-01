@@ -10,25 +10,28 @@
 #include <cstdint>
 #include <tuple>
 
-class TextureManager : public SystemSingleton<TextureManager>
+// TODO: generalize the manager through templates like material manager does
+class TextureManager : public SystemSingleton<TextureManager> // crtp
 {
 public:
     friend class SystemSingleton; // so that the singleton can access the private constructor
+    using NamedTexture = NamedComponent<Texture2D>;
 
-    void registerTexture(const char *textureSource, const std::string &texName);
-    std::string registerTexture(const char *textureSource);
-    void unregisterTexture(const std::string &texName);
-    bool textureRegistered(const TextureIdentifier &texName) const;
+    TextureIdentifier registerTexture(const char *textureSource, const std::string &texName);
+    std::pair<std::string, TextureIdentifier> registerTexture(const char *textureSource);
 
-    void allocateTexture(const std::string &texName);
-    void deallocateTexture(const std::string &texName);
+    void unregisterTexture(TextureIdentifier id);
+    TextureIdentifier textureRegistered(const std::string &texName) const;
 
-    int bindTexture(const std::string &texName);
-    void unbindTexture(int textureId);
+    void allocateTexture(TextureIdentifier id);
+    void deallocateTexture(TextureIdentifier id);
+
+    int bindTexture(TextureIdentifier id);
+    void unbindTexture(TextureIdentifier id);
     void unbindAllTextures();
 
-    std::tuple<int, int, int> bindMaterial(const Material &mat);
-    void allocateMaterial(const Material &mat);
+    std::tuple<int, int, int> bindMaterial(const BasicMaterial &mat); // TODO: rethink this heresy
+    void allocateMaterial(const BasicMaterial &mat);
 
     void cleanUpGracefully();
 
@@ -39,9 +42,10 @@ private:
     int isTextureBound(const Texture2D &texture);
 
 private:
-    constexpr static uint32_t MAX_TEXTURES = 16;
-    std::unordered_map<TextureIdentifier, Texture2D> _textures;
+    TextureIdentifier _identifiers = 0; // TODO: add some defragmentation logic
+    std::unordered_map<TextureIdentifier, NamedTexture> _textures;
 
+    constexpr static uint32_t MAX_TEXTURES = 16;
     uint32_t _boundTextures[MAX_TEXTURES];
     int _numBoundTextures = 0;
 };

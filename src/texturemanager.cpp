@@ -1,15 +1,17 @@
 #include "texturemanager.h"
-#include <cassert>
-#include <cstring>
-#include <glad/glad.h>
-
 #include "randomnamer.h"
 
-std::string TextureManager::registerTexture(const char *textureSource)
+#include <glad/glad.h>
+
+#include <cassert>
+#include <cstring>
+#include <algorithm>
+
+std::pair<std::string, TextureIdentifier> TextureManager::registerTexture(const char *textureSource)
 {
     const auto rName = RandomNamer::instance()->getRandomName(10);
-    registerTexture(textureSource, rName);
-    return rName;
+    const auto id = registerTexture(textureSource, rName);
+    return std::make_pair(rName, id);
 }
 
 TextureManager::TextureManager()
@@ -17,33 +19,40 @@ TextureManager::TextureManager()
     std::memset(_boundTextures, 0, MAX_TEXTURES);
 }
 
-void TextureManager::registerTexture(const char *textureSource, const std::string &texName)
+TextureIdentifier TextureManager::registerTexture(const char *textureSource, const std::string &texName)
 {
-    _textures.insert_or_assign(texName, Texture2D(textureSource));
+    if (const TextureIdentifier ti = textureRegistered(texName); ti != InvalidIdentifier)
+        return ti;
+
+    _textures.emplace(++_identifiers, NamedTexture{texName, Texture2D(textureSource)});
+    return _identifiers;
 }
 
-bool TextureManager::textureRegistered(const TextureIdentifier &texName) const
+TextureIdentifier TextureManager::textureRegistered(const std::string &texName) const
 {
-    return _textures.contains(texName);
+    const auto texPtr = std::ranges::find_if(_textures, [&texName](const auto &pair)
+                                             { return pair.second.componentName == texName; });
+    return texPtr == _textures.end() ? InvalidIdentifier : texPtr->first;
 }
 
-void TextureManager::allocateTexture(const std::string &texName)
+void TextureManager::allocateTexture(TextureIdentifier id)
 {
-    const auto texture = _textures.find(texName);
+    const auto texture = _textures.find(id);
     if (texture == _textures.end())
         return;
 
-    texture->second.allocateTexture();
+    texture->second.componentData.allocateTexture();
 }
 
-int TextureManager::bindTexture(const std::string &texName)
+int TextureManager::bindTexture(TextureIdentifier id)
 {
-    const auto texture = _textures.find(texName);
-    if (texture == _textures.end())
+    const auto texturePtr = _textures.find(id);
+    if (texturePtr == _textures.end())
         return -1;
-    if (!texture->second.isAllocated())
+    const auto &texture = texturePtr->second.componentData;
+    if (!texture.isAllocated())
         return -1;
-    if (int location = isTextureBound(texture->second); location != -1)
+    if (int location = isTextureBound(texture); location != -1)
         return location;
     if (_numBoundTextures == MAX_TEXTURES)
         return -1;
@@ -52,10 +61,10 @@ int TextureManager::bindTexture(const std::string &texName)
     {
         if (_boundTextures[q] == 0)
         {
-            _boundTextures[q] = texture->second;
+            _boundTextures[q] = texture;
             ++_numBoundTextures;
             glActiveTexture(GL_TEXTURE0 + q);
-            glBindTexture(GL_TEXTURE_2D, texture->second);
+            glBindTexture(GL_TEXTURE_2D, texture);
             return q;
         }
     }
@@ -65,20 +74,25 @@ int TextureManager::bindTexture(const std::string &texName)
     return -1;
 }
 
-std::tuple<int, int, int> TextureManager::bindMaterial(const Material &mat)
+std::tuple<int, int, int> TextureManager::bindMaterial(const BasicMaterial &mat)
 {
     return {bindTexture(mat.diffTextureName), bindTexture(mat.specTextureName), bindTexture(mat.emissionTextureName)};
 }
 
-void TextureManager::allocateMaterial(const Material &mat)
+void TextureManager::allocateMaterial(const BasicMaterial &mat)
 {
     allocateTexture(mat.diffTextureName);
     allocateTexture(mat.specTextureName);
     allocateTexture(mat.emissionTextureName);
 }
 
-void TextureManager::unbindTexture(int textureId)
+void TextureManager::unbindTexture(TextureIdentifier id)
 {
+    const auto texturePtr = _textures.find(id);
+    if (texturePtr == _textures.end())
+        return;
+    const int textureId = texturePtr->second.componentData;
+
     if (textureId >= MAX_TEXTURES || textureId < 0)
         return;
     if (_numBoundTextures == 0)
@@ -104,30 +118,32 @@ void TextureManager::unbindAllTextures()
     _numBoundTextures = 0;
 }
 
-void TextureManager::deallocateTexture(const std::string &texName)
+void TextureManager::deallocateTexture(TextureIdentifier id)
 {
-    const auto texture = _textures.find(texName);
-    if (texture == _textures.end())
+    const auto texturePtr = _textures.find(id);
+    if (texturePtr == _textures.end())
+        return;
+    auto &texture = texturePtr->second.componentData;
+
+    assert(isTextureBound(texture));
+    if (isTextureBound(texture))
         return;
 
-    assert(isTextureBound(texture->second));
-    if (isTextureBound(texture->second))
-        return;
-
-    texture->second.deallocateTexture();
+    texture.deallocateTexture();
 }
 
-void TextureManager::unregisterTexture(const std::string &texName)
+void TextureManager::unregisterTexture(TextureIdentifier id)
 {
-    const auto texture = _textures.find(texName);
-    if (texture == _textures.end())
+    const auto texturePtr = _textures.find(id);
+    if (texturePtr == _textures.end())
+        return;
+    const auto &texture = texturePtr->second.componentData;
+
+    assert(isTextureBound(texture) != -1);
+    if (isTextureBound(texture) != -1)
         return;
 
-    assert(isTextureBound(texture->second) != -1);
-    if (isTextureBound(texture->second) != -1)
-        return;
-
-    _textures.erase(texName);
+    _textures.erase(id);
 }
 
 void TextureManager::cleanUpGracefully()

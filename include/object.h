@@ -2,38 +2,68 @@
 
 #include "mesh.h"
 #include "material.h"
+#include "types.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-// one primitive (for now) object means:
-// + one mesh
-// + multiple materials
+#include <unordered_set>
+#include <algorithm>
 
-struct PrimitiveObject
+struct ComponentPairHash
 {
-    MeshIdentifier objMesh;
-    std::vector<Material> objMaterials;
-
-    glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
-    glm::mat4 rotation = glm::identity<glm::mat4>();
-    glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
-
-    glm::mat4 computeModelMatrix() const
+    std::size_t operator()(const Component &p) const noexcept
     {
-        glm::mat4 modelM = glm::identity<glm::mat4>();
-        modelM = glm::scale(modelM, scale);
-        modelM = rotation * modelM;
-        modelM = glm::translate(modelM, position);
+        return std::hash<std::underlying_type_t<ComponentType>>{}(
+            static_cast<std::underlying_type_t<ComponentType>>(p.first));
+    }
+};
 
-        return modelM;
+struct ComponentPairEqual
+{
+    bool operator()(const Component &lhs,
+                    const Component &rhs) const noexcept
+    {
+        return lhs.first == rhs.first;
+    }
+};
+
+struct GameObject
+{
+public:
+    friend class ObjectManager;
+
+    operator GameObjectIdentifier() const
+    {
+        return _objectId;
     }
 
-    glm::mat4 computeModelMatrixNoScale() const
+    void addComponent(Component newComponent)
     {
-        glm::mat4 modelM = glm::identity<glm::mat4>();
-        modelM = rotation * modelM;
-        modelM = glm::translate(modelM, position);
+        if (_objectComponents.contains(newComponent))
+            return;
 
-        return modelM;
+        _objectComponents.emplace(newComponent);
     }
+
+    void addChildObject(GameObjectIdentifier newChild)
+    {
+        if (std::ranges::find(_objectChildren, newChild) != _objectChildren.end())
+            return;
+        _objectChildren.emplace_back(newChild);
+    }
+
+    ComponentIdentifier getIdentifierForComponent(ComponentType type) const
+    {
+        auto cPtr = _objectComponents.find(Component(type, InvalidIdentifier));
+        return cPtr == _objectComponents.end() ? InvalidIdentifier : cPtr->second;
+    }
+
+private:
+    GameObject(GameObjectIdentifier newId) : _objectId(newId) {}
+
+private:
+    GameObjectIdentifier _objectId;
+    std::unordered_set<Component, ComponentPairHash, ComponentPairEqual> _objectComponents;
+    std::vector<GameObjectIdentifier> _objectChildren;
 };

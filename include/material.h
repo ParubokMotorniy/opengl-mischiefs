@@ -1,12 +1,12 @@
 #pragma once
-
+ 
 #include "types.h"
 
 // TODO: add manager for materials
 
-struct Material
+struct BasicMaterial
 {
-    TextureIdentifier diffTextureName = "";
-    TextureIdentifier specTextureName = "";
-    TextureIdentifier emissionTextureName = "";
+    TextureIdentifier diffTextureName = 0;
+    TextureIdentifier specTextureName = 0;
+    TextureIdentifier emissionTextureName = 0;
 };

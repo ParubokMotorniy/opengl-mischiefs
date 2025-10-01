@@ -34,6 +34,7 @@ void Camera::lookAt(const glm::vec3 &target)
     _pitch = glm::degrees(glm::asin(_front.y));
 }
 
+//TODO: make mouse capturing more intelligent
 void Camera::processKeyboard(const KeyboardInput &keysPressed, float deltaTime)
 {
     if (keysPressed.motionIsZero())
