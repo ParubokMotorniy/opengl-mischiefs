@@ -69,6 +69,8 @@ public:
     bool shouldClose() const;
     GLFWwindow *getRawWindow() const;
     virtual void update(float deltaTime);
+    void hideCursor(bool ifHide) const;
+    void setMouseAccuracy(bool accurate) const;
 
     template <typename ListenerType>
     void subscribeEventListener(ListenerType &&listener)

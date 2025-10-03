@@ -225,11 +225,17 @@ int main(int argc, const char *argv[])
                                             renderAxes = !renderAxes; });
     mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime)
                                       { camPtr->processKeyboard(input, deltaTime); });
-    mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, Window::MouseMotionDescriptor descriptor)
+    mainWindow.subscribeEventListener([camPtr = camera, &mainWindow](KeyboardInput input, Window::MouseMotionDescriptor descriptor)
                                       { 
                                         if(input.MouseRight == 1)
                                         {
                                             camPtr->processMouseMovement(descriptor.deltaPosX, descriptor.deltaPosY);
+                                            mainWindow.hideCursor(true);
+                                            mainWindow.setMouseAccuracy(true);
+                                        }else
+                                        {
+                                            mainWindow.hideCursor(false);
+                                            mainWindow.setMouseAccuracy(false);
                                         } });
     mainWindow.subscribeEventListener([camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor)
                                       { camPtr->processMouseScroll(descriptor.deltaScrollY); });

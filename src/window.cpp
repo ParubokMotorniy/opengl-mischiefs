@@ -4,7 +4,7 @@
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
-    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
+    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window));
     currentWindow->_lastViewportWidth = width;
     currentWindow->_lastViewportHeight = height;
     currentWindow->_dirtyViewportDelta = true;
@@ -24,7 +24,7 @@ void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
+    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window));
 
     currentWindow->_lastMouseDeltaX = xoffset;
     currentWindow->_lastMouseDeltaY = yoffset;
@@ -33,7 +33,7 @@ void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
 
 void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
+    Window *currentWindow = static_cast<Window *>(glfwGetWindowUserPointer(window));
 
     currentWindow->_lastScrollDeltaX = xoffset;
     currentWindow->_lastScrollDeltaY = yoffset;
@@ -131,6 +131,18 @@ void Window::update(float deltaTime)
     }
 }
 
+void Window::hideCursor(bool ifHide) const
+{
+    glfwSetInputMode(_window, GLFW_CURSOR, ifHide ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+}
+void Window::setMouseAccuracy(bool accurate) const
+{
+    if (!glfwRawMouseMotionSupported())
+        return;
+
+    glfwSetInputMode(_window, GLFW_RAW_MOUSE_MOTION, accurate ? GLFW_TRUE : GLFW_FALSE);
+}
+
 Window::Window(size_t widthX, size_t heightY, const char *windowName) : _lastViewportWidth(widthX), _lastViewportHeight(heightY)
 {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -150,7 +162,6 @@ Window::Window(size_t widthX, size_t heightY, const char *windowName) : _lastVie
     glfwSetFramebufferSizeCallback(_window, framebufferResizeCallback);
     glfwSetCursorPosCallback(_window, mouseCallback);
     glfwSetScrollCallback(_window, scrollCallback);
-    glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwSetWindowUserPointer(_window, this);
 }
