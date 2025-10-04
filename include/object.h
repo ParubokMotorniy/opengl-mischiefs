@@ -34,11 +34,12 @@ public:
 
     operator GameObjectIdentifier() const { return _objectId; }
 
-    void addComponent(Component newComponent)
+    void addComponent(Component newComponent, bool overwrite = false)
     {
-        if (_objectComponents.contains(newComponent))
-            return;
-
+        if (overwrite)
+        {
+            _objectComponents.erase(newComponent);
+        }
         _objectComponents.emplace(newComponent);
     }
 

@@ -195,29 +195,6 @@ int main(int argc, const char *argv[])
     // Attribution (http://creativecommons.org/licenses/by/4.0/).
     GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS"/tank/tank.obj");
 
-    // GameObject &upperCube =
-    // ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
-    // {
-    //     upperCube.addComponent(Component(ComponentType::MESH, simpleCubeMeshUp));
-    //     upperCube.addComponent(Component(ComponentType::TRANSFORM,
-    //     TransformManager::instance()->registerNewTransform()));
-    // }
-    // std::vector<GameObject *> voronoiDistancesObjects = {&upperCube};
-
-    // GameObject &lowerCube =
-    // ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
-    // {
-    //     lowerCube.addComponent(Component(ComponentType::MESH, simpleCubeMeshDown));
-    //     lowerCube.addComponent(Component(ComponentType::TRANSFORM,
-    //     TransformManager::instance()->registerNewTransform()));
-    // }
-    // std::vector<GameObject *> voronoiseObjects = {&lowerCube};
-
-    // std::vector<Model *> standardShaderModels = {&tankModel};
-    // std::vector<GameObject> cubeLightObjects = {{.objMesh = "simple_cube", .scale =
-    // glm::vec3(0.5f, 0.5f, 0.5f)}}; std::vector<GameObject *> objectsWithAxes =
-    // {&standardShaderObjects[0], &voronoiseObjects[0], &voronoiDistancesObjects[0]};
-
     mainWindow.subscribeEventListener(
         [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
             if (releasedKeys.CtrlLeft)
@@ -248,8 +225,6 @@ int main(int argc, const char *argv[])
         });
     mainWindow.subscribeEventListener([](int w, int h) { glViewport(0, 0, w, h); });
 
-    // TODO: make sure the meshes are organized by shaders and rendered in batches, in instanced
-    // fashion
     {
         //// Shaders
 
@@ -258,12 +233,6 @@ int main(int argc, const char *argv[])
 
         // ShaderProgram lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
         // lightCubeShader.initializeShaderProgram();
-
-        // ShaderProgram voronoiseShader{vertexShaderSource, voronoiseFragmentShaderSource};
-        // voronoiseShader.initializeShaderProgram();
-
-        // ShaderProgram voronoiDistancesShader{vertexShaderSource,
-        // voronoiDistanceFragmentShaderSource}; voronoiDistancesShader.initializeShaderProgram();
 
         GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
                                                axesGeometryShaderSource };
@@ -300,6 +269,8 @@ int main(int argc, const char *argv[])
             standardAxes.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             worldAxesShader.addObject(standardAxes);
+
+            /// 
         }
 
         shaderProgramMain.addObjectWithChildren(tankModel);
@@ -355,52 +326,6 @@ int main(int argc, const char *argv[])
 
                 shaderProgramMain.runShader();
             }
-
-            // {
-            //     voronoiseShader.use();
-            //     voronoiseShader.setVec3("iResolution", glm::vec3(windowWidth, windowHeight,
-            //     0.0f)); voronoiseShader.setFloat("iTime", time);
-            //     voronoiseShader.setMatrix4("view", view);
-            //     voronoiseShader.setMatrix4("projection", projection);
-
-            //     for (const GameObject *obj : voronoiseObjects)
-            //     {
-            //         const MeshIdentifier meshId =
-            //         obj->getIdentifierForComponent(ComponentType::MESH);
-            //         MeshManager::instance()->bindMesh(meshId);
-
-            //         voronoiseShader.setMatrix4("model",
-            //         TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
-
-            //         glDrawElements(GL_TRIANGLES,
-            //         MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
-            //         MeshManager::instance()->unbindMesh();
-            //     }
-            // }
-
-            // {
-            //     voronoiDistancesShader.use();
-            //     voronoiDistancesShader.setVec3("iResolution", glm::vec3(1.0f, 1.0f, 0.0f));
-            //     voronoiDistancesShader.setFloat("iTime", time);
-            //     voronoiDistancesShader.setMatrix4("view", view);
-            //     voronoiDistancesShader.setMatrix4("projection", projection);
-
-            //     for (const GameObject *obj : voronoiDistancesObjects)
-            //     {
-            //         const MeshIdentifier meshId =
-            //         obj->getIdentifierForComponent(ComponentType::MESH);
-            //         MeshManager::instance()->bindMesh(meshId);
-
-            //         voronoiDistancesShader.setMatrix4("model",
-            //         TransformManager::instance()->getModelMatrix(obj->getIdentifierForComponent(ComponentType::TRANSFORM)));
-
-            //         glDrawElements(GL_TRIANGLES,
-            //         MeshManager::instance()->getMesh(meshId)->numIndices(), GL_UNSIGNED_INT, 0);
-            //         MeshManager::instance()->unbindMesh();
-            //     }
-
-            //     TextureManager::instance()->unbindAllTextures();
-            // }
 
             // {
             //     lightCubeShader.use();
