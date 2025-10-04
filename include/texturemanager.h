@@ -35,6 +35,8 @@ public:
 
     void cleanUpGracefully();
 
+    const Texture2D *getTexture(TextureIdentifier tId) const;
+
 private:
     TextureManager();
 

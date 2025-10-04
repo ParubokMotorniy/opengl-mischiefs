@@ -16,7 +16,7 @@ using InstancedDataGeneratorFunc = std::function<void(int8_t *, GameObjectIdenti
 struct InstancedDataGenerator
 {
     size_t dataByteSize = 0; //total bytes generated
-    size_t dataUnitSize = 0; //total number of data subunits wrt to `dataType` (like GL_FLOAT)
+    size_t dataUnitSize = 0; //total number of data subunits wrt to `dataType` (like GL_FLOAT or GL_INT)
     size_t location = 0;
     int dataType = 0;
     bool normalize = false;

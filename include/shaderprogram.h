@@ -38,6 +38,7 @@ public:
     void setVec4(const std::string &name, const glm::vec4 &vec);
 
     void addObject(GameObjectIdentifier gId);
+
     virtual void runShader();
 
     operator int()

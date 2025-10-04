@@ -3,9 +3,9 @@
 
 #include <glad/glad.h>
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <algorithm>
 
 std::pair<std::string, TextureIdentifier> TextureManager::registerTexture(const char *textureSource)
 {
@@ -14,24 +14,23 @@ std::pair<std::string, TextureIdentifier> TextureManager::registerTexture(const 
     return std::make_pair(rName, id);
 }
 
-TextureManager::TextureManager()
-{
-    std::memset(_boundTextures, 0, MAX_TEXTURES);
-}
+TextureManager::TextureManager() { std::memset(_boundTextures, 0, MAX_TEXTURES); }
 
-TextureIdentifier TextureManager::registerTexture(const char *textureSource, const std::string &texName)
+TextureIdentifier TextureManager::registerTexture(const char *textureSource,
+                                                  const std::string &texName)
 {
     if (const TextureIdentifier ti = textureRegistered(texName); ti != InvalidIdentifier)
         return ti;
 
-    _textures.emplace(++_identifiers, NamedTexture{texName, Texture2D(textureSource)});
+    _textures.emplace(++_identifiers, NamedTexture{ texName, Texture2D(textureSource) });
     return _identifiers;
 }
 
 TextureIdentifier TextureManager::textureRegistered(const std::string &texName) const
 {
-    const auto texPtr = std::ranges::find_if(_textures, [&texName](const auto &pair)
-                                             { return pair.second.componentName == texName; });
+    const auto texPtr = std::ranges::find_if(_textures, [&texName](const auto &pair) {
+        return pair.second.componentName == texName;
+    });
     return texPtr == _textures.end() ? InvalidIdentifier : texPtr->first;
 }
 
@@ -76,7 +75,8 @@ int TextureManager::bindTexture(TextureIdentifier id)
 
 std::tuple<int, int, int> TextureManager::bindMaterial(const BasicMaterial &mat)
 {
-    return {bindTexture(mat.diffTextureName), bindTexture(mat.specTextureName), bindTexture(mat.emissionTextureName)};
+    return { bindTexture(mat.diffTextureName), bindTexture(mat.specTextureName),
+             bindTexture(mat.emissionTextureName) };
 }
 
 void TextureManager::allocateMaterial(const BasicMaterial &mat)
@@ -157,6 +157,15 @@ void TextureManager::cleanUpGracefully()
     }
 
     _textures.clear();
+}
+
+const Texture2D *TextureManager::getTexture(TextureIdentifier tId) const 
+{ 
+    const auto tPtr = _textures.find(tId);
+    if(tPtr == _textures.end())
+        return nullptr;
+
+    return &tPtr->second.componentData;
 }
 
 int TextureManager::isTextureBound(const Texture2D &texture)
