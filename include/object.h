@@ -1,14 +1,14 @@
 #pragma once
 
-#include "mesh.h"
 #include "material.h"
+#include "mesh.h"
 #include "types.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <unordered_set>
 #include <algorithm>
+#include <unordered_set>
 
 struct ComponentPairHash
 {
@@ -21,8 +21,7 @@ struct ComponentPairHash
 
 struct ComponentPairEqual
 {
-    bool operator()(const Component &lhs,
-                    const Component &rhs) const noexcept
+    bool operator()(const Component &lhs, const Component &rhs) const noexcept
     {
         return lhs.first == rhs.first;
     }
@@ -33,10 +32,7 @@ struct GameObject
 public:
     friend class ObjectManager;
 
-    operator GameObjectIdentifier() const
-    {
-        return _objectId;
-    }
+    operator GameObjectIdentifier() const { return _objectId; }
 
     void addComponent(Component newComponent)
     {
@@ -58,6 +54,8 @@ public:
         auto cPtr = _objectComponents.find(Component(type, InvalidIdentifier));
         return cPtr == _objectComponents.end() ? InvalidIdentifier : cPtr->second;
     }
+
+    const std::vector<GameObjectIdentifier> &children() { return _objectChildren; }
 
 private:
     GameObject(GameObjectIdentifier newId) : _objectId(newId) {}

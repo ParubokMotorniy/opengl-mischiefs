@@ -193,8 +193,7 @@ int main(int argc, const char *argv[])
 
     //"Tank - WW1" (https://skfb.ly/oqRNY) by Andy Woodhead is licensed under Creative Commons
     // Attribution (http://creativecommons.org/licenses/by/4.0/).
-    // GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
-    // "/tank/tank.obj");
+    GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS"/tank/tank.obj");
 
     // GameObject &upperCube =
     // ObjectManager::instance()->getObject(ObjectManager::instance()->addObject());
@@ -302,6 +301,8 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
         }
+
+        shaderProgramMain.addObjectWithChildren(tankModel);
 
         GameObject &worldAxes = ObjectManager::instance()->getObject(
             ObjectManager::instance()->addObject());

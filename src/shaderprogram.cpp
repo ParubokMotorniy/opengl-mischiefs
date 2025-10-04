@@ -75,6 +75,18 @@ void ShaderProgram::setVec4(const std::string &name, const glm::vec4 &vec)
 
 void ShaderProgram::addObject(GameObjectIdentifier gId) { _orderedShaderObjects.insert(gId); }
 
+void ShaderProgram::addObjectWithChildren(GameObjectIdentifier gId)
+{
+    GameObject &obj = ObjectManager::instance()->getObject(gId);
+    if (!obj.children().empty())
+    {
+        std::ranges::for_each(obj.children(),
+                              [this](GameObjectIdentifier cGId) { addObjectWithChildren(cGId); });
+    }
+
+    addObject(gId);
+}
+
 void ShaderProgram::runShader() // TODO: make instancing virtual as well
 {
     const InstancedDataGenerator modelMatrixCol0 = InstancedDataGenerator{
@@ -156,9 +168,10 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         }
     };
 
-    //TODO: avoid this unnecessary copying
+    // TODO: avoid this unnecessary copying
     use();
-    const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(), _orderedShaderObjects.cend());
+    const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
+                                                          _orderedShaderObjects.cend());
 
     uint32_t uniformTexturesIdx;
     const uint32_t materialsBinding = 0;
@@ -168,7 +181,7 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
 
     // makes the texture indices instanced
     InstancedDataGenerator standardMaterialIndices = InstancedDataGenerator{
-        sizeof(int) * 4, //4 to preserve the 16-byte alignment
+        sizeof(int) * 4, // 4 to preserve the 16-byte alignment
         3,
         7,
         GL_INT,
@@ -195,23 +208,27 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
             const MeshIdentifier sharedMesh = ObjectManager::instance()
                                                   ->getObject(*meshStart)
                                                   .getIdentifierForComponent(ComponentType::MESH);
-            const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
+            if (sharedMesh != InvalidIdentifier)
+            {
+                const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
 
-            const uint32_t vertexBufferId = Instancer::instance()
-                                                ->instanceData(std::span(meshStart, meshEnd),
-                                                               { modelMatrixCol0, modelMatrixCol1,
-                                                                 modelMatrixCol2, modelMatrixCol3,
-                                                                 standardMaterialIndices },
-                                                               mesh);
+                const uint32_t vertexBufferId
+                    = Instancer::instance()->instanceData(std::span(meshStart, meshEnd),
+                                                          { modelMatrixCol0, modelMatrixCol1,
+                                                            modelMatrixCol2, modelMatrixCol3,
+                                                            standardMaterialIndices },
+                                                          mesh);
 
-            MeshManager::instance()->bindMesh(sharedMesh);
+                MeshManager::instance()->allocateMesh(sharedMesh);
+                MeshManager::instance()->bindMesh(sharedMesh);
 
-            glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
-                                    meshEnd - meshStart);
+                glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
+                                        meshEnd - meshStart);
 
-            glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
+                glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
 
-            MeshManager::instance()->unbindMesh();
+                MeshManager::instance()->unbindMesh();
+            }
             meshStart = meshEnd;
         }
 

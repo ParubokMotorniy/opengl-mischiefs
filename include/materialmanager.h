@@ -62,17 +62,22 @@ public:
         std::ranges::for_each(objects, [&, this](GameObjectIdentifier gId) {
             const MaterialIdentifier mId
                 = ObjectManager::instance()->getObject(gId).getIdentifierForComponent(MaterialType);
+
+            if (mId == InvalidIdentifier)
+                return; // some objects may not have materials on them
+
             const MaterialStruct &mS = getMaterial(mId);
 
             for (const TextureIdentifier tId : mS.textures())
             {
-                if (texturesToHandles.contains(tId))
+                if (tId == InvalidIdentifier || texturesToHandles.contains(tId))
                     continue;
 
                 TextureManager::instance()->allocateTexture(tId);
 
                 const TextureHandle texHandle = glGetTextureHandleARB(
                     *TextureManager::instance()->getTexture(tId));
+                // const TextureHandle texHandle = tId;
 
                 assert(texHandle != 0);
 
@@ -109,14 +114,28 @@ public:
         std::ranges::for_each(objects, [&, this](GameObjectIdentifier gId) {
             const MaterialIdentifier mId
                 = ObjectManager::instance()->getObject(gId).getIdentifierForComponent(MaterialType);
-            const MaterialStruct &mS = getMaterial(mId);
-
-            const std::array<TextureIdentifier, textureCount> objTextures = mS.textures();
             std::array<int, textureCount> objArray;
 
-            for (int g = 0; g < textureCount; ++g)
+            if (mId == InvalidIdentifier)
             {
-                objArray[g] = handleToIndex[texturesToHandles[objTextures[g]]];
+                for (int g = 0; g < textureCount; ++g)
+                {
+                    objArray[g] = -1;
+                }
+            }
+            else
+            {
+                const MaterialStruct &mS = getMaterial(mId);
+
+                const std::array<TextureIdentifier, textureCount> objTextures = mS.textures();
+
+                for (int g = 0; g < textureCount; ++g)
+                {
+                    if (objTextures[g] == InvalidIdentifier)
+                        objArray[g] = -1;
+                    else
+                        objArray[g] = handleToIndex[texturesToHandles[objTextures[g]]];
+                }
             }
 
             objectIndices.emplace(std::make_pair(gId, objArray));
