@@ -11,7 +11,7 @@ in vec3 vPos;
 in vec3 vNorm;
 flat in ivec3 instanceMaterialIndices; 
 
-layout (std430, binding = 0) readonly buffer TextureHandles
+layout (binding = 0, std430) readonly buffer TextureHandles
 {
     sampler2D textures[];
 };
@@ -36,6 +36,7 @@ void main()
 {
     vec4 diffColor = texture(textures[instanceMaterialIndices.x], texCoord);
     vec4 specColor = texture(textures[instanceMaterialIndices.y], texCoord);
+    vec4 emColor = texture(textures[instanceMaterialIndices.z], texCoord);
 
     float intensityFallof = pow(currentLight.k, -currentLight.b * distance(viewPos, vPos));
     vec3 normVNorm = normalize(vNorm); //can interpolation denormalize it?
@@ -54,7 +55,11 @@ void main()
     float specMultiplier = pow(max(dot(viewDir, reflectionDir), 0.0f), specAlpha);
     vec3 specFraction = currentLight.specStrength * specMultiplier * specColor.xyz * intensityFallof;
 
-    vec3 emissionFraction = texture(textures[instanceMaterialIndices.z], texCoord).xyz * (1.0f - clamp(dot(normVNorm, lightDir), 0.00f, 0.9f));
+    vec3 emissionFraction = emColor.xyz * (1.0f - clamp(dot(normVNorm, lightDir), 0.00f, 0.9f));
 
     fragColor = vec4((ambFraction + diffFraction + specFraction + emissionFraction), 1.0f);
+
+    // fragColor = emColor;
+    // fragColor = vec4(normalize(instanceMaterialIndices), 1.0f);
+    // fragColor = vec4(normalize(instanceMaterialIndices.xyz), 1.0f);
 }

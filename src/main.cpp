@@ -278,8 +278,9 @@ int main(int argc, const char *argv[])
                 ObjectManager::instance()->addObject());
 
             standardObject.addComponent(
-                Component(ComponentType::MESH, k % 20 < 10 ? simpleCubeMesh : simplePyramidMesh));
-            standardObject.addComponent(Component(ComponentType::BASIC_MATERIAL, k % 20 < 10 ? floppaMaterial : catMaterial));
+                Component(ComponentType::MESH, (k % 20 < 10) ? simpleCubeMesh : simplePyramidMesh));
+            standardObject.addComponent(Component(ComponentType::BASIC_MATERIAL,
+                                                  (k % 20 < 10) ? floppaMaterial : catMaterial));
 
             const TransformIdentifier tId = TransformManager::instance()->registerNewTransform();
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));

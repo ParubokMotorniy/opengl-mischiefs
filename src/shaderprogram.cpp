@@ -73,7 +73,7 @@ void ShaderProgram::setVec4(const std::string &name, const glm::vec4 &vec)
     glUniform4f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z, vec.w);
 }
 
-void ShaderProgram::addObject(GameObjectIdentifier gId) { _orderedShaderObjects.push(gId); }
+void ShaderProgram::addObject(GameObjectIdentifier gId) { _orderedShaderObjects.insert(gId); }
 
 void ShaderProgram::runShader() // TODO: make instancing virtual as well
 {
@@ -83,7 +83,7 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         3,
         GL_FLOAT,
         false,
-        [](int8_t *destination, GameObjectIdentifier gId) {
+        [](void *destination, GameObjectIdentifier gId) {
             const glm::mat4 modelMat
                 = TransformManager::instance()
                       ->getTransform(
@@ -102,7 +102,7 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         4,
         GL_FLOAT,
         false,
-        [](int8_t *destination, GameObjectIdentifier gId) {
+        [](void *destination, GameObjectIdentifier gId) {
             const glm::mat4 modelMat
                 = TransformManager::instance()
                       ->getTransform(
@@ -122,7 +122,7 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         5,
         GL_FLOAT,
         false,
-        [](int8_t *destination, GameObjectIdentifier gId) {
+        [](void *destination, GameObjectIdentifier gId) {
             const glm::mat4 modelMat
                 = TransformManager::instance()
                       ->getTransform(
@@ -142,7 +142,7 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         6,
         GL_FLOAT,
         false,
-        [](int8_t *destination, GameObjectIdentifier gId) {
+        [](void *destination, GameObjectIdentifier gId) {
             const glm::mat4 modelMat
                 = TransformManager::instance()
                       ->getTransform(
@@ -156,9 +156,9 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         }
     };
 
-    // TODO: in the future, bind the textures bindlessly
+    //TODO: avoid this unnecessary copying
     use();
-    const std::vector<GameObjectIdentifier> &shaderObjects = getContainer(_orderedShaderObjects);
+    const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(), _orderedShaderObjects.cend());
 
     uint32_t uniformTexturesIdx;
     const uint32_t materialsBinding = 0;
@@ -166,18 +166,14 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
               ->bindTextures(shaderObjects, materialsBinding, uniformTexturesIdx);
 
-    // unsigned int lights_index = glGetUniformBlockIndex(_id, "Lights");
-    // glUniformBlockBinding(_id, lights_index, materialsBinding);
-    // glBindBuffer(GL_UNIFORM_BUFFER, uniformTexturesIdx);
-
     // makes the texture indices instanced
     InstancedDataGenerator standardMaterialIndices = InstancedDataGenerator{
-        sizeof(int) * 3,
+        sizeof(int) * 4, //4 to preserve the 16-byte alignment
         3,
         7,
         GL_INT,
         false,
-        [&](int8_t *destination, GameObjectIdentifier gId) {
+        [&](void *destination, GameObjectIdentifier gId) {
             const std::array<int, 3> &objectTextureIndices = objectIndices.at(gId);
 
             std::memcpy(destination, objectTextureIndices.data(), sizeof(int) * 3);

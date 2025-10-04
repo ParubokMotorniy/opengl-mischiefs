@@ -74,6 +74,8 @@ public:
                 const TextureHandle texHandle = glGetTextureHandleARB(
                     *TextureManager::instance()->getTexture(tId));
 
+                assert(texHandle != 0);
+
                 texturesToHandles.emplace(std::make_pair(tId, texHandle));
 
                 glMakeTextureHandleResidentARB(texHandle);
@@ -99,17 +101,6 @@ public:
         glNamedBufferStorage(textureBufferIdx, uniformHandles.size() * sizeof(TextureHandle),
                              (const void *)uniformHandles.data(), GL_DYNAMIC_STORAGE_BIT);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPoint, textureBufferIdx);
-
-        // glBindBuffer(GL_UNIFORM_BUFFER, textureBufferIdx);
-        // glBufferData(GL_UNIFORM_BUFFER, uniformHandles.size() * sizeof(TextureHandle), NULL,
-        //              GL_STATIC_DRAW);
-
-        // glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, textureBufferIdx);
-
-        // glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformHandles.size() * sizeof(TextureHandle),
-        //                 uniformHandles.data());
-
-        // glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         // run over all objects and for each determine the indices of the textures in the bound buffer
         std::unordered_map<GameObjectIdentifier, std::array<int, textureCount>> objectIndices;

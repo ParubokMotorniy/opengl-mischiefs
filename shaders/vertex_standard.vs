@@ -14,7 +14,7 @@ layout(location = 7) in ivec3 materialIndices; //instanced
 out vec2 texCoord;
 out vec3 vPos;
 out vec3 vNorm;
-out ivec3 instanceMaterialIndices;
+flat out ivec3 instanceMaterialIndices;
 
 //uniforms
 uniform mat4 view;

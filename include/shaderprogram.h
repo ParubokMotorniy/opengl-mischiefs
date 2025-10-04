@@ -9,7 +9,7 @@
 #include <sstream>
 #include <iostream>
 #include <cstdint>
-#include <queue>
+#include <set>
 
 #include "meshmanager.h"
 #include "objectmanager.h"
@@ -61,27 +61,14 @@ protected:
     // TODO: ideally these shouldn't be protected but private
     struct MeshOrderer
     {
-        bool operator()(const GameObjectIdentifier &gId1, const GameObjectIdentifier &gId2)
+        bool operator()(const GameObjectIdentifier &gId1, const GameObjectIdentifier &gId2) const
         {
             const MeshIdentifier mId1 = ObjectManager::instance()->getObject(gId1).getIdentifierForComponent(ComponentType::MESH);
             const MeshIdentifier mId2 = ObjectManager::instance()->getObject(gId2).getIdentifierForComponent(ComponentType::MESH);
-            return mId1 <= mId2;
+            return mId1 < mId2;
         }
     };
-    std::priority_queue<GameObjectIdentifier, std::vector<GameObjectIdentifier>, MeshOrderer> _orderedShaderObjects;
-
-    template <class T, class Container, class Compare>
-    Container &getContainer(std::priority_queue<T, Container, Compare> &pq)
-    {
-        struct Wrapper : std::priority_queue<T, Container, Compare>
-        {
-            static Container &get(std::priority_queue<T, Container, Compare> &q)
-            {
-                return q.*&Wrapper::c;
-            }
-        };
-        return Wrapper::get(pq);
-    }
+    std::multiset<GameObjectIdentifier, MeshOrderer> _orderedShaderObjects;
 
 private:
     unsigned int _id;
