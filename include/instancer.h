@@ -31,7 +31,7 @@ public:
     friend class SystemSingleton<Instancer>;
 
     // TODO: try to make use of compile-time polymorphism of the generators
-    uint32_t instanceData(
+    GLuint instanceData(
         const std::span<const GameObjectIdentifier, std::dynamic_extent> &instancedObjects,
         const std::vector<InstancedDataGenerator> &generators, const uint32_t targetVertexArray)
     {
@@ -56,7 +56,7 @@ public:
         }
         glBindVertexArray(targetVertexArray);
 
-        uint32_t vertexBuffer;
+        GLuint vertexBuffer;
         glGenBuffers(1, &vertexBuffer);
 
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);

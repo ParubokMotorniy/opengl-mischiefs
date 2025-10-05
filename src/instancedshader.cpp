@@ -7,21 +7,81 @@ InstancedShader::InstancedShader(const char *vertexPath, const char *fragmentPat
 {
 }
 
-InstancedShader::~InstancedShader() { glDeleteBuffers(1, &_texturesSSBO); }
-
-void InstancedShader::addObject(GameObjectIdentifier gId)
+InstancedShader::~InstancedShader()
 {
-    _orderedShaderObjects.insert(gId);
-    runTextureMapping();
-}
-
-void InstancedShader::addObjectWithChildren(GameObjectIdentifier gId)
-{
-    addObjectWithChildrenImpl(gId);
-    runTextureMapping();
+    glDeleteBuffers(1, &_texturesSSBO);
+    glDeleteBuffers(_instancedBufferIds.size(), _instancedBufferIds.data());
 }
 
 void InstancedShader::runShader()
+{
+    use();
+
+    for (auto &[meshId, count] : _instancedMeshes)
+    {
+        const Mesh &mesh = *MeshManager::instance()->getMesh(meshId);
+
+        MeshManager::instance()->bindMesh(meshId);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _texturesSSBO);
+
+        glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0, count);
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+
+        MeshManager::instance()->unbindMesh();
+    }
+}
+
+void InstancedShader::compileAndAttachNecessaryShaders(uint32_t id)
+{
+    if (_vertexShaderId == 0)
+    {
+        const std::string &vShaderCode = readShaderSource(_vertexPath);
+
+        const char *vPtr = vShaderCode.c_str();
+
+        _vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(_vertexShaderId, 1, &vPtr, NULL);
+        compileShader(_vertexShaderId);
+    }
+
+    glAttachShader(id, _vertexShaderId);
+
+    if (_fragmentShaderId == 0)
+    {
+        const std::string &fShaderCode = readShaderSource(_fragmentPath);
+
+        const char *fPtr = fShaderCode.c_str();
+
+        _fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(_fragmentShaderId, 1, &fPtr, NULL);
+        compileShader(_fragmentShaderId);
+    }
+
+    glAttachShader(id, _fragmentShaderId);
+}
+
+void InstancedShader::deleteShaders()
+{
+    glDeleteShader(_vertexShaderId);
+    _vertexShaderId = 0;
+
+    glDeleteShader(_fragmentShaderId);
+    _fragmentShaderId = 0;
+}
+
+void InstancedShader::runTextureMapping()
+{
+    glDeleteBuffers(1, &_texturesSSBO);
+    _objectsTextureMappings
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->bindTextures(std::vector<GameObjectIdentifier>(_orderedShaderObjects.cbegin(),
+                                                               _orderedShaderObjects.cend()),
+                             0, _texturesSSBO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+}
+
+void InstancedShader::runInstancing()
 {
     // TODO: these generators are quite inefficient -> rework
     const InstancedDataGenerator modelMatrixCol0 = InstancedDataGenerator{
@@ -116,8 +176,6 @@ void InstancedShader::runShader()
             std::memcpy(destination, objectTextureIndices.data(), sizeof(int) * 3);
         }
     };
-
-    use();
     const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
                                                           _orderedShaderObjects.cend());
 
@@ -138,91 +196,22 @@ void InstancedShader::runShader()
                                                   .getIdentifierForComponent(ComponentType::MESH);
             if (sharedMesh != InvalidIdentifier)
             {
+                MeshManager::instance()->allocateMesh(sharedMesh);
                 const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
 
-                const uint32_t vertexBufferId
-                    = Instancer::instance()->instanceData(std::span(meshStart, meshEnd),
-                                                          { modelMatrixCol0, modelMatrixCol1,
-                                                            modelMatrixCol2, modelMatrixCol3,
-                                                            standardMaterialIndices },
-                                                          mesh);
+                const GLuint vertexBufferId = Instancer::instance()
+                                                  ->instanceData(std::span(meshStart, meshEnd),
+                                                                 { modelMatrixCol0, modelMatrixCol1,
+                                                                   modelMatrixCol2, modelMatrixCol3,
+                                                                   standardMaterialIndices },
+                                                                 mesh);
 
-                MeshManager::instance()->allocateMesh(sharedMesh);
-                MeshManager::instance()->bindMesh(sharedMesh);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _texturesSSBO);
-
-                glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
-                                        meshEnd - meshStart);
-
-                glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
-
-                MeshManager::instance()->unbindMesh();
+                _instancedMeshes.emplace(sharedMesh, meshEnd - meshStart);
+                _instancedBufferIds.emplace_back(vertexBufferId);
             }
             meshStart = meshEnd;
         }
 
         ++meshEnd;
     }
-}
-
-void InstancedShader::compileAndAttachNecessaryShaders(uint32_t id)
-{
-    if (_vertexShaderId == 0)
-    {
-        const std::string &vShaderCode = readShaderSource(_vertexPath);
-
-        const char *vPtr = vShaderCode.c_str();
-
-        _vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(_vertexShaderId, 1, &vPtr, NULL);
-        compileShader(_vertexShaderId);
-    }
-
-    glAttachShader(id, _vertexShaderId);
-
-    if (_fragmentShaderId == 0)
-    {
-        const std::string &fShaderCode = readShaderSource(_fragmentPath);
-
-        const char *fPtr = fShaderCode.c_str();
-
-        _fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(_fragmentShaderId, 1, &fPtr, NULL);
-        compileShader(_fragmentShaderId);
-    }
-
-    glAttachShader(id, _fragmentShaderId);
-}
-
-void InstancedShader::deleteShaders()
-{
-    glDeleteShader(_vertexShaderId);
-    _vertexShaderId = 0;
-
-    glDeleteShader(_fragmentShaderId);
-    _fragmentShaderId = 0;
-}
-
-void InstancedShader::runTextureMapping()
-{
-    glDeleteBuffers(1, &_texturesSSBO);
-    _objectsTextureMappings
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->bindTextures(std::vector<GameObjectIdentifier>(_orderedShaderObjects.cbegin(),
-                                                               _orderedShaderObjects.cend()),
-                             0, _texturesSSBO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
-}
-
-void InstancedShader::addObjectWithChildrenImpl(GameObjectIdentifier gId)
-{
-    GameObject &obj = ObjectManager::instance()->getObject(gId);
-    if (!obj.children().empty())
-    {
-        std::ranges::for_each(obj.children(),
-                              [this](GameObjectIdentifier cGId) { addObjectWithChildren(cGId); });
-    }
-
-    _orderedShaderObjects.insert(gId);
 }

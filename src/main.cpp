@@ -78,7 +78,6 @@ int main(int argc, const char *argv[])
 
     //// Cubes buffers
     // TODO: make sure the cubes reuse the same mesh but index vertices in their cutsom way
-    // TODO: add base plane with checked texture and anisotropic filtering
 
     const MeshIdentifier simpleCubeMesh = MeshManager::instance()->registerMesh(
         Mesh{ { { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
@@ -160,10 +159,15 @@ int main(int argc, const char *argv[])
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
               ->registerMaterial(BasicMaterial{ catDiff, specular, black }, "cat_material");
 
-    //"Tank - WW1" (https://skfb.ly/oqRNY) by Andy Woodhead is licensed under Creative Commons
-    // Attribution (http://creativecommons.org/licenses/by/4.0/).
-    GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
-                                                                        "/tank/tank.obj");
+    const MaterialIdentifier checkerMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ checkerboardTexture, InvalidIdentifier,
+                                                InvalidIdentifier },
+                                 "checker_material");
+
+    //Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
+    GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
+                                                                        "/bill/bill_cipher.obj");
     {
         mainWindow.subscribeEventListener(
             [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
@@ -209,13 +213,34 @@ int main(int argc, const char *argv[])
         WorldPlaneShader worldPlaneShader{ simpleCubeMesh, checkerboardTexture };
         worldPlaneShader.initializeShaderProgram();
 
-        BasicShader cubeScatterer{ simpleCubeMesh, checkerboardTexture, 100, 100 };
-        cubeScatterer.initializeShaderProgram();
+        //shader for rendering of cubes in non-instanced way
+        // BasicShader cubeScatterer{ simpleCubeMesh, checkerboardTexture, 1000, 1000 };
+        // cubeScatterer.initializeShaderProgram();
 
-        for (int k = 5; k < 155; ++k)
+        for (int k = 5; k < 75; ++k)
         {
-            ///
+            // generates lots of instanced cubes
+            //  for (int h = 0; h < 1000; ++h)
+            //  {
+            //      GameObject &standardObject = ObjectManager::instance()->getObject(
+            //          ObjectManager::instance()->addObject());
 
+            //     standardObject.addComponent(Component(ComponentType::MESH, simpleCubeMesh));
+            //     standardObject.addComponent(
+            //         Component(ComponentType::BASIC_MATERIAL, checkerMaterial));
+
+            //     const TransformIdentifier tId =
+            //     TransformManager::instance()->registerNewTransform(
+            //         standardObject);
+            //     standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
+
+            //     Transform *t = TransformManager::instance()->getTransform(tId);
+            //     t->setPosition(glm::vec3((k - 500) * 7, 0.0f, (h - 500) * 7));
+            //     t->setScale(glm::vec3(5.0f, 5.0f, 5.0f));
+            //     shaderProgramMain.addObject(standardObject);
+            // }
+
+            // add cubes and pyramids
             GameObject &standardObject = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
 
@@ -236,8 +261,7 @@ int main(int argc, const char *argv[])
 
             shaderProgramMain.addObject(standardObject);
 
-            ///
-
+            /// add axes for cubes and pyramids
             GameObject &standardAxes = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
             standardAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
@@ -245,11 +269,21 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
 
-            ///
+            /// add bills
+            auto billCopy = ObjectManager::instance()->copyObject(billModel);
+            auto billTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
+                    ComponentType::TRANSFORM));
+            billTransform->setPosition(
+                glm::vec3(-k * std::sin(k), k * std::sin(k), k * std::cos(k)));
+            billTransform->setRotation(glm::rotate(billTransform->rotation(),
+                                                   glm::radians((float)k),
+                                                   glm::vec3(50.0f - k, 1.0f, 0.0f)));
+            billTransform->setScale(glm::vec3(15.0f));
+
+            shaderProgramMain.addObjectWithChildren(billCopy);
         }
         {
-            shaderProgramMain.addObjectWithChildren(tankModel);
-
             GameObject &worldAxes = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
             worldAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
@@ -258,6 +292,9 @@ int main(int argc, const char *argv[])
                           TransformManager::instance()->registerNewTransform(worldAxes)));
             worldAxesShader.addObject(worldAxes);
         }
+        TransformManager::instance()->flushUpdates();
+        shaderProgramMain.runTextureMapping();
+        shaderProgramMain.runInstancing();
 
         //// Render loop
         camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
@@ -314,12 +351,13 @@ int main(int argc, const char *argv[])
                 worldPlaneShader.runShader();
             }
 
-            {
-                cubeScatterer.use();
-                cubeScatterer.setMatrix4("view", view);
-                cubeScatterer.setMatrix4("projection", projection);
-                cubeScatterer.runShader();
-            }
+            //renders lots of cubes in non-instanced way
+            // {
+            //     cubeScatterer.use();
+            //     cubeScatterer.setMatrix4("view", view);
+            //     cubeScatterer.setMatrix4("projection", projection);
+            //     cubeScatterer.runShader();
+            // }
 
             if (renderAxes)
             {

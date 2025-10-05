@@ -59,5 +59,5 @@ void main()
 
     fragColor = vec4((ambFraction + diffFraction + specFraction + emissionFraction), 1.0f);
 
-    // fragColor = vec4(normalize(instanceMaterialIndices.xyz), 1.0f);
+    // fragColor = vec4(normalize(instanceMaterialIndices),1.0f);
 }

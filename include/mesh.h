@@ -46,5 +46,5 @@ struct Mesh
 private:
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
-    uint32_t id = 0;
+    uint32_t id = 0; //vao
 };

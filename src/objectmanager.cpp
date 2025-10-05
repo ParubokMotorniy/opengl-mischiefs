@@ -27,6 +27,7 @@ GameObject &ObjectManager::getObject(GameObjectIdentifier id)
 
 GameObjectIdentifier ObjectManager::copyBase(GameObjectIdentifier oldMe)
 {
+    // TODO: copy transforms
     GameObject &newMe = getObject(addObject());
     newMe._objectComponents = getObject(oldMe)._objectComponents;
     newMe.addComponent(Component(ComponentType::TRANSFORM,

@@ -58,6 +58,7 @@ void ShaderProgram::addObjectWithChildren(GameObjectIdentifier gId)
         std::ranges::for_each(obj.children(),
                               [this](GameObjectIdentifier cGId) { addObjectWithChildren(cGId); });
     }
+    addObject(gId);
 }
 
 void ShaderProgram::compileShader(uint32_t shaderId)
