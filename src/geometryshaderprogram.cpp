@@ -4,8 +4,11 @@
 #include "transformmanager.h"
 
 GeometryShaderProgram::GeometryShaderProgram(const char *vertexPath, const char *fragmentPath,
-                                             const char *geometryPath)
-    : ShaderProgram(vertexPath, fragmentPath), _geometryPath{ geometryPath }
+                                             const char *geometryPath, MeshIdentifier dummyMesh)
+    : _dummyMesh(dummyMesh),
+      _vertexPath(vertexPath),
+      _fragmentPath(fragmentPath),
+      _geometryPath{ geometryPath }
 {
 }
 
@@ -90,52 +93,30 @@ void GeometryShaderProgram::runShader()
         }
     };
 
-    // TODO: in the future, bind the textures bindlessly
-    use();
-
-    const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
-                                                          _orderedShaderObjects.cend());
-    auto meshStart = shaderObjects.cbegin();
-    auto meshEnd = shaderObjects.cbegin();
-    while (meshEnd <= shaderObjects.cend())
+    if (_dummyMesh != InvalidIdentifier)
     {
-        // submits ranges of objects that share the same mesh
-        if (meshEnd == shaderObjects.cend()
-            || (ObjectManager::instance()
-                    ->getObject(*meshStart)
-                    .getIdentifierForComponent(ComponentType::MESH)
-                != ObjectManager::instance()->getObject(*meshEnd).getIdentifierForComponent(
-                    ComponentType::MESH)))
-        {
-            const MeshIdentifier sharedMesh = ObjectManager::instance()
-                                                  ->getObject(*meshStart)
-                                                  .getIdentifierForComponent(ComponentType::MESH);
+        use();
 
-            if (sharedMesh != InvalidIdentifier)
-            {
-                const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
+        const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
+                                                              _orderedShaderObjects.cend());
 
-                const uint32_t vertexBufferId
-                    = Instancer::instance()->instanceData(std::span(meshStart, meshEnd),
-                                                          { modelMatrixCol0, modelMatrixCol1,
-                                                            modelMatrixCol2, modelMatrixCol3 },
-                                                          mesh);
+        const Mesh &mesh = *MeshManager::instance()->getMesh(_dummyMesh);
 
-                MeshManager::instance()->allocateMesh(sharedMesh);
-                MeshManager::instance()->bindMesh(sharedMesh);
+        const uint32_t vertexBufferId = Instancer::instance()->instanceData(shaderObjects,
+                                                                            { modelMatrixCol0,
+                                                                              modelMatrixCol1,
+                                                                              modelMatrixCol2,
+                                                                              modelMatrixCol3 },
+                                                                            mesh);
 
-                glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
-                                        meshEnd - meshStart);
-                glDrawArraysInstanced(GL_POINTS, 0, 3, meshEnd - meshStart);
+        MeshManager::instance()->allocateMesh(_dummyMesh);
+        MeshManager::instance()->bindMesh(_dummyMesh);
 
-                glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
+        glDrawArraysInstanced(GL_POINTS, 0, 3, shaderObjects.size());
 
-                MeshManager::instance()->unbindMesh();
-            }
-            meshStart = meshEnd;
-        }
+        glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
 
-        ++meshEnd;
+        MeshManager::instance()->unbindMesh();
     }
 }
 
@@ -156,10 +137,42 @@ void GeometryShaderProgram::compileAndAttachNecessaryShaders(uint id)
     }
 
     glAttachShader(id, _geometryShaderId);
+
+    if (_vertexShaderId == 0)
+    {
+        const std::string &vShaderCode = readShaderSource(_vertexPath);
+
+        const char *vPtr = vShaderCode.c_str();
+
+        _vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(_vertexShaderId, 1, &vPtr, NULL);
+        compileShader(_vertexShaderId);
+    }
+
+    glAttachShader(id, _vertexShaderId);
+
+    if (_fragmentShaderId == 0)
+    {
+        const std::string &fShaderCode = readShaderSource(_fragmentPath);
+
+        const char *fPtr = fShaderCode.c_str();
+
+        _fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(_fragmentShaderId, 1, &fPtr, NULL);
+        compileShader(_fragmentShaderId);
+    }
+
+    glAttachShader(id, _fragmentShaderId);
 }
 
 void GeometryShaderProgram::deleteShaders()
 {
     glDeleteShader(_geometryShaderId);
     _geometryShaderId = 0;
+
+    glDeleteShader(_vertexShaderId);
+    _vertexShaderId = 0;
+
+    glDeleteShader(_fragmentShaderId);
+    _fragmentShaderId = 0;
 }

@@ -34,9 +34,9 @@ uniform vec3 viewPos;
 
 void main()
 {
-    vec4 diffColor = texture(textures[instanceMaterialIndices.x], texCoord);
-    vec4 specColor = texture(textures[instanceMaterialIndices.y], texCoord);
-    vec4 emColor = texture(textures[instanceMaterialIndices.z], texCoord);
+    vec4 diffColor = instanceMaterialIndices.x == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.x], texCoord);
+    vec4 specColor = instanceMaterialIndices.y == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.y], texCoord);
+    vec4 emColor = instanceMaterialIndices.z == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.z], texCoord);
 
     float intensityFallof = pow(currentLight.k, -currentLight.b * distance(viewPos, vPos));
     vec3 normVNorm = normalize(vNorm); //can interpolation denormalize it?

@@ -9,6 +9,7 @@
 
 #include "camera.h"
 #include "geometryshaderprogram.h"
+#include "instancedshader.h"
 #include "instancer.h"
 #include "materialmanager.h"
 #include "meshmanager.h"
@@ -16,7 +17,6 @@
 #include "object.h"
 #include "objectmanager.h"
 #include "quaternioncamera.h"
-#include "shaderprogram.h"
 #include "texture.h"
 #include "texturemanager.h"
 #include "transformmanager.h"
@@ -217,14 +217,14 @@ int main(int argc, const char *argv[])
     {
         //// Shaders
 
-        ShaderProgram shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
+        InstancedShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
         shaderProgramMain.initializeShaderProgram();
 
         GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
-                                               axesGeometryShaderSource };
+                                               axesGeometryShaderSource, dummyAxesMesh };
         worldAxesShader.initializeShaderProgram();
 
-        for (int k = 10; k < 160; ++k)
+        for (int k = 5; k < 155; ++k)
         {
             ///
 
@@ -241,7 +241,7 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
-            t->setPosition(glm::vec3(k * std::sin(k), k * std::cos(k), -k * std::sin(k)));
+            t->setPosition(glm::vec3(k * std::sin(k), -k * std::sin(k), k * std::cos(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
             t->setScale(glm::vec3(std::max((k % 20) / 10.0f, 0.1f)));
@@ -270,7 +270,7 @@ int main(int argc, const char *argv[])
                           TransformManager::instance()->registerNewTransform(worldAxes)));
             worldAxesShader.addObject(worldAxes);
         }
-        
+
         //// Render loop
         camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
         while (!mainWindow.shouldClose())

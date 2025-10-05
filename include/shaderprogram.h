@@ -15,15 +15,13 @@
 #include "meshmanager.h"
 #include "objectmanager.h"
 
-// TODO: debloat the shader program
 class ShaderProgram
 {
 public:
-    ShaderProgram(const char *vertexPath, const char *fragmentPath);
+    ShaderProgram();
+    virtual ~ShaderProgram();
 
     void initializeShaderProgram();
-
-    ~ShaderProgram();
 
     void use() const;
 
@@ -39,23 +37,21 @@ public:
 
     void setVec4(const std::string &name, const glm::vec4 &vec);
 
-    void addObject(GameObjectIdentifier gId);
-    void addObjectWithChildren(GameObjectIdentifier gId);
+    virtual void addObject(GameObjectIdentifier gId);
+    virtual void addObjectWithChildren(GameObjectIdentifier gId);
 
-    virtual void runShader();
+    virtual void runShader() = 0;
 
-    operator int() { return _id; }
+    operator int() const { return _id; }
 
 protected:
-    virtual void compileAndAttachNecessaryShaders(uint32_t id);
-    virtual void deleteShaders();
+    virtual void compileAndAttachNecessaryShaders(uint32_t id) = 0;
+    virtual void deleteShaders() = 0;
 
     void compileShader(uint32_t shaderId);
     void linkProgram(uint32_t programId);
 
     std::string readShaderSource(const char *shaderSource);
-    void runTextureMapping();
-    void addObjectWithChildrenImpl(GameObjectIdentifier gId);
 
 protected:
     char _infoLog[512];
@@ -75,11 +71,6 @@ protected:
     };
     std::multiset<GameObjectIdentifier, MeshOrderer> _orderedShaderObjects;
 
-    uint32_t _texturesSSBO;
-    std::unordered_map<GameObjectIdentifier, std::array<int, 3>> _objectsTextureMappings;
-
 private:
     unsigned int _id;
-    const char *_vertexPath = nullptr;
-    const char *_fragmentPath = nullptr;
 };
