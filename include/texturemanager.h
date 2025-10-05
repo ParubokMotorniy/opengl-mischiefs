@@ -1,14 +1,14 @@
 #pragma once
 
-#include "texture.h"
 #include "material.h"
-#include "types.h"
 #include "singleton.h"
+#include "texture.h"
+#include "types.h"
 
-#include <unordered_map>
-#include <string>
 #include <cstdint>
+#include <string>
 #include <tuple>
+#include <unordered_map>
 
 // TODO: generalize the manager through templates like material manager does
 class TextureManager : public SystemSingleton<TextureManager> // crtp
@@ -35,7 +35,7 @@ public:
 
     void cleanUpGracefully();
 
-    const Texture2D *getTexture(TextureIdentifier tId) const;
+    Texture2D *getTexture(TextureIdentifier tId);
 
 private:
     TextureManager();

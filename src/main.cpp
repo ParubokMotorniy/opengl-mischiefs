@@ -146,6 +146,10 @@ int main(int argc, const char *argv[])
     const TextureIdentifier checkerboardTexture
         = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/checkerboard_pattern.jpg",
                                                       "checkerboard");
+    {
+        auto checkerTexture = TextureManager::instance()->getTexture(checkerboardTexture);
+        checkerTexture->setUseAnisotropic(true, 8);
+    }
 
     const MaterialIdentifier floppaMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()

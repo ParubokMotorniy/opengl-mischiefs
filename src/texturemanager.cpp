@@ -159,7 +159,7 @@ void TextureManager::cleanUpGracefully()
     _textures.clear();
 }
 
-const Texture2D *TextureManager::getTexture(TextureIdentifier tId) const 
+Texture2D *TextureManager::getTexture(TextureIdentifier tId)
 { 
     const auto tPtr = _textures.find(tId);
     if(tPtr == _textures.end())
