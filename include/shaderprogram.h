@@ -4,16 +4,18 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <iostream>
 #include <cstdint>
+#include <fstream>
+#include <iostream>
 #include <set>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 
 #include "meshmanager.h"
 #include "objectmanager.h"
 
+// TODO: debloat the shader program
 class ShaderProgram
 {
 public:
@@ -42,10 +44,7 @@ public:
 
     virtual void runShader();
 
-    operator int()
-    {
-        return _id;
-    }
+    operator int() { return _id; }
 
 protected:
     virtual void compileAndAttachNecessaryShaders(uint32_t id);
@@ -55,21 +54,29 @@ protected:
     void linkProgram(uint32_t programId);
 
     std::string readShaderSource(const char *shaderSource);
+    void runTextureMapping();
+    void addObjectWithChildrenImpl(GameObjectIdentifier gId);
 
 protected:
     char _infoLog[512];
 
-    // TODO: ideally these shouldn't be protected but private
     struct MeshOrderer
     {
         bool operator()(const GameObjectIdentifier &gId1, const GameObjectIdentifier &gId2) const
         {
-            const MeshIdentifier mId1 = ObjectManager::instance()->getObject(gId1).getIdentifierForComponent(ComponentType::MESH);
-            const MeshIdentifier mId2 = ObjectManager::instance()->getObject(gId2).getIdentifierForComponent(ComponentType::MESH);
+            const MeshIdentifier mId1 = ObjectManager::instance()
+                                            ->getObject(gId1)
+                                            .getIdentifierForComponent(ComponentType::MESH);
+            const MeshIdentifier mId2 = ObjectManager::instance()
+                                            ->getObject(gId2)
+                                            .getIdentifierForComponent(ComponentType::MESH);
             return mId1 < mId2;
         }
     };
     std::multiset<GameObjectIdentifier, MeshOrderer> _orderedShaderObjects;
+
+    uint32_t _texturesSSBO;
+    std::unordered_map<GameObjectIdentifier, std::array<int, 3>> _objectsTextureMappings;
 
 private:
     unsigned int _id;

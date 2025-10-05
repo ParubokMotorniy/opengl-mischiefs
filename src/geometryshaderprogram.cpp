@@ -110,23 +110,28 @@ void GeometryShaderProgram::runShader()
             const MeshIdentifier sharedMesh = ObjectManager::instance()
                                                   ->getObject(*meshStart)
                                                   .getIdentifierForComponent(ComponentType::MESH);
-            const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
 
-            const uint32_t vertexBufferId = Instancer::instance()
-                                                ->instanceData(std::span(meshStart, meshEnd),
-                                                               { modelMatrixCol0, modelMatrixCol1,
-                                                                 modelMatrixCol2, modelMatrixCol3 },
-                                                               mesh);
+            if (sharedMesh != InvalidIdentifier)
+            {
+                const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
 
-            MeshManager::instance()->bindMesh(sharedMesh);
+                const uint32_t vertexBufferId
+                    = Instancer::instance()->instanceData(std::span(meshStart, meshEnd),
+                                                          { modelMatrixCol0, modelMatrixCol1,
+                                                            modelMatrixCol2, modelMatrixCol3 },
+                                                          mesh);
 
-            glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
-                                    meshEnd - meshStart);
-            glDrawArraysInstanced(GL_POINTS, 0, 3, meshEnd - meshStart);
+                MeshManager::instance()->allocateMesh(sharedMesh);
+                MeshManager::instance()->bindMesh(sharedMesh);
 
-            glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
+                glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
+                                        meshEnd - meshStart);
+                glDrawArraysInstanced(GL_POINTS, 0, 3, meshEnd - meshStart);
 
-            MeshManager::instance()->unbindMesh();
+                glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
+
+                MeshManager::instance()->unbindMesh();
+            }
             meshStart = meshEnd;
         }
 

@@ -179,21 +179,10 @@ int main(int argc, const char *argv[])
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
               ->registerMaterial(BasicMaterial{ catDiff, specular, black }, "cat_material");
 
-    MeshManager::instance()->allocateMesh(simpleCubeMesh);
-    MeshManager::instance()->allocateMesh(simplePyramidMesh);
-    MeshManager::instance()->allocateMesh(simpleCubeMeshUp);
-    MeshManager::instance()->allocateMesh(simpleCubeMeshDown);
-    MeshManager::instance()->allocateMesh(dummyAxesMesh);
-
-    TextureManager::instance()->allocateTexture(floppaDiff);
-    TextureManager::instance()->allocateTexture(floppaEm);
-    TextureManager::instance()->allocateTexture(specular);
-    TextureManager::instance()->allocateTexture(black);
-    TextureManager::instance()->allocateTexture(catDiff);
-
     //"Tank - WW1" (https://skfb.ly/oqRNY) by Andy Woodhead is licensed under Creative Commons
     // Attribution (http://creativecommons.org/licenses/by/4.0/).
-    GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS"/tank/tank.obj");
+    GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
+                                                                        "/tank/tank.obj");
 
     mainWindow.subscribeEventListener(
         [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
@@ -231,9 +220,6 @@ int main(int argc, const char *argv[])
         ShaderProgram shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
         shaderProgramMain.initializeShaderProgram();
 
-        // ShaderProgram lightCubeShader{lightVertexShaderSource, lightFragmentShaderSource};
-        // lightCubeShader.initializeShaderProgram();
-
         GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
                                                axesGeometryShaderSource };
         worldAxesShader.initializeShaderProgram();
@@ -270,17 +256,18 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
 
-            /// 
+            ///
         }
+        {
+            shaderProgramMain.addObjectWithChildren(tankModel);
 
-        shaderProgramMain.addObjectWithChildren(tankModel);
-
-        GameObject &worldAxes = ObjectManager::instance()->getObject(
-            ObjectManager::instance()->addObject());
-        worldAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
-        worldAxes.addComponent(Component(ComponentType::TRANSFORM,
-                                         TransformManager::instance()->registerNewTransform()));
-        worldAxesShader.addObject(worldAxes);
+            GameObject &worldAxes = ObjectManager::instance()->getObject(
+                ObjectManager::instance()->addObject());
+            worldAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
+            worldAxes.addComponent(Component(ComponentType::TRANSFORM,
+                                             TransformManager::instance()->registerNewTransform()));
+            worldAxesShader.addObject(worldAxes);
+        }
 
         //// Render loop
         camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
@@ -326,27 +313,6 @@ int main(int argc, const char *argv[])
 
                 shaderProgramMain.runShader();
             }
-
-            // {
-            //     lightCubeShader.use();
-
-            //     for (const GameObject &lightCube : cubeLightObjects)
-            //     {
-            //         MeshManager::instance()->bindMesh(lightCube.objMesh);
-            //         glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), glm::vec3(lightPosX,
-            //         lightPosY, lightPosZ)); lightModel = glm::scale(lightModel, glm::vec3(0.6f,
-            //         0.6f, 0.6f));
-
-            //         lightCubeShader.setVec3("actualLightColor", normalizedLightPos);
-            //         lightCubeShader.setMatrix4("model", lightModel);
-            //         lightCubeShader.setMatrix4("view", view);
-            //         lightCubeShader.setMatrix4("projection", projection);
-
-            //         glDrawElements(GL_TRIANGLES,
-            //         MeshManager::instance()->getMesh(lightCube.objMesh)->numIndices(),
-            //         GL_UNSIGNED_INT, 0); MeshManager::instance()->unbindMesh();
-            //     }
-            // }
 
             if (renderAxes)
             {

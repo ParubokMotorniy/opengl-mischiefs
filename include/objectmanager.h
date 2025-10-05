@@ -3,6 +3,7 @@
 #include "object.h"
 #include "singleton.h"
 #include "types.h"
+#include "transformmanager.h"
 
 #include <memory>
 #include <vector>

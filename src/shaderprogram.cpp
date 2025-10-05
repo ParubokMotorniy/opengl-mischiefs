@@ -73,9 +73,30 @@ void ShaderProgram::setVec4(const std::string &name, const glm::vec4 &vec)
     glUniform4f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z, vec.w);
 }
 
-void ShaderProgram::addObject(GameObjectIdentifier gId) { _orderedShaderObjects.insert(gId); }
+void ShaderProgram::addObject(GameObjectIdentifier gId)
+{
+    _orderedShaderObjects.insert(gId);
+    runTextureMapping();
+}
 
 void ShaderProgram::addObjectWithChildren(GameObjectIdentifier gId)
+{
+    addObjectWithChildrenImpl(gId);
+    runTextureMapping();
+}
+
+void ShaderProgram::runTextureMapping()
+{
+    glDeleteBuffers(1, &_texturesSSBO);
+    _objectsTextureMappings
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->bindTextures(std::vector<GameObjectIdentifier>(_orderedShaderObjects.cbegin(),
+                                                               _orderedShaderObjects.cend()),
+                             0, _texturesSSBO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+}
+
+void ShaderProgram::addObjectWithChildrenImpl(GameObjectIdentifier gId)
 {
     GameObject &obj = ObjectManager::instance()->getObject(gId);
     if (!obj.children().empty())
@@ -84,11 +105,12 @@ void ShaderProgram::addObjectWithChildren(GameObjectIdentifier gId)
                               [this](GameObjectIdentifier cGId) { addObjectWithChildren(cGId); });
     }
 
-    addObject(gId);
+    _orderedShaderObjects.insert(gId);
 }
 
 void ShaderProgram::runShader() // TODO: make instancing virtual as well
 {
+    // TODO: these generators are quite inefficient -> rework
     const InstancedDataGenerator modelMatrixCol0 = InstancedDataGenerator{
         sizeof(glm::vec4),
         4,
@@ -168,17 +190,6 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         }
     };
 
-    // TODO: avoid this unnecessary copying
-    use();
-    const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
-                                                          _orderedShaderObjects.cend());
-
-    uint32_t uniformTexturesIdx;
-    const uint32_t materialsBinding = 0;
-    const auto objectIndices
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->bindTextures(shaderObjects, materialsBinding, uniformTexturesIdx);
-
     // makes the texture indices instanced
     InstancedDataGenerator standardMaterialIndices = InstancedDataGenerator{
         sizeof(int) * 4, // 4 to preserve the 16-byte alignment
@@ -186,12 +197,16 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
         7,
         GL_INT,
         false,
-        [&](void *destination, GameObjectIdentifier gId) {
-            const std::array<int, 3> &objectTextureIndices = objectIndices.at(gId);
+        [this](void *destination, GameObjectIdentifier gId) {
+            const std::array<int, 3> &objectTextureIndices = _objectsTextureMappings.at(gId);
 
             std::memcpy(destination, objectTextureIndices.data(), sizeof(int) * 3);
         }
     };
+
+    use();
+    const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
+                                                          _orderedShaderObjects.cend());
 
     auto meshStart = shaderObjects.cbegin();
     auto meshEnd = shaderObjects.cbegin();
@@ -221,11 +236,13 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
 
                 MeshManager::instance()->allocateMesh(sharedMesh);
                 MeshManager::instance()->bindMesh(sharedMesh);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _texturesSSBO);
 
                 glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
                                         meshEnd - meshStart);
 
                 glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 
                 MeshManager::instance()->unbindMesh();
             }
@@ -234,8 +251,6 @@ void ShaderProgram::runShader() // TODO: make instancing virtual as well
 
         ++meshEnd;
     }
-
-    glDeleteBuffers(1, &uniformTexturesIdx); // TODO: this is inefficient
 }
 
 void ShaderProgram::compileAndAttachNecessaryShaders(uint32_t id) {}
