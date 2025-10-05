@@ -3,12 +3,8 @@
 #include "meshmanager.h"
 #include "texturemanager.h"
 
-WorldPlaneShader::WorldPlaneShader(const char *vertexPath, const char *fragmentPath,
-                                   MeshIdentifier planeMesh, TextureIdentifier planeTexture)
-    : _planeMesh(planeMesh),
-      _planeTexture(planeTexture),
-      _vertexPath(vertexPath),
-      _fragmentPath(fragmentPath)
+WorldPlaneShader::WorldPlaneShader(MeshIdentifier planeMesh, TextureIdentifier planeTexture)
+    : _planeMesh(planeMesh), _planeTexture(planeTexture)
 {
 }
 void WorldPlaneShader::runShader()
@@ -26,7 +22,8 @@ void WorldPlaneShader::runShader()
             const Mesh *planeMesh = MeshManager::instance()->getMesh(_planeMesh);
 
             setInt("planeTexture", bindPoint);
-            setMatrix4("model", glm::scale(glm::identity<glm::mat4>(), glm::vec3(200.0f, 0.0f, 200.0f)));
+            setMatrix4("model",
+                       glm::scale(glm::identity<glm::mat4>(), glm::vec3(200.0f, 0.0f, 200.0f)));
 
             glDrawElements(GL_TRIANGLES, planeMesh->numIndices(), GL_UNSIGNED_INT, 0);
         }

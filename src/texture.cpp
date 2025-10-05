@@ -2,7 +2,7 @@
 
 #include "glad/glad.h"
 
-Texture2D::Texture2D(const char *textureSourcePath) : _textureSourcePath(textureSourcePath) {}
+Texture2D::Texture2D(const char *textureSourcePath, Texture2DParameters params) : _textureSourcePath(textureSourcePath), _params(params) {}
 
 void Texture2D::allocateTexture()
 {
@@ -23,11 +23,11 @@ void Texture2D::allocateTexture()
     glGenTextures(1, &_textureId);
     glBindTexture(GL_TEXTURE_2D, _textureId);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, _params.wrappingS);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, _params.wrappingT);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, _params.filteringMin);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, _params.filteringMag);
 
     glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, imageData);
     glGenerateMipmap(GL_TEXTURE_2D);

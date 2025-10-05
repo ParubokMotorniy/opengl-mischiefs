@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "basicshader.h"
 #include "camera.h"
 #include "geometryshaderprogram.h"
 #include "instancedshader.h"
@@ -41,9 +42,6 @@ const char *fragmentShaderSource = ENGINE_SHADERS "/fragment_standard.fs";
 const char *lightVertexShaderSource = ENGINE_SHADERS "/light_vertex.vs";
 const char *lightFragmentShaderSource = ENGINE_SHADERS "/light_fragment.fs";
 
-const char *planeVertexShaderSource = ENGINE_SHADERS "/world_plane.vs";
-const char *planeFragmentShaderSource = ENGINE_SHADERS "/world_plane.fs";
-
 const char *axesVertexShaderSource = ENGINE_SHADERS "/axis_vertex.vs";
 const char *axesFragmentShaderSource = ENGINE_SHADERS "/axis_fragment.fs";
 const char *axesGeometryShaderSource = ENGINE_SHADERS "/axis_geometry.gs";
@@ -75,7 +73,7 @@ int main(int argc, const char *argv[])
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    // glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
     //// Cubes buffers
@@ -97,14 +95,18 @@ int main(int argc, const char *argv[])
 
                 0, 4, 5, 5, 1, 0,
 
-                4, 5, 6, 6, 7, 4,
+                6, 5, 4, 4, 7, 6,
 
-                2, 3, 7, 7, 6, 2,
+                7, 3, 2, 2, 6, 7,
 
-                1, 2, 6, 6, 5, 1,
+                6, 2, 1, 1, 5, 6,
 
                 0, 3, 7, 7, 4, 0 } },
         "simple_cube");
+
+    //   0  4
+    // 1 3 5 7
+    // 2   6
 
     const MeshIdentifier simplePyramidMesh = MeshManager::instance()->registerMesh(
         Mesh{ { { std::cos(0), 0.0f, std::sin(0), 0.0f, 1.0f, std::cos(0) - std::numbers::sqrt2 / 2,
@@ -119,10 +121,6 @@ int main(int argc, const char *argv[])
 
               { 0, 1, 2, 1, 3, 2, 2, 3, 0, 0, 3, 1 } },
         "simple_pyramid");
-
-    //   0  4
-    // 1 3 5 7
-    // 2   6
 
     const MeshIdentifier dummyAxesMesh = MeshManager::instance()->registerMesh(Mesh(),
                                                                                "dummy_mesh");
@@ -204,9 +202,11 @@ int main(int argc, const char *argv[])
                                                axesGeometryShaderSource, dummyAxesMesh };
         worldAxesShader.initializeShaderProgram();
 
-        WorldPlaneShader worldPlaneShader{ planeVertexShaderSource, planeFragmentShaderSource,
-                                           simpleCubeMesh, checkerboardTexture };
+        WorldPlaneShader worldPlaneShader{ simpleCubeMesh, checkerboardTexture };
         worldPlaneShader.initializeShaderProgram();
+
+        BasicShader cubeScatterer{ simpleCubeMesh, checkerboardTexture, 100, 100 };
+        cubeScatterer.initializeShaderProgram();
 
         for (int k = 5; k < 155; ++k)
         {
@@ -228,7 +228,7 @@ int main(int argc, const char *argv[])
             t->setPosition(glm::vec3(k * std::sin(k), -k * std::sin(k), k * std::cos(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
-            t->setScale(glm::vec3(std::max((k % 20) / 10.0f, 0.1f)));
+            t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
 
             shaderProgramMain.addObject(standardObject);
 
@@ -298,6 +298,25 @@ int main(int argc, const char *argv[])
                 shaderProgramMain.runShader();
             }
 
+            {
+                worldPlaneShader.use();
+
+                worldPlaneShader.setMatrix4("view", view);
+                worldPlaneShader.setMatrix4("projection", projection);
+
+                worldPlaneShader.setFloat("checkerUnitWidth", 5.0f);
+                worldPlaneShader.setFloat("checkerUnitHeight", 5.0f);
+
+                worldPlaneShader.runShader();
+            }
+
+            {
+                cubeScatterer.use();
+                cubeScatterer.setMatrix4("view", view);
+                cubeScatterer.setMatrix4("projection", projection);
+                cubeScatterer.runShader();
+            }
+
             if (renderAxes)
             {
                 glDisable(GL_DEPTH_TEST);
@@ -311,18 +330,6 @@ int main(int argc, const char *argv[])
                 worldAxesShader.runShader();
 
                 glEnable(GL_DEPTH_TEST);
-            }
-
-            {
-                worldPlaneShader.use();
-
-                worldPlaneShader.setMatrix4("view", view);
-                worldPlaneShader.setMatrix4("projection", projection);
-                
-                worldPlaneShader.setFloat("checkerUnitWidth", 5.0f);
-                worldPlaneShader.setFloat("checkerUnitHeight", 5.0f);
-
-                worldPlaneShader.runShader();
             }
 
             {
