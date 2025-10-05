@@ -21,6 +21,7 @@
 #include "texturemanager.h"
 #include "transformmanager.h"
 #include "window.h"
+#include "worldplaneshader.h"
 
 #include <cmath>
 #include <cstdint>
@@ -40,12 +41,12 @@ const char *fragmentShaderSource = ENGINE_SHADERS "/fragment_standard.fs";
 const char *lightVertexShaderSource = ENGINE_SHADERS "/light_vertex.vs";
 const char *lightFragmentShaderSource = ENGINE_SHADERS "/light_fragment.fs";
 
+const char *planeVertexShaderSource = ENGINE_SHADERS "/world_plane.vs";
+const char *planeFragmentShaderSource = ENGINE_SHADERS "/world_plane.fs";
+
 const char *axesVertexShaderSource = ENGINE_SHADERS "/axis_vertex.vs";
 const char *axesFragmentShaderSource = ENGINE_SHADERS "/axis_fragment.fs";
 const char *axesGeometryShaderSource = ENGINE_SHADERS "/axis_geometry.gs";
-
-const char *voronoiDistanceFragmentShaderSource = ENGINE_SHADERS "/voronoi_distances.fs";
-const char *voronoiseFragmentShaderSource = ENGINE_SHADERS "/voronoise.fs";
 
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 float deltaTime{ 0.0f };
@@ -80,16 +81,17 @@ int main(int argc, const char *argv[])
     //// Cubes buffers
     // TODO: make sure the cubes reuse the same mesh but index vertices in their cutsom way
     // TODO: add base plane with checked texture and anisotropic filtering
-    const MeshIdentifier simpleCubeMesh = MeshManager::instance()->registerMesh(
-        Mesh{ { { -5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
-                { -5.0f, -5.0f, 5.0f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
-                { -5.0f, 5.0f, 5.0f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
-                { -5.0f, 5.0f, -5.0f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
 
-                { 5.0f, -5.0f, -5.0f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
-                { 5.0f, -5.0f, 5.0f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
-                { 5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
-                { 5.0f, 5.0f, -5.0f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
+    const MeshIdentifier simpleCubeMesh = MeshManager::instance()->registerMesh(
+        Mesh{ { { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
+                { -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
+                { -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
+                { -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
+
+                { 0.5f, -0.5f, -0.5f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
+                { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
+                { 0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
+                { 0.5f, 0.5f, -0.5f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
 
               { 0, 1, 2, 2, 3, 0,
 
@@ -121,33 +123,6 @@ int main(int argc, const char *argv[])
     //   0  4
     // 1 3 5 7
     // 2   6
-    const MeshIdentifier simpleCubeMeshUp = MeshManager::instance()->registerMesh(
-        Mesh{ { { -5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
-                { -5.0f, -5.0f, 5.0f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
-                { -5.0f, 5.0f, 5.0f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
-                { -5.0f, 5.0f, -5.0f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
-
-                { 5.0f, -5.0f, -5.0f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
-                { 5.0f, -5.0f, 5.0f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
-                { 5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
-                { 5.0f, 5.0f, -5.0f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
-
-              { 3, 0, 1, 2, 1, 5, 6, 5, 4, 7, 4, 0, 4, 5, 1, 3, 2, 6 } },
-        "half_cube_up");
-
-    const MeshIdentifier simpleCubeMeshDown = MeshManager::instance()->registerMesh(
-        Mesh{ { { -5.0f, -5.0f, -5.0f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
-                { -5.0f, -5.0f, 5.0f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
-                { -5.0f, 5.0f, 5.0f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
-                { -5.0f, 5.0f, -5.0f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
-
-                { 5.0f, -5.0f, -5.0f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
-                { 5.0f, -5.0f, 5.0f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
-                { 5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
-                { 5.0f, 5.0f, -5.0f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
-
-              { 1, 2, 3, 5, 6, 2, 4, 7, 6, 0, 3, 7, 1, 0, 4, 6, 7, 3 } },
-        "half_cube_down");
 
     const MeshIdentifier dummyAxesMesh = MeshManager::instance()->registerMesh(Mesh(),
                                                                                "dummy_mesh");
@@ -170,6 +145,10 @@ int main(int argc, const char *argv[])
                                            ->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg",
                                                              "big_floppa_emission");
 
+    const TextureIdentifier checkerboardTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/checkerboard_pattern.jpg",
+                                                      "checkerboard");
+
     const MaterialIdentifier floppaMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
               ->registerMaterial(BasicMaterial{ floppaDiff, specular, floppaEm },
@@ -183,36 +162,37 @@ int main(int argc, const char *argv[])
     // Attribution (http://creativecommons.org/licenses/by/4.0/).
     GameObjectIdentifier tankModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
                                                                         "/tank/tank.obj");
-
-    mainWindow.subscribeEventListener(
-        [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
-            if (releasedKeys.CtrlLeft)
-                renderAxes = !renderAxes;
-        });
-    mainWindow.subscribeEventListener(
-        [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
-            camPtr->processKeyboard(input, deltaTime);
-        });
-    mainWindow.subscribeEventListener(
-        [camPtr = camera, &mainWindow](KeyboardInput input,
-                                       Window::MouseMotionDescriptor descriptor) {
-            if (input.MouseRight == 1)
-            {
-                camPtr->processMouseMovement(descriptor.deltaPosX, descriptor.deltaPosY);
-                mainWindow.hideCursor(true);
-                mainWindow.setMouseAccuracy(true);
-            }
-            else
-            {
-                mainWindow.hideCursor(false);
-                mainWindow.setMouseAccuracy(false);
-            }
-        });
-    mainWindow.subscribeEventListener(
-        [camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor) {
-            camPtr->processMouseScroll(descriptor.deltaScrollY);
-        });
-    mainWindow.subscribeEventListener([](int w, int h) { glViewport(0, 0, w, h); });
+    {
+        mainWindow.subscribeEventListener(
+            [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
+                if (releasedKeys.CtrlLeft)
+                    renderAxes = !renderAxes;
+            });
+        mainWindow.subscribeEventListener(
+            [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
+                camPtr->processKeyboard(input, deltaTime);
+            });
+        mainWindow.subscribeEventListener(
+            [camPtr = camera, &mainWindow](KeyboardInput input,
+                                           Window::MouseMotionDescriptor descriptor) {
+                if (input.MouseRight == 1)
+                {
+                    camPtr->processMouseMovement(descriptor.deltaPosX, descriptor.deltaPosY);
+                    mainWindow.hideCursor(true);
+                    mainWindow.setMouseAccuracy(true);
+                }
+                else
+                {
+                    mainWindow.hideCursor(false);
+                    mainWindow.setMouseAccuracy(false);
+                }
+            });
+        mainWindow.subscribeEventListener(
+            [camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor) {
+                camPtr->processMouseScroll(descriptor.deltaScrollY);
+            });
+        mainWindow.subscribeEventListener([](int w, int h) { glViewport(0, 0, w, h); });
+    }
 
     {
         //// Shaders
@@ -223,6 +203,10 @@ int main(int argc, const char *argv[])
         GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
                                                axesGeometryShaderSource, dummyAxesMesh };
         worldAxesShader.initializeShaderProgram();
+
+        WorldPlaneShader worldPlaneShader{ planeVertexShaderSource, planeFragmentShaderSource,
+                                           simpleCubeMesh, checkerboardTexture };
+        worldPlaneShader.initializeShaderProgram();
 
         for (int k = 5; k < 155; ++k)
         {
@@ -276,14 +260,11 @@ int main(int argc, const char *argv[])
         while (!mainWindow.shouldClose())
         {
             // TODO: move time management to a separate class
-            deltaTime = glfwGetTime() - previousTime;
-            previousTime = glfwGetTime();
+            const float time = glfwGetTime();
+            deltaTime = time - previousTime;
+            previousTime = time;
 
             mainWindow.update(deltaTime);
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            const float time = glfwGetTime();
 
             const float lightPosX = std::cos(time * 1.5f) * lightRotationRadius;
             const float lightPosY = std::sin(time * 2.0f) * lightRotationRadius;
@@ -296,6 +277,7 @@ int main(int argc, const char *argv[])
                                                           1000.0f);
             const glm::mat4 view = camera->getViewMatrix();
 
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             {
                 shaderProgramMain.use();
 
@@ -331,10 +313,23 @@ int main(int argc, const char *argv[])
                 glEnable(GL_DEPTH_TEST);
             }
 
-            glfwSwapBuffers(mainWindow.getRawWindow());
+            {
+                worldPlaneShader.use();
 
-            TransformManager::instance()->flushUpdates();
-            glfwPollEvents();
+                worldPlaneShader.setMatrix4("view", view);
+                worldPlaneShader.setMatrix4("projection", projection);
+                
+                worldPlaneShader.setFloat("checkerUnitWidth", 5.0f);
+                worldPlaneShader.setFloat("checkerUnitHeight", 5.0f);
+
+                worldPlaneShader.runShader();
+            }
+
+            {
+                glfwSwapBuffers(mainWindow.getRawWindow());
+                TransformManager::instance()->flushUpdates();
+                glfwPollEvents();
+            }
         }
     }
     //// Cleanup
