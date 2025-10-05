@@ -77,8 +77,6 @@ public:
 
                 const TextureHandle texHandle = glGetTextureHandleARB(
                     *TextureManager::instance()->getTexture(tId));
-                // const TextureHandle texHandle = tId;
-
                 assert(texHandle != 0);
 
                 texturesToHandles.emplace(std::make_pair(tId, texHandle));

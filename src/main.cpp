@@ -236,7 +236,8 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::BASIC_MATERIAL,
                                                   (k % 20 < 10) ? floppaMaterial : catMaterial));
 
-            const TransformIdentifier tId = TransformManager::instance()->registerNewTransform();
+            const TransformIdentifier tId = TransformManager::instance()->registerNewTransform(
+                standardObject);
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
@@ -264,11 +265,12 @@ int main(int argc, const char *argv[])
             GameObject &worldAxes = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
             worldAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
-            worldAxes.addComponent(Component(ComponentType::TRANSFORM,
-                                             TransformManager::instance()->registerNewTransform()));
+            worldAxes.addComponent(
+                Component(ComponentType::TRANSFORM,
+                          TransformManager::instance()->registerNewTransform(worldAxes)));
             worldAxesShader.addObject(worldAxes);
         }
-
+        
         //// Render loop
         camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
         while (!mainWindow.shouldClose())
@@ -331,6 +333,7 @@ int main(int argc, const char *argv[])
 
             glfwSwapBuffers(mainWindow.getRawWindow());
 
+            TransformManager::instance()->flushUpdates();
             glfwPollEvents();
         }
     }

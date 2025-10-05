@@ -54,7 +54,7 @@ GameObjectIdentifier ModelLoader::processNode(aiNode *node, const aiScene *scene
     }
 
     nodeObject.addComponent(
-        Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform()));
+        Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform(nodeObject)));
     ObjectManager::instance()->getObject(parentObject).addChildObject(nodeObject);
 
     return nodeObject;
@@ -129,7 +129,7 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
     meshContainer.addComponent(Component(ComponentType::MESH, meshId));
     meshContainer.addComponent(Component(ComponentType::BASIC_MATERIAL, mi));
     meshContainer.addComponent(
-        Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform()));
+        Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform(meshContainer)));
     return meshContainer;
 }
 
