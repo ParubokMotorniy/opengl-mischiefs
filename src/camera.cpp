@@ -1,10 +1,6 @@
 #include "camera.h"
 
-Camera::Camera(glm::vec3 position,
-               glm::vec3 up,
-               float yaw,
-               float pitch,
-               float camSpeed,
+Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch, float camSpeed,
                float camSensitivity)
     : _front(glm::vec3(0.0f, 0.0f, -1.0f)),
       _movementSpeed(camSpeed),
@@ -18,10 +14,7 @@ Camera::Camera(glm::vec3 position,
     updateCameraVectors();
 }
 
-glm::mat4 Camera::getViewMatrix()
-{
-    return glm::lookAt(_position, _position + _front, _up);
-}
+glm::mat4 Camera::getViewMatrix() { return glm::lookAt(_position, _position + _front, _up); }
 
 void Camera::lookAt(const glm::vec3 &target)
 {
@@ -29,10 +22,12 @@ void Camera::lookAt(const glm::vec3 &target)
     _right = glm::normalize(glm::cross(_front, _worldUp));
     _up = glm::normalize(glm::cross(_right, _front));
 
-    _yaw = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::vec2(_front.x, _front.z)),
-                                           glm::vec2(1.0f, 0.0f))));
+    _yaw = glm::degrees(
+        glm::acos(glm::dot(glm::normalize(glm::vec2(_front.x, _front.z)), glm::vec2(1.0f, 0.0f))));
     _pitch = glm::degrees(glm::asin(_front.y));
 }
+
+void Camera::moveTo(const glm::vec3 &pos) { _position = pos; }
 
 void Camera::processKeyboard(const KeyboardInput &keysPressed, float deltaTime)
 {
@@ -41,8 +36,7 @@ void Camera::processKeyboard(const KeyboardInput &keysPressed, float deltaTime)
         return;
     }
 
-    const auto projector = [](const glm::vec3 &input)
-    { return glm::vec3(input.x, 0.0f, input.z); };
+    const auto projector = [](const glm::vec3 &input) { return glm::vec3(input.x, 0.0f, input.z); };
 
     glm::vec3 movementVector(0.0f, 0.0f, 0.0f);
 
@@ -71,9 +65,8 @@ void Camera::processKeyboard(const KeyboardInput &keysPressed, float deltaTime)
     float velocity = _movementSpeed * deltaTime;
     movementVector = glm::normalize(movementVector) * velocity;
 
-    assert(!glm::isnan(movementVector.x) &&
-           !glm::isnan(movementVector.y) &&
-           !glm::isnan(movementVector.z));
+    assert(!glm::isnan(movementVector.x) && !glm::isnan(movementVector.y)
+           && !glm::isnan(movementVector.z));
 
     _position += movementVector;
 }
@@ -106,15 +99,9 @@ void Camera::processMouseScroll(float yoffset)
         _zoom = 45.0f;
 }
 
-float Camera::zoom()
-{
-    return _zoom;
-}
+float Camera::zoom() { return _zoom; }
 
-glm::vec3 Camera::position()
-{
-    return _position;
-}
+glm::vec3 Camera::position() { return _position; }
 
 void Camera::updateCameraVectors()
 {

@@ -148,6 +148,10 @@ int main(int argc, const char *argv[])
     {
         auto checkerTexture = TextureManager::instance()->getTexture(checkerboardTexture);
         checkerTexture->setUseAnisotropic(true, 8);
+        checkerTexture->setParameters(Texture2DParameters{ .wrappingS = GL_MIRRORED_REPEAT,
+                                                           .wrappingT = GL_MIRRORED_REPEAT,
+                                                           .filteringMin = GL_LINEAR_MIPMAP_LINEAR,
+                                                           .filteringMag = GL_LINEAR });
     }
 
     const MaterialIdentifier floppaMaterial
@@ -165,9 +169,11 @@ int main(int argc, const char *argv[])
                                                 InvalidIdentifier },
                                  "checker_material");
 
-    //Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
-    GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
-                                                                        "/bill/bill_cipher.obj");
+    // Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
+    GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
+        ENGINE_MODELS
+        "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
+                                  // Surprisingly, it seems to be better optimized than bill
     {
         mainWindow.subscribeEventListener(
             [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
@@ -213,7 +219,7 @@ int main(int argc, const char *argv[])
         WorldPlaneShader worldPlaneShader{ simpleCubeMesh, checkerboardTexture };
         worldPlaneShader.initializeShaderProgram();
 
-        //shader for rendering of cubes in non-instanced way
+        // shader for rendering of cubes in non-instanced way
         // BasicShader cubeScatterer{ simpleCubeMesh, checkerboardTexture, 1000, 1000 };
         // cubeScatterer.initializeShaderProgram();
 
@@ -297,7 +303,9 @@ int main(int argc, const char *argv[])
         shaderProgramMain.runInstancing();
 
         //// Render loop
-        camera->lookAt(glm::vec3(-10.0f, 10.0f, -10.0f));
+        camera->moveTo(glm::vec3(0.0f, 7.0f, 0.0f));
+        camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
+
         while (!mainWindow.shouldClose())
         {
             // TODO: move time management to a separate class
@@ -351,7 +359,7 @@ int main(int argc, const char *argv[])
                 worldPlaneShader.runShader();
             }
 
-            //renders lots of cubes in non-instanced way
+            // // renders lots of cubes in non-instanced way
             // {
             //     cubeScatterer.use();
             //     cubeScatterer.setMatrix4("view", view);

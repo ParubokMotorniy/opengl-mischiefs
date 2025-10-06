@@ -23,6 +23,7 @@ public:
 
     virtual glm::mat4 getViewMatrix();
     virtual void lookAt(const glm::vec3 &target);
+    virtual void moveTo(const glm::vec3 &pos);
     virtual void processKeyboard(const KeyboardInput &keysPressed, float deltaTime);
     virtual void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
     virtual void processMouseScroll(float yoffset);

@@ -23,7 +23,7 @@ void WorldPlaneShader::runShader()
 
             setInt("planeTexture", bindPoint);
             setMatrix4("model",
-                       glm::scale(glm::identity<glm::mat4>(), glm::vec3(200.0f, 0.0f, 200.0f)));
+                       glm::scale(glm::identity<glm::mat4>(), glm::vec3(500.0f, 0.0f, 500.0f)));
 
             glDrawElements(GL_TRIANGLES, planeMesh->numIndices(), GL_UNSIGNED_INT, 0);
         }
