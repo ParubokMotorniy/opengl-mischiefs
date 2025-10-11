@@ -16,6 +16,7 @@ struct Transform
 {
     friend class TransformManager;
 
+public:
     glm::mat4 computeModelMatrix() const;
     glm::mat4 computeModelMatrixNoScale() const;
 
@@ -26,6 +27,36 @@ struct Transform
     void setScale(const glm::vec3 &newScale);
     void setPosition(const glm::vec3 &newPosition);
     void setRotation(const glm::mat4 &newRotation);
+
+    Transform *opeartor(const Transform &other)
+    {
+        _scale = other._scale;
+        _rotation = other._rotation;
+        _position = other._position;
+
+        _newScale = other._newScale;
+        _newRotation = other._newRotation;
+        _newPosition = other._newPosition;
+
+        _dirty = other._dirty;
+
+        return this;
+    }
+
+    Transform *opeartor(Transform &&other)
+    {
+        _scale = other._scale;
+        _rotation = other._rotation;
+        _position = other._position;
+
+        _newScale = other._newScale;
+        _newRotation = other._newRotation;
+        _newPosition = other._newPosition;
+
+        _dirty = other._dirty;
+
+        return this;
+    }
 
 private:
     void propagateTransformUpdate(const glm::vec3 &parentDeltaScale,

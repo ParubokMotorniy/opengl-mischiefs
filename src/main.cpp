@@ -23,6 +23,8 @@
 #include "transformmanager.h"
 #include "window.h"
 #include "worldplaneshader.h"
+#include "lightmanager.h"
+#include "lightvisualizationshader.h"
 
 #include <cmath>
 #include <cstdint>
@@ -38,9 +40,6 @@ constexpr size_t windowHeight = 810;
 // TODO: add some shader source manager
 const char *vertexShaderSource = ENGINE_SHADERS "/vertex_standard.vs";
 const char *fragmentShaderSource = ENGINE_SHADERS "/fragment_standard.fs";
-
-const char *lightVertexShaderSource = ENGINE_SHADERS "/light_vertex.vs";
-const char *lightFragmentShaderSource = ENGINE_SHADERS "/light_fragment.fs";
 
 const char *axesVertexShaderSource = ENGINE_SHADERS "/axis_vertex.vs";
 const char *axesFragmentShaderSource = ENGINE_SHADERS "/axis_fragment.fs";
