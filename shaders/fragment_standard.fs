@@ -34,30 +34,30 @@ uniform vec3 viewPos;
 
 void main()
 {
-    vec4 diffColor = instanceMaterialIndices.x == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.x], texCoord);
-    vec4 specColor = instanceMaterialIndices.y == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.y], texCoord);
-    vec4 emColor = instanceMaterialIndices.z == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.z], texCoord);
+    // vec4 diffColor = instanceMaterialIndices.x == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.x], texCoord);
+    // vec4 specColor = instanceMaterialIndices.y == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.y], texCoord);
+    // vec4 emColor = instanceMaterialIndices.z == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.z], texCoord);
 
-    float intensityFallof = pow(currentLight.k, -currentLight.b * distance(viewPos, vPos));
-    vec3 normVNorm = normalize(vNorm); //can interpolation denormalize it?
+    // float intensityFallof = pow(currentLight.k, -currentLight.b * distance(viewPos, vPos));
+    // vec3 normVNorm = normalize(vNorm); //can interpolation denormalize it?
 
-    //ambient
-    vec3 ambFraction = diffColor.xyz * currentLight.ambStrength;
+    // //ambient
+    // vec3 ambFraction = diffColor.xyz * currentLight.ambStrength;
 
-    //diffuse
-    vec3 lightDir = normalize(currentLight.lightPos - vPos);
-    vec3 diffFraction = max(dot(lightDir, normVNorm), 0.0f) * currentLight.diffStrength * diffColor.xyz;
+    // //diffuse
+    // vec3 lightDir = normalize(currentLight.lightPos - vPos);
+    // vec3 diffFraction = max(dot(lightDir, normVNorm), 0.0f) * currentLight.diffStrength * diffColor.xyz;
 
-    //specular
-    int specAlpha = 32;
-    vec3 viewDir = normalize(viewPos - vPos);
-    vec3 reflectionDir = reflect(-lightDir, normVNorm);
-    float specMultiplier = pow(max(dot(viewDir, reflectionDir), 0.0f), specAlpha);
-    vec3 specFraction = currentLight.specStrength * specMultiplier * specColor.xyz * intensityFallof;
+    // //specular
+    // int specAlpha = 32;
+    // vec3 viewDir = normalize(viewPos - vPos);
+    // vec3 reflectionDir = reflect(-lightDir, normVNorm);
+    // float specMultiplier = pow(max(dot(viewDir, reflectionDir), 0.0f), specAlpha);
+    // vec3 specFraction = currentLight.specStrength * specMultiplier * specColor.xyz * intensityFallof;
 
-    vec3 emissionFraction = emColor.xyz * (1.0f - clamp(dot(normVNorm, lightDir), 0.00f, 0.9f));
+    // vec3 emissionFraction = emColor.xyz * (1.0f - clamp(dot(normVNorm, lightDir), 0.00f, 0.9f));
 
-    fragColor = vec4((ambFraction + diffFraction + specFraction + emissionFraction), 1.0f);
+    // fragColor = vec4((ambFraction + diffFraction + specFraction + emissionFraction), 1.0f);
 
-    // fragColor = vec4(normalize(instanceMaterialIndices),1.0f);
+    fragColor = vec4(normalize(instanceMaterialIndices),1.0f);
 }

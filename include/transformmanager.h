@@ -28,7 +28,11 @@ public:
     void setPosition(const glm::vec3 &newPosition);
     void setRotation(const glm::mat4 &newRotation);
 
-    Transform *opeartor(const Transform &other)
+    //TODO: these shouldn't be public
+    Transform(const Transform &other) = default;
+    Transform(Transform &&other) = default;
+
+    Transform *operator=(const Transform &other)
     {
         _scale = other._scale;
         _rotation = other._rotation;
@@ -43,7 +47,7 @@ public:
         return this;
     }
 
-    Transform *opeartor(Transform &&other)
+    Transform *operator=(Transform &&other)
     {
         _scale = other._scale;
         _rotation = other._rotation;

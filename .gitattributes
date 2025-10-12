@@ -33,3 +33,5 @@ models/bill/metalnessMap8.png filter=lfs diff=lfs merge=lfs -text
 models/bill/source filter=lfs diff=lfs merge=lfs -text
 models/bill/bill_cipher.mtl filter=lfs diff=lfs merge=lfs -text
 models/bill/bill_cipher.obj filter=lfs diff=lfs merge=lfs -text
+models/sphere/sphere.mtl filter=lfs diff=lfs merge=lfs -text
+models/sphere/sphere.obj filter=lfs diff=lfs merge=lfs -text

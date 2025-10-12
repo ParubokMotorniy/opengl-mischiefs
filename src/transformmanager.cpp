@@ -112,7 +112,7 @@ TransformIdentifier TransformManager::registerNewTransform(GameObjectIdentifier 
 Transform *TransformManager::getTransform(TransformIdentifier tId)
 {
     auto t = _transforms.find(tId);
-    return t == _transforms.end() ? nullptr : (&t->second);
+    return t == _transforms.end() ? nullptr : (&(t->second));
 }
 
 std::vector<TransformIdentifier> TransformManager::getChildTransforms(GameObjectIdentifier parentId)

@@ -21,7 +21,7 @@ void LightVisualizationShader::runShader()
                       ->getTransform(
                           ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
                               ComponentType::TRANSFORM))
-                      ->computeModelMatrixNoScale();
+                      ->computeModelMatrix();
 
             std::memcpy(destination,
                         reinterpret_cast<const int8_t *>(&modelMat) + (0 * sizeof(glm::vec4)),
@@ -40,7 +40,7 @@ void LightVisualizationShader::runShader()
                       ->getTransform(
                           ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
                               ComponentType::TRANSFORM))
-                      ->computeModelMatrixNoScale();
+                      ->computeModelMatrix();
 
             std::memcpy(destination,
                         reinterpret_cast<const int8_t *>(&modelMat) + (1 * sizeof(glm::vec4)),
@@ -60,7 +60,7 @@ void LightVisualizationShader::runShader()
                       ->getTransform(
                           ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
                               ComponentType::TRANSFORM))
-                      ->computeModelMatrixNoScale();
+                      ->computeModelMatrix();
 
             std::memcpy(destination,
                         reinterpret_cast<const int8_t *>(&modelMat) + (2 * sizeof(glm::vec4)),
@@ -80,7 +80,7 @@ void LightVisualizationShader::runShader()
                       ->getTransform(
                           ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
                               ComponentType::TRANSFORM))
-                      ->computeModelMatrixNoScale();
+                      ->computeModelMatrix();
 
             std::memcpy(destination,
                         reinterpret_cast<const int8_t *>(&modelMat) + (3 * sizeof(glm::vec4)),
@@ -95,7 +95,7 @@ void LightVisualizationShader::runShader()
         GL_FLOAT,
         false,
         [](void *destination, GameObjectIdentifier gId) {
-            glm::vec4 finalColor;
+            glm::vec4 finalColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
             auto &gObject = ObjectManager::instance()->getObject(gId);
 
@@ -103,16 +103,20 @@ void LightVisualizationShader::runShader()
                     ComponentType::LIGHT_POINT);
                 lId != InvalidIdentifier)
             {
-                finalColor
-                    += glm::vec4(LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(lId)->diffuse, 1.0f);
+                finalColor += glm::vec4(LightManager<ComponentType::LIGHT_POINT>::instance()
+                                            ->getLight(lId)
+                                            ->diffuse,
+                                        0.0f);
             }
 
             if (LightSourceIdentifier lId = gObject.getIdentifierForComponent(
                     ComponentType::LIGHT_SPOT);
                 lId != InvalidIdentifier)
             {
-                finalColor
-                    += glm::vec4(LightManager<ComponentType::LIGHT_SPOT>::instance()->getLight(lId)->diffuse, 1.0f);
+                finalColor += glm::vec4(LightManager<ComponentType::LIGHT_SPOT>::instance()
+                                            ->getLight(lId)
+                                            ->diffuse,
+                                        0.0f);
             }
 
             if (LightSourceIdentifier lId = gObject.getIdentifierForComponent(
@@ -120,8 +124,9 @@ void LightVisualizationShader::runShader()
                 lId != InvalidIdentifier)
             {
                 finalColor += glm::vec4(LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
-                                  ->getLight(lId)
-                                  ->diffuse, 1.0f);
+                                            ->getLight(lId)
+                                            ->diffuse,
+                                        0.0f);
             }
 
             std::memcpy(destination, (void *)&finalColor, sizeof(glm::vec4));
@@ -136,6 +141,7 @@ void LightVisualizationShader::runShader()
                                                               _orderedShaderObjects.cend());
 
         const Mesh &mesh = *MeshManager::instance()->getMesh(_lightMesh);
+        MeshManager::instance()->allocateMesh(_lightMesh);
 
         const uint32_t vertexBufferId = Instancer::instance()->instanceData(shaderObjects,
                                                                             { modelMatrixCol0,
@@ -144,15 +150,13 @@ void LightVisualizationShader::runShader()
                                                                               modelMatrixCol3,
                                                                               lightSourceColor },
                                                                             mesh);
-
-        MeshManager::instance()->allocateMesh(_lightMesh);
         MeshManager::instance()->bindMesh(_lightMesh);
 
-        glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0, shaderObjects.size());
-
-        glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
+        glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
+                                shaderObjects.size());
 
         MeshManager::instance()->unbindMesh();
+        glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
     }
 }
 

@@ -128,10 +128,9 @@ public:
     {
         return _lightComponents
             .emplace(++_identifiers,
-                     { lightTId,
-                       { name.empty() ? RandomNamer::instance()->getRandomName(7) : name,
-                         LightStruct() } })
-            ->first;
+                     LightComponent{ NamedComponent<LightStruct>{ name.empty() ? RandomNamer::instance()->getRandomName(7) : name,
+                         LightStruct() },
+                       lightTId }).first->first;
     }
     std::string nameForLightSource(LightSourceIdentifier lId) const
     {

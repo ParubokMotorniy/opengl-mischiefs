@@ -12,6 +12,8 @@
 #include "geometryshaderprogram.h"
 #include "instancedshader.h"
 #include "instancer.h"
+#include "lightmanager.h"
+#include "lightvisualizationshader.h"
 #include "materialmanager.h"
 #include "meshmanager.h"
 #include "modelloader.h"
@@ -23,8 +25,6 @@
 #include "transformmanager.h"
 #include "window.h"
 #include "worldplaneshader.h"
-#include "lightmanager.h"
-#include "lightvisualizationshader.h"
 
 #include <cmath>
 #include <cstdint>
@@ -75,7 +75,7 @@ int main(int argc, const char *argv[])
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
-    //// Cubes buffers
+    //// Meshes
     // TODO: make sure the cubes reuse the same mesh but index vertices in their cutsom way
 
     const MeshIdentifier simpleCubeMesh = MeshManager::instance()->registerMesh(
@@ -123,6 +123,8 @@ int main(int argc, const char *argv[])
     const MeshIdentifier dummyAxesMesh = MeshManager::instance()->registerMesh(Mesh(),
                                                                                "dummy_mesh");
 
+    // Textures
+
     const TextureIdentifier floppaDiff = TextureManager::instance()
                                              ->registerTexture(ENGINE_TEXTURES "/floppa.jpg",
                                                                "big_floppa_diffuse");
@@ -153,6 +155,7 @@ int main(int argc, const char *argv[])
                                                            .filteringMag = GL_LINEAR });
     }
 
+    // Materials
     const MaterialIdentifier floppaMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
               ->registerMaterial(BasicMaterial{ floppaDiff, specular, floppaEm },
@@ -168,11 +171,21 @@ int main(int argc, const char *argv[])
                                                 InvalidIdentifier },
                                  "checker_material");
 
+    // Models
+
     // Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
-    GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
+    const GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
         ENGINE_MODELS
         "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
                                   // Surprisingly, it seems to be better optimized than bill
+
+    //"Sphere" (https://skfb.ly/CR77) by oatmas64134 is licensed under CC
+    //Attribution-NonCommercial-ShareAlike (http://creativecommons.org/licenses/by-nc-sa/4.0/).
+    const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
+        ENGINE_MODELS "/sphere/sphere.obj");
+    const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
+
+    // Events
     {
         mainWindow.subscribeEventListener(
             [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
@@ -218,11 +231,63 @@ int main(int argc, const char *argv[])
         WorldPlaneShader worldPlaneShader{ simpleCubeMesh, checkerboardTexture };
         worldPlaneShader.initializeShaderProgram();
 
+        LightVisualizationShader lightVisualizationShader{ sphereMesh };
+        lightVisualizationShader.initializeShaderProgram();
+
         // shader for rendering of cubes in non-instanced way
         // BasicShader cubeScatterer{ simpleCubeMesh, checkerboardTexture, 1000, 1000 };
         // cubeScatterer.initializeShaderProgram();
 
-        for (int k = 5; k < 75; ++k)
+        {
+            {
+                GameObject &pointLight1 = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+                const auto lightTransform = TransformManager::instance()->registerNewTransform(
+                    pointLight1);
+                const LightSourceIdentifier lId
+                    = LightManager<ComponentType::LIGHT_POINT>::instance()
+                          ->registerNewLight("test_light_1", lightTransform);
+                pointLight1.addComponent(Component(ComponentType::LIGHT_POINT, lId));
+                pointLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+                auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
+                    lId);
+                lightStruct->ambient = glm::vec3(0.867f, 0.922f, 0.518f);
+                lightStruct->diffuse = glm::vec3(0.792f, 0.98f, 0.933f);
+                lightStruct->specular = glm::vec3(0.882f, 0.969f, 0.949f);
+
+                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
+                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+                transformStruct->setPosition(glm::vec3(-15.0f, -15.0f, -15.0f));
+
+                lightVisualizationShader.addObject(pointLight1);
+            }
+
+            {
+                GameObject &pointLight2 = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+                const auto lightTransform = TransformManager::instance()->registerNewTransform(
+                    pointLight2);
+                const LightSourceIdentifier lId
+                    = LightManager<ComponentType::LIGHT_POINT>::instance()
+                          ->registerNewLight("test_light_2", lightTransform);
+                pointLight2.addComponent(Component(ComponentType::LIGHT_POINT, lId));
+                pointLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+
+                auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
+                    lId);
+                lightStruct->ambient = glm::vec3(0.89f, 0.439f, 0.369f);
+                lightStruct->diffuse = glm::vec3(0.969f, 0.545f, 0.71f);
+                lightStruct->specular = glm::vec3(0.98f, 0.702f, 0.808f);
+
+                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
+                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+                transformStruct->setPosition(glm::vec3(15.0f, 15.0f, 15.0f));
+
+                lightVisualizationShader.addObject(pointLight2);
+            }
+        }
+
+        for (int k = 5; k < 65; ++k)
         {
             // generates lots of instanced cubes
             //  for (int h = 0; h < 1000; ++h)
@@ -284,7 +349,7 @@ int main(int argc, const char *argv[])
             billTransform->setRotation(glm::rotate(billTransform->rotation(),
                                                    glm::radians((float)k),
                                                    glm::vec3(50.0f - k, 1.0f, 0.0f)));
-            billTransform->setScale(glm::vec3(15.0f));
+            billTransform->setScale(glm::vec3(20.0f));
 
             shaderProgramMain.addObjectWithChildren(billCopy);
         }
@@ -297,14 +362,15 @@ int main(int argc, const char *argv[])
                           TransformManager::instance()->registerNewTransform(worldAxes)));
             worldAxesShader.addObject(worldAxes);
         }
-        TransformManager::instance()->flushUpdates();
-        shaderProgramMain.runTextureMapping();
-        shaderProgramMain.runInstancing();
+        {
+            TransformManager::instance()->flushUpdates();
+            shaderProgramMain.runTextureMapping();
+            shaderProgramMain.runInstancing();
 
-        //// Render loop
-        camera->moveTo(glm::vec3(0.0f, 7.0f, 0.0f));
-        camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
-
+            //// Render loop
+            camera->moveTo(glm::vec3(0.0f, 7.0f, 0.0f));
+            camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
+        }
         while (!mainWindow.shouldClose())
         {
             // TODO: move time management to a separate class
@@ -356,6 +422,13 @@ int main(int argc, const char *argv[])
                 worldPlaneShader.setFloat("checkerUnitHeight", 5.0f);
 
                 worldPlaneShader.runShader();
+            }
+            {
+                lightVisualizationShader.use();
+                lightVisualizationShader.setMatrix4("view", view);
+                lightVisualizationShader.setMatrix4("projection", projection);
+
+                lightVisualizationShader.runShader();
             }
 
             // // renders lots of cubes in non-instanced way

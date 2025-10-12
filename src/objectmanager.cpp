@@ -30,16 +30,19 @@ GameObjectIdentifier ObjectManager::copyBase(GameObjectIdentifier oldMe)
     GameObject &newMe = getObject(addObject());
     newMe._objectComponents = getObject(oldMe)._objectComponents;
 
-    const auto newTransform = TransformManager::instance()->registerNewTransform(newMe);
+    const TransformIdentifier newTransform = TransformManager::instance()->registerNewTransform(
+        newMe);
     newMe.addComponent(Component(ComponentType::TRANSFORM, newTransform), true);
 
-    const auto oldTransform = getObject(oldMe)
-                                  ._objectComponents
-                                  .find(Component(ComponentType::TRANSFORM, InvalidIdentifier))
-                                  ->second;
+    const TransformIdentifier oldTransform = getObject(oldMe)
+                                                 ._objectComponents
+                                                 .find(Component(ComponentType::TRANSFORM,
+                                                                 InvalidIdentifier))
+                                                 ->second;
 
-    *TransformManager::instance()->getTransform(
-        newTransform) = *TransformManager::instance()->getTransform(oldTransform);
+    *TransformManager::instance()->getTransform(newTransform)
+        = *TransformManager::instance()->getTransform(
+            oldTransform); // copies the properties of transforms
 
     return newMe;
 }
