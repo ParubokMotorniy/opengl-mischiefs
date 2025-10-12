@@ -193,7 +193,7 @@ int main(int argc, const char *argv[])
             [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
                 if (releasedKeys.CtrlLeft)
                     renderAxes = !renderAxes;
-                if(releasedKeys.CtrlRight)
+                if (releasedKeys.CtrlRight)
                     renderOnlyGrid = !renderOnlyGrid;
             });
         mainWindow.subscribeEventListener(
@@ -314,7 +314,7 @@ int main(int argc, const char *argv[])
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(0.0f, 20.0f, 0.0f));
+                transformStruct->setPosition(glm::vec3(0.0f, 30.0f, 0.0f));
                 transformStruct->setRotation(glm::rotate(glm::identity<glm::mat4>(),
                                                          glm::radians(55.0f),
                                                          glm::vec3(1.0f, -1.0f, 0.0f)));
@@ -340,12 +340,73 @@ int main(int argc, const char *argv[])
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(0.0f, -10.0f, 0.0f));
+                transformStruct->setPosition(glm::vec3(0.0f, -30.0f, 0.0f));
                 transformStruct->setRotation(glm::rotate(glm::identity<glm::mat4>(),
                                                          glm::radians(55.0f),
                                                          glm::vec3(-1.0f, 1.0f, 0.0f)));
 
                 lightVisualizationShader.addObject(dirLight2);
+            }
+
+            {
+                //yellow
+                GameObject &spotLight1 = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+                const auto lightTransform = TransformManager::instance()->registerNewTransform(
+                    spotLight1);
+                const LightSourceIdentifier lId
+                    = LightManager<ComponentType::LIGHT_SPOT>::instance()
+                          ->registerNewLight("test_spot_light_1", lightTransform);
+                spotLight1.addComponent(Component(ComponentType::LIGHT_SPOT, lId));
+                spotLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+                auto lightStruct = LightManager<ComponentType::LIGHT_SPOT>::instance()->getLight(
+                    lId);
+                lightStruct->ambient = glm::vec3(0.251f, 0.251f, 0.012f);
+                lightStruct->diffuse = glm::vec3(0.871f, 0.871f, 0.063f);
+                lightStruct->specular = glm::vec3(0.6f, 0.6f, 0.055f);
+                lightStruct->attenuationConstantTerm = 1.0e-2;
+                lightStruct->attenuationLinearTerm = 1.0e-3;
+                lightStruct->attenuationQuadraticTerm = 1.0e-3;
+                lightStruct->innerCutOff = 0.8f;
+                lightStruct->outerCutOff = 0.7f;
+
+                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
+                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+                transformStruct->setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
+                transformStruct->setRotation(glm::rotate(transformStruct->rotation(),
+                                                         glm::radians(180.0f),
+                                                         glm::vec3(0.0f, 1.0f, 0.0f)));
+
+                lightVisualizationShader.addObject(spotLight1);
+            }
+
+            {
+                //blue
+                GameObject &spotLight2 = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+                const auto lightTransform = TransformManager::instance()->registerNewTransform(
+                    spotLight2);
+                const LightSourceIdentifier lId
+                    = LightManager<ComponentType::LIGHT_SPOT>::instance()
+                          ->registerNewLight("test_spot_light_2", lightTransform);
+                spotLight2.addComponent(Component(ComponentType::LIGHT_SPOT, lId));
+                spotLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+                auto lightStruct = LightManager<ComponentType::LIGHT_SPOT>::instance()->getLight(
+                    lId);
+                lightStruct->ambient = glm::vec3(0.016f, 0.012f, 0.188f);
+                lightStruct->diffuse = glm::vec3(0.075f, 0.059f, 0.91f);
+                lightStruct->specular = glm::vec3(0.102f, 0.098f, 0.329f);
+                lightStruct->attenuationConstantTerm = 1.0e-2;
+                lightStruct->attenuationLinearTerm = 1.0e-3;
+                lightStruct->attenuationQuadraticTerm = 1.0e-3;
+                lightStruct->innerCutOff = 0.8f;
+                lightStruct->outerCutOff = 0.7f;
+
+                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
+                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+                transformStruct->setPosition(glm::vec3(0.0f, 0.0f, -20.0f));
+
+                lightVisualizationShader.addObject(spotLight2);
             }
         }
 
@@ -430,13 +491,20 @@ int main(int argc, const char *argv[])
             shaderProgramMain.runTextureMapping();
             shaderProgramMain.runInstancing();
 
-            LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->setLightSourceValidator([](DirectionalLight)->bool{return true;});
+            LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->setLightSourceValidator(
+                [](DirectionalLight) -> bool { return true; });
             LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->initializeLightBuffer();
             LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->bindLightBuffer(1);
 
-            LightManager<ComponentType::LIGHT_POINT>::instance()->setLightSourceValidator([](PointLight)->bool{return true;});
+            LightManager<ComponentType::LIGHT_POINT>::instance()->setLightSourceValidator(
+                [](PointLight) -> bool { return true; });
             LightManager<ComponentType::LIGHT_POINT>::instance()->initializeLightBuffer();
             LightManager<ComponentType::LIGHT_POINT>::instance()->bindLightBuffer(2);
+
+            LightManager<ComponentType::LIGHT_SPOT>::instance()->setLightSourceValidator(
+                [](SpotLight) -> bool { return true; });
+            LightManager<ComponentType::LIGHT_SPOT>::instance()->initializeLightBuffer();
+            LightManager<ComponentType::LIGHT_SPOT>::instance()->bindLightBuffer(3);
 
             //// Render loop
             camera->moveTo(glm::vec3(0.0f, 7.0f, 0.0f));
@@ -477,7 +545,7 @@ int main(int argc, const char *argv[])
             {
                 worldPlaneShader.use();
 
-                if(renderOnlyGrid)
+                if (renderOnlyGrid)
                     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
                 worldPlaneShader.setMatrix4("view", view);
@@ -488,7 +556,7 @@ int main(int argc, const char *argv[])
 
                 worldPlaneShader.runShader();
 
-                if(renderOnlyGrid)
+                if (renderOnlyGrid)
                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             {

@@ -14,8 +14,6 @@ flat in ivec3 instanceMaterialIndices;
 
 layout(binding = 0, std430) readonly buffer TextureHandles { sampler2D textures[]; };
 
-// TODO: remove translation data from lights
-
 struct DirectionalLight
 {
     vec3 ambient;
@@ -74,12 +72,12 @@ vec3 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir
     vec4 specularColor = texture(textures[specularIdx], texCoord);
 
     vec3 lightDir = normalize(-light.direction);
-    // diffuse shading
+    // diffuse bit
     float diff = max(dot(normal, lightDir), 0.0);
-    // specular shading
+    // specular bit
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    // combine results
+    // combination
     vec3 ambient = light.ambient * vec3(diffuseColor);
     vec3 diffuse = light.diffuse * diff * vec3(diffuseColor);
     vec3 specular = light.specular * spec * vec3(specularColor);
@@ -93,19 +91,19 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewD
     vec4 specularColor = texture(textures[specularIdx], texCoord);
 
     vec3 lightDir = normalize(light.position - fragPos);
-    // diffuse shading
+    // diffuse bit
     float diff = max(dot(normal, lightDir), 0.0);
-    // specular shading
+    // specular bit
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    // attenuation
+    // attenuation computation
     float distance = length(light.position - fragPos);
     float attenuation = clamp(1.0
                                   / (light.attenuationConstantTerm
                                      + light.attenuationLinearTerm * distance
                                      + light.attenuationQuadraticTerm * (distance * distance)),
                               0.0, 1.0f);
-    // combine results
+    // combination
     vec3 ambient = light.ambient * vec3(diffuseColor) * attenuation;
     vec3 diffuse = light.diffuse * diff * vec3(diffuseColor) * attenuation;
     vec3 specular = light.specular * spec * vec3(specularColor) * attenuation;
@@ -120,17 +118,17 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir
     vec4 specularColor = texture(textures[specularIdx], texCoord);
 
     vec3 lightDir = normalize(light.position - fragPos);
-    // diffuse shading
+    // diffuse bit
     float diff = max(dot(normal, lightDir), 0.0);
-    // specular shading
+    // specular bit
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    // attenuation
+    // attenuation computation
     float distance = length(light.position - fragPos);
-    float attenuation = 1.0
+    float attenuation = clamp(1.0
                         / (light.attenuationConstantTerm + light.attenuationLinearTerm * distance
-                           + light.attenuationQuadraticTerm * (distance * distance));
-    // combine results
+                           + light.attenuationQuadraticTerm * (distance * distance)), 0.0f, 1.0f);
+    // combination
     vec3 ambient = light.ambient * vec3(diffuseColor);
     vec3 diffuse = light.diffuse * diff * vec3(diffuseColor);
     vec3 specular = light.specular * spec * vec3(specularColor);

@@ -6,14 +6,17 @@
 glm::mat4 Transform::computeModelMatrix() const
 {
     glm::mat4 modelM = glm::identity<glm::mat4>();
+
     glm::mat4 scaleMat = { { _scale.x, 0.0f, 0.0f, 0.0f },
                            { 0.0f, _scale.y, 0.0f, 0.0f },
                            { 0.0f, 0.0f, _scale.z, 0.0f },
                            { 0.0f, 0.0f, 0.0f, 1.0f } };
+
     glm::mat4 transMat = { { 1.0f, 0.0f, 0.0f, 0.0f },
                            { 0.0f, 1.0f, 0.0f, 0.0f },
                            { 0.0f, 0.0f, 1.0f, 0.0f },
                            { _position.x, _position.y, _position.z, 1.0f } };
+                           
     modelM = transMat * _rotation * scaleMat * modelM;
 
     return modelM;
