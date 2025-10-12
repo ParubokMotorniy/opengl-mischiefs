@@ -4,7 +4,4 @@ in vec4 outLightColor;
 
 out vec4 fragColor;
 
-void main()
-{
-    fragColor = outLightColor;
-}
+void main() { fragColor = outLightColor; }

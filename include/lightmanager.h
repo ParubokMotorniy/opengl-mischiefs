@@ -37,32 +37,26 @@ public:
         glBufferData(GL_UNIFORM_BUFFER, MaxLights * sizeof(LightStruct), nullptr, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        glGenBuffers(1, &_tBufferId);
-        glBindBuffer(GL_UNIFORM_BUFFER, _tBufferId);
-        glBufferData(GL_UNIFORM_BUFFER, MaxLights * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
         updateManager();
     }
 
     void updateManager() // both boundBuffer and uniform buffer can be left fragmented after this
                          // operation
     {
-        auto sourcesPtr = _lightComponents.cbegin();
-        auto boundPtr = _boundSources.cbegin();
+        auto sourcesPtr = _lightComponents.begin();
+        auto boundPtr = _boundSources.begin();
 
         while (boundPtr < _boundSources.cend())
         {
-            const bool idValid = *boundPtr != InvalidIdentifier;
+            const bool idValid = (*boundPtr != InvalidIdentifier);
 
             if (idValid
-                && _sourceValidator(_lightComponents.at(*boundPtr)->second.first.componentData))
+                && _sourceValidator(_lightComponents.at(*boundPtr).first.componentData))
                 continue; // the light source is still valid (e.g. visible, enabled, affecting
                           // other
             // objects etc.)
 
             // the light source is not valid, it has to be replaced
-
             if (idValid)
             {
                 updateLightSource(*boundPtr, LightStruct());
@@ -78,9 +72,12 @@ public:
                     // add a new light source to the uniform buffer
                     *boundPtr = lId;
                     updateLightSource(lId, sourcesPtr->second.first.componentData);
+                    break;
                 }
                 ++sourcesPtr;
             }
+
+            ++boundPtr;
         }
     }
 
@@ -94,34 +91,20 @@ public:
             return;
 
         const size_t lightIdx = lightPtr - _boundSources.cbegin();
+        newLight.setTransform(_lightComponents.at(*lightPtr).second);
 
         glBindBuffer(GL_UNIFORM_BUFFER, _lBufferId);
         glBufferSubData(GL_UNIFORM_BUFFER, lightIdx * sizeof(LightStruct), sizeof(LightStruct),
                         &newLight);
-
-        glBindBuffer(GL_UNIFORM_BUFFER, _tBufferId);
-        const glm::mat4 sourceModelMatrix = TransformManager::instance()
-                                                ->getTransform(lightPtr->second.second)
-                                                ->computeModelMatrixNoScale();
-        glBufferSubData(GL_UNIFORM_BUFFER, lightIdx * sizeof(glm::mat4), sizeof(glm::mat4),
-                        &sourceModelMatrix);
-
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    void bindLightBuffer(size_t lightBindingLocation, size_t transformBindingLocation)
+    void bindLightBuffer(size_t lightBindingLocation)
     {
         if (_lBufferId == 0)
             return;
 
-        if (_tBufferId == 0)
-            return;
-
-        if (lightBindingLocation == transformBindingLocation)
-            return;
-
         glBindBufferBase(GL_UNIFORM_BUFFER, lightBindingLocation, _lBufferId);
-        glBindBufferBase(GL_UNIFORM_BUFFER, transformBindingLocation, _tBufferId);
     }
 
     LightSourceIdentifier registerNewLight(const std::string &name, TransformIdentifier lightTId)
@@ -170,5 +153,4 @@ private:
     std::function<bool(LightStruct)> _sourceValidator;
 
     GLuint _lBufferId;
-    GLuint _tBufferId;
 };

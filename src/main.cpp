@@ -49,7 +49,9 @@ Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 float deltaTime{ 0.0f };
 float previousTime{ 0.0f };
 const float lightRotationRadius = 70.0f;
+
 bool renderAxes = true;
+bool renderOnlyGrid = false;
 } // namespace
 
 int main(int argc, const char *argv[])
@@ -180,7 +182,7 @@ int main(int argc, const char *argv[])
                                   // Surprisingly, it seems to be better optimized than bill
 
     //"Sphere" (https://skfb.ly/CR77) by oatmas64134 is licensed under CC
-    //Attribution-NonCommercial-ShareAlike (http://creativecommons.org/licenses/by-nc-sa/4.0/).
+    // Attribution-NonCommercial-ShareAlike (http://creativecommons.org/licenses/by-nc-sa/4.0/).
     const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
         ENGINE_MODELS "/sphere/sphere.obj");
     const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
@@ -191,6 +193,8 @@ int main(int argc, const char *argv[])
             [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
                 if (releasedKeys.CtrlLeft)
                     renderAxes = !renderAxes;
+                if(releasedKeys.CtrlRight)
+                    renderOnlyGrid = !renderOnlyGrid;
             });
         mainWindow.subscribeEventListener(
             [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
@@ -246,18 +250,21 @@ int main(int argc, const char *argv[])
                     pointLight1);
                 const LightSourceIdentifier lId
                     = LightManager<ComponentType::LIGHT_POINT>::instance()
-                          ->registerNewLight("test_light_1", lightTransform);
+                          ->registerNewLight("test_point_light_1", lightTransform);
                 pointLight1.addComponent(Component(ComponentType::LIGHT_POINT, lId));
                 pointLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
                     lId);
-                lightStruct->ambient = glm::vec3(0.867f, 0.922f, 0.518f);
-                lightStruct->diffuse = glm::vec3(0.792f, 0.98f, 0.933f);
-                lightStruct->specular = glm::vec3(0.882f, 0.969f, 0.949f);
+                lightStruct->ambient = glm::vec3(0.929f, 0.878f, 0.675f);
+                lightStruct->diffuse = glm::vec3(0.922f, 0.835f, 0.498f);
+                lightStruct->specular = glm::vec3(0.91f, 0.878f, 0.757f);
+                lightStruct->attenuationConstantTerm = 1.0e-2;
+                lightStruct->attenuationLinearTerm = 1.0e-2;
+                lightStruct->attenuationQuadraticTerm = 1.0e-3;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(-15.0f, -15.0f, -15.0f));
+                transformStruct->setPosition(glm::vec3(-20.0f, -20.0f, -20.0f));
 
                 lightVisualizationShader.addObject(pointLight1);
             }
@@ -269,7 +276,7 @@ int main(int argc, const char *argv[])
                     pointLight2);
                 const LightSourceIdentifier lId
                     = LightManager<ComponentType::LIGHT_POINT>::instance()
-                          ->registerNewLight("test_light_2", lightTransform);
+                          ->registerNewLight("test_point_light_2", lightTransform);
                 pointLight2.addComponent(Component(ComponentType::LIGHT_POINT, lId));
                 pointLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
 
@@ -278,12 +285,67 @@ int main(int argc, const char *argv[])
                 lightStruct->ambient = glm::vec3(0.89f, 0.439f, 0.369f);
                 lightStruct->diffuse = glm::vec3(0.969f, 0.545f, 0.71f);
                 lightStruct->specular = glm::vec3(0.98f, 0.702f, 0.808f);
+                lightStruct->attenuationConstantTerm = 1.0e-2;
+                lightStruct->attenuationLinearTerm = 1.0e-2;
+                lightStruct->attenuationQuadraticTerm = 1.0e-3;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(15.0f, 15.0f, 15.0f));
+                transformStruct->setPosition(glm::vec3(20.0f, 20.0f, 20.0f));
 
                 lightVisualizationShader.addObject(pointLight2);
+            }
+
+            {
+                GameObject &dirLight1 = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+                const auto lightTransform = TransformManager::instance()->registerNewTransform(
+                    dirLight1);
+                const LightSourceIdentifier lId
+                    = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                          ->registerNewLight("test_dir_light_1", lightTransform);
+                dirLight1.addComponent(Component(ComponentType::LIGHT_DIRECTIONAL, lId));
+                dirLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+                auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                                       ->getLight(lId);
+                lightStruct->ambient = glm::vec3(0.102f, 0.031f, 0.039f);
+                lightStruct->diffuse = glm::vec3(0.129f, 0.078f, 0.086f);
+                lightStruct->specular = glm::vec3(0.075f, 0.012f, 0.02f);
+
+                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
+                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+                transformStruct->setPosition(glm::vec3(0.0f, 20.0f, 0.0f));
+                transformStruct->setRotation(glm::rotate(glm::identity<glm::mat4>(),
+                                                         glm::radians(55.0f),
+                                                         glm::vec3(1.0f, -1.0f, 0.0f)));
+
+                lightVisualizationShader.addObject(dirLight1);
+            }
+
+            {
+                GameObject &dirLight2 = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+                const auto lightTransform = TransformManager::instance()->registerNewTransform(
+                    dirLight2);
+                const LightSourceIdentifier lId
+                    = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                          ->registerNewLight("test_dir_light_2", lightTransform);
+                dirLight2.addComponent(Component(ComponentType::LIGHT_DIRECTIONAL, lId));
+                dirLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+                auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                                       ->getLight(lId);
+                lightStruct->ambient = glm::vec3(0.098f, 0.133f, 0.051f);
+                lightStruct->diffuse = glm::vec3(0.098f, 0.137f, 0.051f);
+                lightStruct->specular = glm::vec3(0.035f, 0.055f, 0.012f);
+
+                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
+                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+                transformStruct->setPosition(glm::vec3(0.0f, -10.0f, 0.0f));
+                transformStruct->setRotation(glm::rotate(glm::identity<glm::mat4>(),
+                                                         glm::radians(55.0f),
+                                                         glm::vec3(-1.0f, 1.0f, 0.0f)));
+
+                lightVisualizationShader.addObject(dirLight2);
             }
         }
 
@@ -364,8 +426,17 @@ int main(int argc, const char *argv[])
         }
         {
             TransformManager::instance()->flushUpdates();
+
             shaderProgramMain.runTextureMapping();
             shaderProgramMain.runInstancing();
+
+            LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->setLightSourceValidator([](DirectionalLight)->bool{return true;});
+            LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->initializeLightBuffer();
+            LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->bindLightBuffer(1);
+
+            LightManager<ComponentType::LIGHT_POINT>::instance()->setLightSourceValidator([](PointLight)->bool{return true;});
+            LightManager<ComponentType::LIGHT_POINT>::instance()->initializeLightBuffer();
+            LightManager<ComponentType::LIGHT_POINT>::instance()->bindLightBuffer(2);
 
             //// Render loop
             camera->moveTo(glm::vec3(0.0f, 7.0f, 0.0f));
@@ -395,15 +466,6 @@ int main(int argc, const char *argv[])
             {
                 shaderProgramMain.use();
 
-                shaderProgramMain.setVec3("currentLight.lightPos",
-                                          { lightPosX, lightPosY,
-                                            lightPosZ }); // TODO: generalize for multiple sources
-                shaderProgramMain.setVec3("currentLight.specStrength", { 0.8f, 0.8f, 0.8f });
-                shaderProgramMain.setVec3("currentLight.diffStrength", normalizedLightPos);
-                shaderProgramMain.setVec3("currentLight.ambStrength", { 0.15f, 0.15f, 0.15f });
-                shaderProgramMain.setFloat("currentLight.k", 1.2f);
-                shaderProgramMain.setFloat("currentLight.b", 0.1f);
-
                 shaderProgramMain.setMatrix4("view", view);
                 shaderProgramMain.setMatrix4("projection", projection);
 
@@ -415,6 +477,9 @@ int main(int argc, const char *argv[])
             {
                 worldPlaneShader.use();
 
+                if(renderOnlyGrid)
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
                 worldPlaneShader.setMatrix4("view", view);
                 worldPlaneShader.setMatrix4("projection", projection);
 
@@ -422,6 +487,9 @@ int main(int argc, const char *argv[])
                 worldPlaneShader.setFloat("checkerUnitHeight", 5.0f);
 
                 worldPlaneShader.runShader();
+
+                if(renderOnlyGrid)
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             {
                 lightVisualizationShader.use();
