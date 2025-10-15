@@ -50,8 +50,7 @@ public:
         {
             const bool idValid = (*boundPtr != InvalidIdentifier);
 
-            if (idValid
-                && _sourceValidator(_lightComponents.at(*boundPtr).first.componentData))
+            if (idValid && _sourceValidator(_lightComponents.at(*boundPtr).first.componentData))
                 continue; // the light source is still valid (e.g. visible, enabled, affecting
                           // other
             // objects etc.)
@@ -99,6 +98,26 @@ public:
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
+    void updateLightSourceTransform(LightSourceIdentifier lId)
+    {
+        if (_lBufferId == 0)
+            return;
+
+        auto lightPtr = std::ranges::find(_boundSources, lId);
+        if (lightPtr == _boundSources.end())
+            return;
+
+        const size_t lightIdx = lightPtr - _boundSources.cbegin();
+        auto &light = _lightComponents.at(*lightPtr);
+
+        light.first.componentData.setTransform(light.second);
+
+        glBindBuffer(GL_UNIFORM_BUFFER, _lBufferId);
+        glBufferSubData(GL_UNIFORM_BUFFER, lightIdx * sizeof(LightStruct), sizeof(LightStruct),
+                        &light.first.componentData);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
     void bindLightBuffer(size_t lightBindingLocation)
     {
         if (_lBufferId == 0)
@@ -111,9 +130,12 @@ public:
     {
         return _lightComponents
             .emplace(++_identifiers,
-                     LightComponent{ NamedComponent<LightStruct>{ name.empty() ? RandomNamer::instance()->getRandomName(7) : name,
-                         LightStruct() },
-                       lightTId }).first->first;
+                     LightComponent{
+                         NamedComponent<LightStruct>{
+                             name.empty() ? RandomNamer::instance()->getRandomName(7) : name,
+                             LightStruct() },
+                         lightTId })
+            .first->first;
     }
     std::string nameForLightSource(LightSourceIdentifier lId) const
     {

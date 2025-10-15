@@ -242,60 +242,59 @@ int main(int argc, const char *argv[])
         // BasicShader cubeScatterer{ simpleCubeMesh, checkerboardTexture, 1000, 1000 };
         // cubeScatterer.initializeShaderProgram();
 
+        GameObject &pointLight1 = ObjectManager::instance()->getObject(
+            ObjectManager::instance()->addObject());
+        const auto pointLight1Transform = TransformManager::instance()->registerNewTransform(
+            pointLight1);
+        const LightSourceIdentifier pointLight1Light
+            = LightManager<ComponentType::LIGHT_POINT>::instance()
+                  ->registerNewLight("test_point_light_1", pointLight1Transform);
         {
-            {
-                GameObject &pointLight1 = ObjectManager::instance()->getObject(
-                    ObjectManager::instance()->addObject());
-                const auto lightTransform = TransformManager::instance()->registerNewTransform(
-                    pointLight1);
-                const LightSourceIdentifier lId
-                    = LightManager<ComponentType::LIGHT_POINT>::instance()
-                          ->registerNewLight("test_point_light_1", lightTransform);
-                pointLight1.addComponent(Component(ComponentType::LIGHT_POINT, lId));
-                pointLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
-                auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
-                    lId);
-                lightStruct->ambient = glm::vec3(0.929f, 0.878f, 0.675f);
-                lightStruct->diffuse = glm::vec3(0.922f, 0.835f, 0.498f);
-                lightStruct->specular = glm::vec3(0.91f, 0.878f, 0.757f);
-                lightStruct->attenuationConstantTerm = 1.0e-2;
-                lightStruct->attenuationLinearTerm = 1.0e-2;
-                lightStruct->attenuationQuadraticTerm = 1.0e-3;
+            pointLight1.addComponent(Component(ComponentType::LIGHT_POINT, pointLight1Light));
+            pointLight1.addComponent(Component(ComponentType::TRANSFORM, pointLight1Transform));
+            auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
+                pointLight1Light);
+            lightStruct->ambient = glm::vec3(0.929f, 0.878f, 0.675f);
+            lightStruct->diffuse = glm::vec3(0.922f, 0.835f, 0.498f);
+            lightStruct->specular = glm::vec3(0.91f, 0.878f, 0.757f);
+            lightStruct->attenuationConstantTerm = 1.0e-2;
+            lightStruct->attenuationLinearTerm = 1.0e-2;
+            lightStruct->attenuationQuadraticTerm = 1.0e-3;
 
-                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
-                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(-20.0f, -20.0f, -20.0f));
+            auto transformStruct = TransformManager::instance()->getTransform(pointLight1Transform);
+            transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+            transformStruct->setPosition(glm::vec3(-20.0f, -20.0f, -20.0f));
 
-                lightVisualizationShader.addObject(pointLight1);
-            }
+            lightVisualizationShader.addObject(pointLight1);
+        }
 
-            {
-                GameObject &pointLight2 = ObjectManager::instance()->getObject(
-                    ObjectManager::instance()->addObject());
-                const auto lightTransform = TransformManager::instance()->registerNewTransform(
-                    pointLight2);
-                const LightSourceIdentifier lId
-                    = LightManager<ComponentType::LIGHT_POINT>::instance()
-                          ->registerNewLight("test_point_light_2", lightTransform);
-                pointLight2.addComponent(Component(ComponentType::LIGHT_POINT, lId));
-                pointLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+        GameObject &pointLight2 = ObjectManager::instance()->getObject(
+            ObjectManager::instance()->addObject());
+        const auto pointLight2Transform = TransformManager::instance()->registerNewTransform(
+            pointLight2);
+        const LightSourceIdentifier pointLight2Light
+            = LightManager<ComponentType::LIGHT_POINT>::instance()
+                  ->registerNewLight("test_point_light_2", pointLight2Transform);
+        {
+            pointLight2.addComponent(Component(ComponentType::LIGHT_POINT, pointLight2Light));
+            pointLight2.addComponent(Component(ComponentType::TRANSFORM, pointLight2Transform));
 
-                auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
-                    lId);
-                lightStruct->ambient = glm::vec3(0.89f, 0.439f, 0.369f);
-                lightStruct->diffuse = glm::vec3(0.969f, 0.545f, 0.71f);
-                lightStruct->specular = glm::vec3(0.98f, 0.702f, 0.808f);
-                lightStruct->attenuationConstantTerm = 1.0e-2;
-                lightStruct->attenuationLinearTerm = 1.0e-2;
-                lightStruct->attenuationQuadraticTerm = 1.0e-3;
+            auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
+                pointLight2Light);
+            lightStruct->ambient = glm::vec3(0.89f, 0.439f, 0.369f);
+            lightStruct->diffuse = glm::vec3(0.969f, 0.545f, 0.71f);
+            lightStruct->specular = glm::vec3(0.98f, 0.702f, 0.808f);
+            lightStruct->attenuationConstantTerm = 1.0e-2;
+            lightStruct->attenuationLinearTerm = 1.0e-2;
+            lightStruct->attenuationQuadraticTerm = 1.0e-3;
 
-                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
-                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(20.0f, 20.0f, 20.0f));
+            auto transformStruct = TransformManager::instance()->getTransform(pointLight2Transform);
+            transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+            transformStruct->setPosition(glm::vec3(20.0f, 20.0f, 20.0f));
 
-                lightVisualizationShader.addObject(pointLight2);
-            }
-
+            lightVisualizationShader.addObject(pointLight2);
+        }
+        {
             {
                 GameObject &dirLight1 = ObjectManager::instance()->getObject(
                     ObjectManager::instance()->addObject());
@@ -349,7 +348,7 @@ int main(int argc, const char *argv[])
             }
 
             {
-                //yellow
+                // yellow
                 GameObject &spotLight1 = ObjectManager::instance()->getObject(
                     ObjectManager::instance()->addObject());
                 const auto lightTransform = TransformManager::instance()->registerNewTransform(
@@ -364,15 +363,15 @@ int main(int argc, const char *argv[])
                 lightStruct->ambient = glm::vec3(0.251f, 0.251f, 0.012f);
                 lightStruct->diffuse = glm::vec3(0.871f, 0.871f, 0.063f);
                 lightStruct->specular = glm::vec3(0.6f, 0.6f, 0.055f);
-                lightStruct->attenuationConstantTerm = 1.0e-2;
-                lightStruct->attenuationLinearTerm = 1.0e-3;
-                lightStruct->attenuationQuadraticTerm = 1.0e-3;
-                lightStruct->innerCutOff = 0.8f;
-                lightStruct->outerCutOff = 0.7f;
+                lightStruct->attenuationConstantTerm = 1.0e-3;
+                lightStruct->attenuationLinearTerm = 1.0e-4;
+                lightStruct->attenuationQuadraticTerm = 1.0e-4;
+                lightStruct->innerCutOff = 0.95f;
+                lightStruct->outerCutOff = 0.8f;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
+                transformStruct->setPosition(glm::vec3(0.0f, 0.0f, 60.0f));
                 transformStruct->setRotation(glm::rotate(transformStruct->rotation(),
                                                          glm::radians(180.0f),
                                                          glm::vec3(0.0f, 1.0f, 0.0f)));
@@ -381,7 +380,7 @@ int main(int argc, const char *argv[])
             }
 
             {
-                //blue
+                // blue
                 GameObject &spotLight2 = ObjectManager::instance()->getObject(
                     ObjectManager::instance()->addObject());
                 const auto lightTransform = TransformManager::instance()->registerNewTransform(
@@ -396,15 +395,15 @@ int main(int argc, const char *argv[])
                 lightStruct->ambient = glm::vec3(0.016f, 0.012f, 0.188f);
                 lightStruct->diffuse = glm::vec3(0.075f, 0.059f, 0.91f);
                 lightStruct->specular = glm::vec3(0.102f, 0.098f, 0.329f);
-                lightStruct->attenuationConstantTerm = 1.0e-2;
-                lightStruct->attenuationLinearTerm = 1.0e-3;
-                lightStruct->attenuationQuadraticTerm = 1.0e-3;
-                lightStruct->innerCutOff = 0.8f;
-                lightStruct->outerCutOff = 0.7f;
+                lightStruct->attenuationConstantTerm = 1.0e-3;
+                lightStruct->attenuationLinearTerm = 1.0e-4;
+                lightStruct->attenuationQuadraticTerm = 1.0e-4;
+                lightStruct->innerCutOff = 0.95f;
+                lightStruct->outerCutOff = 0.85f;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(0.0f, 0.0f, -20.0f));
+                transformStruct->setPosition(glm::vec3(0.0f, 0.0f, -60.0f));
 
                 lightVisualizationShader.addObject(spotLight2);
             }
@@ -519,12 +518,6 @@ int main(int argc, const char *argv[])
 
             mainWindow.update(deltaTime);
 
-            const float lightPosX = std::cos(time * 1.5f) * lightRotationRadius;
-            const float lightPosY = std::sin(time * 2.0f) * lightRotationRadius;
-            const float lightPosZ = std::sin(time * 2.5f) * lightRotationRadius;
-            const glm::vec3 normalizedLightPos = glm::normalize(
-                glm::vec3(lightPosX, lightPosY, lightPosZ));
-
             const glm::mat4 projection = glm::perspective(glm::radians(camera->zoom()),
                                                           (float)windowWidth / windowHeight, 0.1f,
                                                           1000.0f);
@@ -591,8 +584,34 @@ int main(int argc, const char *argv[])
             }
 
             {
-                glfwSwapBuffers(mainWindow.getRawWindow());
+                const float lightPosX = std::cos(time * 0.75f);
+                const float lightPosZ = std::sin(time * 0.75f);
+                const float lightPosY = std::sin(time * 1.25f);
+                const glm::vec3 normalizedLightPos = glm::normalize(
+                    glm::vec3(lightPosX, lightPosY, lightPosZ));
+
+                {
+                    auto transformStruct = TransformManager::instance()->getTransform(
+                        pointLight1Transform);
+                    transformStruct->setPosition(normalizedLightPos * lightRotationRadius);
+                }
+
+                {
+                    auto transformStruct = TransformManager::instance()->getTransform(
+                        pointLight2Transform);
+                    transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+                    transformStruct->setPosition(-normalizedLightPos * lightRotationRadius);
+                }
+            }
+
+            {
                 TransformManager::instance()->flushUpdates();
+                LightManager<ComponentType::LIGHT_POINT>::instance()->updateLightSourceTransform(
+                    pointLight1Light);
+                LightManager<ComponentType::LIGHT_POINT>::instance()->updateLightSourceTransform(
+                    pointLight2Light);
+
+                glfwSwapBuffers(mainWindow.getRawWindow());
                 glfwPollEvents();
             }
         }
