@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <vector>
+#include <unordered_set>
 
 class TransformManager;
 
@@ -64,7 +65,7 @@ public:
 
 private:
     void propagateTransformUpdate(const glm::vec3 &parentDeltaScale,
-                                  const glm::vec3 &parentDeltaPos, const glm::mat4 &parentDeltaRot);
+                                  const glm::vec3 &parentDeltaPos, const glm::mat4 &parentDeltaRot, std::unordered_set<GameObjectIdentifier> &updatedTransforms);
     void normalizeMatrix(glm::mat4 &target) const;
 
     explicit Transform(GameObjectIdentifier parent);
@@ -90,7 +91,7 @@ public:
     TransformIdentifier registerNewTransform(GameObjectIdentifier parentId);
     Transform *getTransform(TransformIdentifier tId);
     std::vector<TransformIdentifier> getChildTransforms(GameObjectIdentifier parentId);
-    void flushUpdates();
+    std::unordered_set<GameObjectIdentifier> flushUpdates();
 
 private:
     TransformManager();

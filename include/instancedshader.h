@@ -1,8 +1,10 @@
 #pragma once
 
 #include "shaderprogram.h"
+#include "instancer.h"
 
 #include <unordered_map>
+#include <unordered_set>
 
 class InstancedShader : public ShaderProgram
 {
@@ -17,6 +19,8 @@ public:
                           // workaround.
                           // TODO: now for each transforma change the buffer has to be recomputed ->
                           // ineffiecient
+    void updateInstancedBuffer(const std::unordered_set<GameObjectIdentifier> &bjsToUpdate);
+
     void runShader() override;
 
 protected:
@@ -29,6 +33,10 @@ protected:
 
     std::unordered_map<MeshIdentifier, size_t> _instancedMeshes;
     std::vector<GLuint> _instancedBufferIds;
+    const std::vector<GameObjectIdentifier> &getShaderObjectsAsVector();
+
+private:
+    std::vector<InstancedDataGenerator> getDataGenerators();
 
 private:
     const char *_vertexPath = nullptr;

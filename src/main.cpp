@@ -31,6 +31,7 @@
 #include <iostream>
 #include <numbers>
 #include <tuple>
+#include <unordered_set>
 
 namespace
 {
@@ -48,7 +49,7 @@ const char *axesGeometryShaderSource = ENGINE_SHADERS "/axis_geometry.gs";
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 float deltaTime{ 0.0f };
 float previousTime{ 0.0f };
-const float lightRotationRadius = 70.0f;
+const float lightRotationRadius = 50.0f;
 
 bool renderAxes = true;
 bool renderOnlyGrid = false;
@@ -409,6 +410,7 @@ int main(int argc, const char *argv[])
             }
         }
 
+        std::vector<GameObjectIdentifier> movingObjects;
         for (int k = 5; k < 65; ++k)
         {
             // generates lots of instanced cubes
@@ -452,6 +454,7 @@ int main(int argc, const char *argv[])
             t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
 
             shaderProgramMain.addObject(standardObject);
+            movingObjects.emplace_back(standardObject);
 
             /// add axes for cubes and pyramids
             GameObject &standardAxes = ObjectManager::instance()->getObject(
@@ -605,11 +608,31 @@ int main(int argc, const char *argv[])
             }
 
             {
-                TransformManager::instance()->flushUpdates();
+                //just adds some fancy rotations for the obects to test instanced buffer updating
+                for (size_t m = 0; m < movingObjects.size(); ++m)
+                {
+                    auto transformStruct = TransformManager::instance()->getTransform(
+                        ObjectManager::instance()
+                            ->getObject(movingObjects[m])
+                            .getIdentifierForComponent(ComponentType::TRANSFORM));
+
+                    transformStruct->setRotation(
+                        glm::rotate(transformStruct->rotation(),
+                                    (float)(glm::radians(std::cos(m) * 10.0f) * deltaTime),
+                                    glm::vec3((float)(m % 2), 0.0f, (float)((m + 1) % 2))));
+                }
+            }
+
+            {
+                const std::unordered_set<GameObjectIdentifier> objectsWithUpdatedTransforms
+                    = TransformManager::instance()->flushUpdates();
+
                 LightManager<ComponentType::LIGHT_POINT>::instance()->updateLightSourceTransform(
                     pointLight1Light);
                 LightManager<ComponentType::LIGHT_POINT>::instance()->updateLightSourceTransform(
                     pointLight2Light);
+
+                shaderProgramMain.updateInstancedBuffer(objectsWithUpdatedTransforms);
 
                 glfwSwapBuffers(mainWindow.getRawWindow());
                 glfwPollEvents();

@@ -30,6 +30,34 @@ class Instancer : public SystemSingleton<Instancer>
 public:
     friend class SystemSingleton<Instancer>;
 
+    void updateInstancedData(
+        const GLuint instancedElementBuffer, const std::vector<InstancedDataGenerator> &generators,
+        const std::vector<std::pair<GameObjectIdentifier, uint32_t>> &indicesOfUpdatedBuffers)
+    {
+        const size_t dataSizePerObject
+            = std::accumulate(generators.cbegin(), generators.cend(), (size_t)0,
+                              [](size_t rSum, const InstancedDataGenerator &gen) -> size_t {
+                                  return rSum + gen.dataByteSize;
+                              });
+
+        void *buffer = std::aligned_alloc(
+            16, dataSizePerObject); // not really necessary for vertex buffers, but whynot
+        glBindBuffer(GL_ARRAY_BUFFER, instancedElementBuffer);
+
+        for (const auto [gId, gIdx] : indicesOfUpdatedBuffers)
+        {
+            for (size_t g = 0, bytesAccumulated = 0; g < generators.size(); ++g)
+            {
+                generators[g].func((int8_t *)(buffer) + bytesAccumulated, gId);
+                bytesAccumulated += generators[g].dataByteSize;
+            }
+
+            glBufferSubData(GL_ARRAY_BUFFER, gIdx * dataSizePerObject, dataSizePerObject, buffer);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
     // TODO: try to make use of compile-time polymorphism of the generators
     GLuint instanceData(
         const std::span<const GameObjectIdentifier, std::dynamic_extent> &instancedObjects,
