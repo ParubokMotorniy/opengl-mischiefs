@@ -56,10 +56,10 @@ void Texture2D::deallocateTexture()
 {
     if (_textureId = 0)
         return;
-    if (glIsTextureHandleResidentARB(_textureId))
-    {
-        glMakeTextureHandleNonResidentARB(glGetTextureHandleARB(_textureId));
-    }
+    // if (glIsTextureHandleResidentARB(_textureId))
+    // {
+    //     glMakeTextureHandleNonResidentARB(glGetTextureHandleARB(_textureId));
+    // }
     glDeleteTextures(1, &_textureId);
     _textureId = 0;
 }

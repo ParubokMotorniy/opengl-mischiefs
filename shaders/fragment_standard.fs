@@ -53,17 +53,48 @@ struct SpotLight
     vec3 direction;
 };
 
+struct TexturedSpotLight
+{
+    vec3 ambient;
+    float lightSpan;
+
+    vec3 specular;
+    float innerCutOff;
+
+    float outerCutOff;
+    float attenuationConstantTerm;
+    float attenuationLinearTerm;
+    float attenuationQuadraticTerm;
+
+    vec3 position;
+    
+    vec3 boundVectorX;
+    
+    vec3 boundVectorY;
+
+    mat4 rotation;
+
+    uvec2 textureIdx;
+};
+
 uniform vec3 viewPos;
+
+uniform sampler2D testTexture;
 
 #define NUM_DIRECTIONAL 8
 layout(binding = 1, std140) uniform DirectionalLights
 {
     DirectionalLight dirLights[NUM_DIRECTIONAL];
 };
+
 #define NUM_POINT 32
 layout(binding = 2, std140) uniform PointLights { PointLight pointLights[NUM_POINT]; };
+
 #define NUM_SPOT 16
 layout(binding = 3, std140) uniform SpotLights { SpotLight spotLights[NUM_SPOT]; };
+
+#define NUM_TEXTURED_SPOT 4
+layout(binding = 4, std140) uniform TexturedSpotLights { TexturedSpotLight texturedSpotLights[NUM_TEXTURED_SPOT]; };
 
 vec3 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, int diffuseIdx,
                                int specularIdx)
@@ -147,27 +178,82 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir
     return (ambient + diffuse + specular);
 }
 
+vec3 CalculateTexturedSpotLight(TexturedSpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, int diffuseIdx,
+                        int specularIdx)
+{
+    vec4 diffuseColor = texture(textures[diffuseIdx], texCoord);
+    vec4 specularColor = texture(textures[specularIdx], texCoord);
+
+    vec3 lightDir = normalize(light.position - fragPos);
+    // diffuse bit
+    float diff = max(dot(normal, lightDir), 0.0);
+    // specular bit
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    // attenuation computation
+    float distance = length(lightDir);
+    float attenuation = clamp(1.0
+                        / (light.attenuationConstantTerm + light.attenuationLinearTerm * distance
+                           + light.attenuationQuadraticTerm * (distance * distance)), 0.0f, 1.0f);
+
+
+    //projected texture sampling
+    vec3 rotatedXBound = mat3(light.rotation) * light.boundVectorX;
+    vec3 projectedFragX = normalize(-vec3(lightDir.x, 0.0, lightDir.z));
+    float tCoordX = acos(dot(normalize(vec3(rotatedXBound.x, 0.0, rotatedXBound.z)), projectedFragX )) / light.lightSpan;
+
+    vec3 rotatedYBound = mat3(light.rotation) * light.boundVectorY;
+    vec3 projectedFragY = normalize(-vec3(0.0, lightDir.y, lightDir.z));
+    float tCoordY = acos(dot(normalize(vec3(0.0,rotatedYBound.y,rotatedYBound.z)), projectedFragY )) / light.lightSpan;
+
+    // combination
+    // vec3 ambient = light.ambient * vec3(diffuseColor);
+    vec3 ambient = vec3(0.0f,0.0f,0.0f);
+    vec3 diffuse = texture(testTexture, vec2(tCoordX, tCoordY)).xyz * diff ;//* vec3(diffuseColor);
+    // vec3 specular = light.specular * spec * vec3(specularColor);
+    vec3 specular = vec3(0.0f,0.0f,0.0f);
+
+    float theta = dot(lightDir, normalize(-mat3(light.rotation) * vec3(0.0, 0.0, 1.0)));
+    float epsilon = (light.innerCutOff - light.outerCutOff);
+    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+
+    diffuse *= intensity;
+    specular *= intensity;
+
+    ambient *= attenuation;
+    diffuse *= attenuation;
+    specular *= attenuation;
+
+    return (ambient + diffuse + specular);
+}
+
 void main()
 {
     vec3 effectiveColor = vec3(0.0f, 0.0f, 0.0f);
     vec3 viewDir = normalize(viewPos - vPos);
 
-    for (int d = 0; d < NUM_DIRECTIONAL; ++d)
-    {
-        effectiveColor += CalculateDirectionalLight(dirLights[d], vNorm, viewDir,
-                                                    instanceMaterialIndices.x,
-                                                    instanceMaterialIndices.y);
-    }
+    // for (int d = 0; d < NUM_DIRECTIONAL; ++d)
+    // {
+    //     effectiveColor += CalculateDirectionalLight(dirLights[d], vNorm, viewDir,
+    //                                                 instanceMaterialIndices.x,
+    //                                                 instanceMaterialIndices.y);
+    // }
 
-    for (int p = 0; p < NUM_POINT; ++p)
-    {
-        effectiveColor += CalculatePointLight(pointLights[p], vNorm, vPos, viewDir,
-                                              instanceMaterialIndices.x, instanceMaterialIndices.y);
-    }
+    // for (int p = 0; p < NUM_POINT; ++p)
+    // {
+    //     effectiveColor += CalculatePointLight(pointLights[p], vNorm, vPos, viewDir,
+    //                                           instanceMaterialIndices.x, instanceMaterialIndices.y);
+    // }
 
-    for (int s = 0; s < NUM_SPOT; ++s)
+    // for (int s = 0; s < NUM_SPOT; ++s)
+    // {
+    //     effectiveColor += CalculateSpotLight(spotLights[s], vNorm, vPos, viewDir,
+    //                                         instanceMaterialIndices.x, instanceMaterialIndices.y);
+    // }
+
+    for (int s = 0; s < NUM_TEXTURED_SPOT; ++s)
     {
-        effectiveColor += CalculateSpotLight(spotLights[s], vNorm, vPos, viewDir,
+        effectiveColor += CalculateTexturedSpotLight(texturedSpotLights[s], vNorm, vPos, viewDir,
                                             instanceMaterialIndices.x, instanceMaterialIndices.y);
     }
 

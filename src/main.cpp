@@ -158,6 +158,9 @@ int main(int argc, const char *argv[])
                                                            .filteringMag = GL_LINEAR });
     }
 
+    const TextureIdentifier spotLightTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/bill.jpg", "bill");
+
     // Materials
     const MaterialIdentifier floppaMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
@@ -408,6 +411,45 @@ int main(int argc, const char *argv[])
 
                 lightVisualizationShader.addObject(spotLight2);
             }
+
+            {
+                GameObject &texturedLight1 = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+                const auto lightTransform = TransformManager::instance()->registerNewTransform(
+                    texturedLight1);
+                const LightSourceIdentifier lId
+                    = LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
+                          ->registerNewLight("bill_texture_spot_1", lightTransform);
+                texturedLight1.addComponent(Component(ComponentType::LIGHT_TEXTURED_SPOT, lId));
+                texturedLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+
+                auto lightStruct = LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
+                                       ->getLight(lId);
+                lightStruct->ambient = glm::vec3(0.016f, 0.012f, 0.188f);
+                lightStruct->specular = glm::vec3(0.102f, 0.098f, 0.329f);
+                lightStruct->attenuationConstantTerm = 1.0e-3;
+                lightStruct->attenuationLinearTerm = 1.0e-4;
+                lightStruct->attenuationQuadraticTerm = 1.0e-4;
+                lightStruct->computeIntrinsics(35, 50);
+
+                // const auto texHandle = glGetTextureHandleARB(spotLightTexture);
+                // glMakeTextureHandleResidentARB(texHandle);
+                // lightStruct->textureIdx = texHandle;
+
+                TextureManager::instance()->allocateTexture(spotLightTexture);
+                // lightStruct->textureIdx = TextureManager::instance()->bindTexture(spotLightTexture);
+                
+                lightStruct->textureIdx = 0xFF00FF00FF00FF00;
+
+                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
+                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+                transformStruct->setPosition(glm::vec3(45.0f, 0.0f, 0.0f));
+                transformStruct->setRotation(glm::rotate(transformStruct->rotation(),
+                                                         glm::radians(90.0f),
+                                                         glm::vec3(0.0f, -1.0f, 0.0f)));
+
+                lightVisualizationShader.addObject(texturedLight1);
+            }
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
@@ -508,6 +550,11 @@ int main(int argc, const char *argv[])
             LightManager<ComponentType::LIGHT_SPOT>::instance()->initializeLightBuffer();
             LightManager<ComponentType::LIGHT_SPOT>::instance()->bindLightBuffer(3);
 
+            LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->setLightSourceValidator(
+                [](TexturedSpotLight) -> bool { return true; });
+            LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->initializeLightBuffer();
+            LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->bindLightBuffer(4);
+
             //// Render loop
             camera->moveTo(glm::vec3(0.0f, 7.0f, 0.0f));
             camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
@@ -534,8 +581,11 @@ int main(int argc, const char *argv[])
                 shaderProgramMain.setMatrix4("projection", projection);
 
                 shaderProgramMain.setVec3("viewPos", camera->position());
+                shaderProgramMain.setInt("testTexture", TextureManager::instance()->bindTexture(spotLightTexture));
 
                 shaderProgramMain.runShader();
+
+                TextureManager::instance()->unbindTexture(spotLightTexture);
             }
 
             {
@@ -608,7 +658,7 @@ int main(int argc, const char *argv[])
             }
 
             {
-                //just adds some fancy rotations for the obects to test instanced buffer updating
+                // just adds some fancy rotations for the obects to test instanced buffer updating
                 for (size_t m = 0; m < movingObjects.size(); ++m)
                 {
                     auto transformStruct = TransformManager::instance()->getTransform(

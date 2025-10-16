@@ -75,14 +75,14 @@ public:
 
                 TextureManager::instance()->allocateTexture(tId);
 
-                const TextureHandle texHandle = glGetTextureHandleARB(
-                    *TextureManager::instance()->getTexture(tId));
-                assert(texHandle != 0);
+                // const TextureHandle texHandle = glGetTextureHandleARB(
+                //     *TextureManager::instance()->getTexture(tId));
+                // assert(texHandle != 0);
                 
-                texturesToHandles.emplace(std::make_pair(tId, texHandle));
-                // texturesToHandles.emplace(std::make_pair(tId, tId));
+                // texturesToHandles.emplace(std::make_pair(tId, texHandle));
+                texturesToHandles.emplace(std::make_pair(tId, tId));
                 
-                glMakeTextureHandleResidentARB(texHandle);
+                // glMakeTextureHandleResidentARB(texHandle);
             }
         });
 

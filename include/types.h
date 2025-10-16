@@ -23,6 +23,7 @@ enum class ComponentType
     LIGHT_POINT,
     LIGHT_DIRECTIONAL,
     LIGHT_SPOT,
+    LIGHT_TEXTURED_SPOT,
 };
 using Component = std::pair<ComponentType, ComponentIdentifier>;
 
