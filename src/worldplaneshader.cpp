@@ -26,10 +26,10 @@ void WorldPlaneShader::runShader()
                        glm::scale(glm::identity<glm::mat4>(), glm::vec3(500.0f, 0.0f, 500.0f)));
 
             glDrawElements(GL_TRIANGLES, planeMesh->numIndices(), GL_UNSIGNED_INT, 0);
+            TextureManager::instance()->unbindTexture(_planeTexture);
         }
 
         MeshManager::instance()->unbindMesh();
-        TextureManager::instance()->unbindTexture(_planeTexture);
     }
 }
 void WorldPlaneShader::compileAndAttachNecessaryShaders(uint32_t id)

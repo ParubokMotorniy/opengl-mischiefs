@@ -6,6 +6,7 @@
 + Navigation: W-A-S-D=planar motion. Space=Up. LShift=Down. Q=Peek left. E=Peek right.
 + Zoom: mouse scroll.
 + Hit LeftCtrl to toggle axes
++ Hit RightCtrl to toggle world plane
 
 ## Homework 2 report:     
 ### Tasks [1;2;3;4]:   

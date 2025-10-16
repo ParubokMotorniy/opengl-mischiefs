@@ -128,9 +128,9 @@ int main(int argc, const char *argv[])
 
     // Textures
 
-    const TextureIdentifier floppaDiff = TextureManager::instance()
-                                             ->registerTexture(ENGINE_TEXTURES "/floppa.jpg",
-                                                               "big_floppa_diffuse");
+    const TextureIdentifier polyBlack = TextureManager::instance()
+                                             ->registerTexture(ENGINE_TEXTURES "/poly_black.jpg",
+                                                               "polyBlack");
 
     const TextureIdentifier catDiff = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
                                                                                   "/silly_cat.jpg",
@@ -164,7 +164,7 @@ int main(int argc, const char *argv[])
     // Materials
     const MaterialIdentifier floppaMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ floppaDiff, specular, floppaEm },
+              ->registerMaterial(BasicMaterial{ polyBlack, specular, floppaEm },
                                  "floppa_material");
 
     const MaterialIdentifier catMaterial
@@ -242,10 +242,6 @@ int main(int argc, const char *argv[])
         LightVisualizationShader lightVisualizationShader{ sphereMesh };
         lightVisualizationShader.initializeShaderProgram();
 
-        // shader for rendering of cubes in non-instanced way
-        // BasicShader cubeScatterer{ simpleCubeMesh, checkerboardTexture, 1000, 1000 };
-        // cubeScatterer.initializeShaderProgram();
-
         GameObject &pointLight1 = ObjectManager::instance()->getObject(
             ObjectManager::instance()->addObject());
         const auto pointLight1Transform = TransformManager::instance()->registerNewTransform(
@@ -311,8 +307,8 @@ int main(int argc, const char *argv[])
                 dirLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.102f, 0.031f, 0.039f);
-                lightStruct->diffuse = glm::vec3(0.129f, 0.078f, 0.086f);
+                lightStruct->ambient = glm::vec3(0.012f, 0.031f, 0.039f);
+                lightStruct->diffuse = glm::vec3(0.029f, 0.078f, 0.086f);
                 lightStruct->specular = glm::vec3(0.075f, 0.012f, 0.02f);
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
@@ -337,8 +333,8 @@ int main(int argc, const char *argv[])
                 dirLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.098f, 0.133f, 0.051f);
-                lightStruct->diffuse = glm::vec3(0.098f, 0.137f, 0.051f);
+                lightStruct->ambient = glm::vec3(0.098f, 0.033f, 0.051f);
+                lightStruct->diffuse = glm::vec3(0.098f, 0.037f, 0.051f);
                 lightStruct->specular = glm::vec3(0.035f, 0.055f, 0.012f);
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
@@ -370,8 +366,7 @@ int main(int argc, const char *argv[])
                 lightStruct->attenuationConstantTerm = 1.0e-3;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
                 lightStruct->attenuationQuadraticTerm = 1.0e-4;
-                lightStruct->innerCutOff = 0.95f;
-                lightStruct->outerCutOff = 0.8f;
+                lightStruct->computeIntrinsics(30, 45);
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
@@ -402,8 +397,7 @@ int main(int argc, const char *argv[])
                 lightStruct->attenuationConstantTerm = 1.0e-3;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
                 lightStruct->attenuationQuadraticTerm = 1.0e-4;
-                lightStruct->innerCutOff = 0.95f;
-                lightStruct->outerCutOff = 0.85f;
+                lightStruct->computeIntrinsics(30, 45);
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
@@ -411,71 +405,50 @@ int main(int argc, const char *argv[])
 
                 lightVisualizationShader.addObject(spotLight2);
             }
+        }
+        GameObject &texturedLight1 = ObjectManager::instance()->getObject(
+            ObjectManager::instance()->addObject());
+        const auto texturedLight1Transform = TransformManager::instance()->registerNewTransform(
+            texturedLight1);
+        const LightSourceIdentifier texturedLight1Light
+            = LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
+                  ->registerNewLight("bill_texture_spot_1", texturedLight1Transform);
+        {
+            texturedLight1.addComponent(
+                Component(ComponentType::LIGHT_TEXTURED_SPOT, texturedLight1Light));
+            texturedLight1.addComponent(
+                Component(ComponentType::TRANSFORM, texturedLight1Transform));
 
-            {
-                GameObject &texturedLight1 = ObjectManager::instance()->getObject(
-                    ObjectManager::instance()->addObject());
-                const auto lightTransform = TransformManager::instance()->registerNewTransform(
-                    texturedLight1);
-                const LightSourceIdentifier lId
-                    = LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
-                          ->registerNewLight("bill_texture_spot_1", lightTransform);
-                texturedLight1.addComponent(Component(ComponentType::LIGHT_TEXTURED_SPOT, lId));
-                texturedLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
+            auto lightStruct = LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
+                                   ->getLight(texturedLight1Light);
+            lightStruct->ambient = glm::vec3(0.016f, 0.012f, 0.088f);
+            lightStruct->specular = glm::vec3(0.102f, 0.098f, 0.129f);
+            lightStruct->attenuationConstantTerm = 1.0e-5;
+            lightStruct->attenuationLinearTerm = 1.0e-5;
+            lightStruct->attenuationQuadraticTerm = 1.0e-6;
+            lightStruct->computeIntrinsics(20, 25, texturedLight1Transform);
 
-                auto lightStruct = LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
-                                       ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.016f, 0.012f, 0.188f);
-                lightStruct->specular = glm::vec3(0.102f, 0.098f, 0.329f);
-                lightStruct->attenuationConstantTerm = 1.0e-3;
-                lightStruct->attenuationLinearTerm = 1.0e-4;
-                lightStruct->attenuationQuadraticTerm = 1.0e-4;
-                lightStruct->computeIntrinsics(35, 50);
+            TextureManager::instance()->allocateTexture(spotLightTexture);
+            const auto texHandle = glGetTextureHandleARB(
+                *TextureManager::instance()->getTexture(spotLightTexture));
+            glMakeTextureHandleResidentARB(texHandle);
+            lightStruct->textureIdx = texHandle;
 
-                // const auto texHandle = glGetTextureHandleARB(spotLightTexture);
-                // glMakeTextureHandleResidentARB(texHandle);
-                // lightStruct->textureIdx = texHandle;
+            auto transformStruct = TransformManager::instance()->getTransform(
+                texturedLight1Transform);
+            transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
+            transformStruct->setPosition(glm::vec3(45.0f, 0.0f, 0.0f));
+            transformStruct->setRotation(glm::rotate(transformStruct->rotation(),
+                                                     glm::radians(90.0f),
+                                                     glm::vec3(0.0f, -1.0f, 0.0f)));
 
-                TextureManager::instance()->allocateTexture(spotLightTexture);
-                // lightStruct->textureIdx = TextureManager::instance()->bindTexture(spotLightTexture);
-                
-                lightStruct->textureIdx = 0xFF00FF00FF00FF00;
-
-                auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
-                transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
-                transformStruct->setPosition(glm::vec3(45.0f, 0.0f, 0.0f));
-                transformStruct->setRotation(glm::rotate(transformStruct->rotation(),
-                                                         glm::radians(90.0f),
-                                                         glm::vec3(0.0f, -1.0f, 0.0f)));
-
-                lightVisualizationShader.addObject(texturedLight1);
-            }
+            lightVisualizationShader.addObject(texturedLight1);
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 5; k < 65; ++k)
+        for (int k = 5; k < 45; ++k)
         {
-            // generates lots of instanced cubes
-            //  for (int h = 0; h < 1000; ++h)
-            //  {
-            //      GameObject &standardObject = ObjectManager::instance()->getObject(
-            //          ObjectManager::instance()->addObject());
-
-            //     standardObject.addComponent(Component(ComponentType::MESH, simpleCubeMesh));
-            //     standardObject.addComponent(
-            //         Component(ComponentType::BASIC_MATERIAL, checkerMaterial));
-
-            //     const TransformIdentifier tId =
-            //     TransformManager::instance()->registerNewTransform(
-            //         standardObject);
-            //     standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
-
-            //     Transform *t = TransformManager::instance()->getTransform(tId);
-            //     t->setPosition(glm::vec3((k - 500) * 7, 0.0f, (h - 500) * 7));
-            //     t->setScale(glm::vec3(5.0f, 5.0f, 5.0f));
-            //     shaderProgramMain.addObject(standardObject);
-            // }
-
+            const float fK = static_cast<float>(k);
             // add cubes and pyramids
             GameObject &standardObject = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
@@ -490,7 +463,7 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
-            t->setPosition(glm::vec3(k * std::sin(k), -k * std::sin(k), k * std::cos(k)));
+            t->setPosition(glm::vec3(0.0f, (fK / 2) * std::sin(k), (fK / 2) * std::cos(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
             t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
@@ -513,9 +486,9 @@ int main(int argc, const char *argv[])
                     ComponentType::TRANSFORM));
             billTransform->setPosition(
                 glm::vec3(-k * std::sin(k), k * std::sin(k), k * std::cos(k)));
-            billTransform->setRotation(glm::rotate(billTransform->rotation(),
-                                                   glm::radians((float)k),
-                                                   glm::vec3(50.0f - k, 1.0f, 0.0f)));
+            billTransform->setRotation(
+                glm::rotate(billTransform->rotation(), glm::radians((float)k),
+                            glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
             billTransform->setScale(glm::vec3(20.0f));
 
             shaderProgramMain.addObjectWithChildren(billCopy);
@@ -581,11 +554,8 @@ int main(int argc, const char *argv[])
                 shaderProgramMain.setMatrix4("projection", projection);
 
                 shaderProgramMain.setVec3("viewPos", camera->position());
-                shaderProgramMain.setInt("testTexture", TextureManager::instance()->bindTexture(spotLightTexture));
 
                 shaderProgramMain.runShader();
-
-                TextureManager::instance()->unbindTexture(spotLightTexture);
             }
 
             {
@@ -612,14 +582,6 @@ int main(int argc, const char *argv[])
 
                 lightVisualizationShader.runShader();
             }
-
-            // // renders lots of cubes in non-instanced way
-            // {
-            //     cubeScatterer.use();
-            //     cubeScatterer.setMatrix4("view", view);
-            //     cubeScatterer.setMatrix4("projection", projection);
-            //     cubeScatterer.runShader();
-            // }
 
             if (renderAxes)
             {
@@ -652,8 +614,15 @@ int main(int argc, const char *argv[])
                 {
                     auto transformStruct = TransformManager::instance()->getTransform(
                         pointLight2Transform);
-                    transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
                     transformStruct->setPosition(-normalizedLightPos * lightRotationRadius);
+                }
+
+                {
+                    auto transformStruct = TransformManager::instance()->getTransform(
+                        texturedLight1Transform);
+                    transformStruct->setRotation(glm::rotate(transformStruct->rotation(),
+                                                             glm::radians(time / 10.0f),
+                                                             glm::vec3(0.0f, 1.0f, 0.0f)));
                 }
             }
 
@@ -681,6 +650,8 @@ int main(int argc, const char *argv[])
                     pointLight1Light);
                 LightManager<ComponentType::LIGHT_POINT>::instance()->updateLightSourceTransform(
                     pointLight2Light);
+                LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
+                    ->updateLightSourceTransform(texturedLight1Light);
 
                 shaderProgramMain.updateInstancedBuffer(objectsWithUpdatedTransforms);
 
