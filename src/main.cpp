@@ -20,8 +20,10 @@
 #include "object.h"
 #include "objectmanager.h"
 #include "quaternioncamera.h"
+#include "skyboxshader.h"
 #include "texture.h"
 #include "texturemanager.h"
+#include "texturemanager3d.h"
 #include "transformmanager.h"
 #include "window.h"
 #include "worldplaneshader.h"
@@ -77,6 +79,7 @@ int main(int argc, const char *argv[])
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     //// Meshes
     // TODO: make sure the cubes reuse the same mesh but index vertices in their cutsom way
@@ -105,6 +108,30 @@ int main(int argc, const char *argv[])
                 0, 3, 7, 7, 4, 0 } },
         "simple_cube");
 
+    const MeshIdentifier skyboxMesh = MeshManager::instance()->registerMesh(
+        Mesh{ { { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
+                { -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
+                { -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
+                { -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
+
+                { 0.5f, -0.5f, -0.5f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
+                { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
+                { 0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
+                { 0.5f, 0.5f, -0.5f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
+
+              { 2, 1, 0, 0, 3, 2,
+
+                5, 4, 0, 0, 1, 5,
+
+                4, 5, 6, 6, 7, 4,
+
+                2, 3, 7, 7, 6, 2,
+
+                1, 2, 6, 6, 5, 1,
+
+                7, 3, 0, 0, 4, 7 } },
+        "skybox_cube");
+
     //   0  4
     // 1 3 5 7
     // 2   6
@@ -129,8 +156,8 @@ int main(int argc, const char *argv[])
     // Textures
 
     const TextureIdentifier polyBlack = TextureManager::instance()
-                                             ->registerTexture(ENGINE_TEXTURES "/poly_black.jpg",
-                                                               "polyBlack");
+                                            ->registerTexture(ENGINE_TEXTURES "/poly_black.jpg",
+                                                              "polyBlack");
 
     const TextureIdentifier catDiff = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
                                                                                   "/silly_cat.jpg",
@@ -145,6 +172,12 @@ int main(int argc, const char *argv[])
     const TextureIdentifier floppaEm = TextureManager::instance()
                                            ->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg",
                                                              "big_floppa_emission");
+
+    const TextureIdentifier3D simpleSkybox = TextureManager3D::instance()->registerTexture(
+        { ENGINE_TEXTURES "/blue_skybox/right1.png", ENGINE_TEXTURES "/blue_skybox/left2.png",
+          ENGINE_TEXTURES "/blue_skybox/top3.png", ENGINE_TEXTURES "/blue_skybox/bottom4.png",
+          ENGINE_TEXTURES "/blue_skybox/front5.png", ENGINE_TEXTURES "/blue_skybox/back6.png" },
+        "simple_skybox");
 
     const TextureIdentifier checkerboardTexture
         = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/checkerboard_pattern.jpg",
@@ -164,8 +197,7 @@ int main(int argc, const char *argv[])
     // Materials
     const MaterialIdentifier floppaMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ polyBlack, specular, floppaEm },
-                                 "floppa_material");
+              ->registerMaterial(BasicMaterial{ polyBlack, specular, floppaEm }, "floppa_material");
 
     const MaterialIdentifier catMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
@@ -241,6 +273,11 @@ int main(int argc, const char *argv[])
 
         LightVisualizationShader lightVisualizationShader{ sphereMesh };
         lightVisualizationShader.initializeShaderProgram();
+
+        SkyboxShader mainSkybox{ skyboxMesh, simpleSkybox };
+        mainSkybox.initializeShaderProgram();
+
+        // lights
 
         GameObject &pointLight1 = ObjectManager::instance()->getObject(
             ObjectManager::instance()->addObject());
@@ -366,7 +403,7 @@ int main(int argc, const char *argv[])
                 lightStruct->attenuationConstantTerm = 1.0e-3;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
                 lightStruct->attenuationQuadraticTerm = 1.0e-4;
-                lightStruct->computeIntrinsics(30, 45);
+                lightStruct->computeIntrinsics(45, 60);
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
@@ -397,7 +434,7 @@ int main(int argc, const char *argv[])
                 lightStruct->attenuationConstantTerm = 1.0e-3;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
                 lightStruct->attenuationQuadraticTerm = 1.0e-4;
-                lightStruct->computeIntrinsics(30, 45);
+                lightStruct->computeIntrinsics(45, 60);
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
@@ -433,6 +470,7 @@ int main(int argc, const char *argv[])
                 *TextureManager::instance()->getTexture(spotLightTexture));
             glMakeTextureHandleResidentARB(texHandle);
             lightStruct->textureIdx = texHandle;
+            // lightStruct->textureIdx = 0xFF00FF00FF00FF00;
 
             auto transformStruct = TransformManager::instance()->getTransform(
                 texturedLight1Transform);
@@ -547,6 +585,7 @@ int main(int argc, const char *argv[])
             const glm::mat4 view = camera->getViewMatrix();
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
             {
                 shaderProgramMain.use();
 
@@ -599,6 +638,15 @@ int main(int argc, const char *argv[])
             }
 
             {
+                glDepthFunc(GL_LEQUAL);
+                mainSkybox.use();
+                mainSkybox.setMatrix4("view", glm::mat4(glm::mat3(view)));
+                mainSkybox.setMatrix4("projection", projection);
+                mainSkybox.runShader();
+                glDepthFunc(GL_LESS);
+            }
+
+            {
                 const float lightPosX = std::cos(time * 0.75f);
                 const float lightPosZ = std::sin(time * 0.75f);
                 const float lightPosY = std::sin(time * 1.25f);
@@ -620,9 +668,10 @@ int main(int argc, const char *argv[])
                 {
                     auto transformStruct = TransformManager::instance()->getTransform(
                         texturedLight1Transform);
-                    transformStruct->setRotation(glm::rotate(transformStruct->rotation(),
-                                                             glm::radians(time / 10.0f),
-                                                             glm::vec3(0.0f, 1.0f, 0.0f)));
+                    transformStruct->setRotation(
+                        glm::rotate(transformStruct->rotation(),
+                                    (float)(glm::radians(std::cos(time) * 10.0f) * deltaTime),
+                                    glm::vec3(0.0f, 1.0f, 0.0f)));
                 }
             }
 
@@ -663,6 +712,7 @@ int main(int argc, const char *argv[])
     //// Cleanup
     MeshManager::instance()->cleanUpGracefully();
     TextureManager::instance()->cleanUpGracefully();
+    TextureManager3D::instance()->cleanUpGracefully();
 
     glfwTerminate();
 

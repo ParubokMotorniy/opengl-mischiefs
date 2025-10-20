@@ -30,9 +30,6 @@ public:
     void unbindTexture(TextureIdentifier id);
     void unbindAllTextures();
 
-    std::tuple<int, int, int> bindMaterial(const BasicMaterial &mat); // TODO: rethink this heresy
-    void allocateMaterial(const BasicMaterial &mat);
-
     void cleanUpGracefully();
 
     Texture2D *getTexture(TextureIdentifier tId);

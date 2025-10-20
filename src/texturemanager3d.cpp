@@ -1,4 +1,4 @@
-#include "texturemanager.h"
+#include "texturemanager3d.h"
 #include "randomnamer.h"
 
 #include <glad/glad.h>
@@ -7,26 +7,27 @@
 #include <cassert>
 #include <cstring>
 
-std::pair<std::string, TextureIdentifier> TextureManager::registerTexture(const char *textureSource)
+std::pair<std::string, TextureIdentifier3D> TextureManager3D::registerTexture(
+    const std::array<const char *, 6> &cubemapSources)
 {
     const auto rName = RandomNamer::instance()->getRandomName(10);
-    const auto id = registerTexture(textureSource, rName);
+    const auto id = registerTexture(cubemapSources, rName);
     return std::make_pair(rName, id);
 }
 
-TextureManager::TextureManager() { std::memset(_boundTextures, 0, MAX_TEXTURES); }
+TextureManager3D::TextureManager3D() { std::memset(_boundTextures, 0, MAX_TEXTURES); }
 
-TextureIdentifier TextureManager::registerTexture(const char *textureSource,
-                                                  const std::string &texName)
+TextureIdentifier3D TextureManager3D::registerTexture(
+    const std::array<const char *, 6> &cubemapSources, const std::string &texName)
 {
-    if (const TextureIdentifier ti = textureRegistered(texName); ti != InvalidIdentifier)
+    if (const TextureIdentifier3D ti = textureRegistered(texName); ti != InvalidIdentifier)
         return ti;
 
-    _textures.emplace(++_identifiers, NamedTexture{ texName, Texture2D(textureSource) });
+    _textures.emplace(++_identifiers, NamedTexture{ texName, Texture3D(cubemapSources) });
     return _identifiers;
 }
 
-TextureIdentifier TextureManager::textureRegistered(const std::string &texName) const
+TextureIdentifier3D TextureManager3D::textureRegistered(const std::string &texName) const
 {
     const auto texPtr = std::ranges::find_if(_textures, [&texName](const auto &pair) {
         return pair.second.componentName == texName;
@@ -34,7 +35,7 @@ TextureIdentifier TextureManager::textureRegistered(const std::string &texName) 
     return texPtr == _textures.end() ? InvalidIdentifier : texPtr->first;
 }
 
-void TextureManager::allocateTexture(TextureIdentifier id)
+void TextureManager3D::allocateTexture(TextureIdentifier3D id)
 {
     const auto texture = _textures.find(id);
     if (texture == _textures.end())
@@ -43,7 +44,7 @@ void TextureManager::allocateTexture(TextureIdentifier id)
     texture->second.componentData.allocateTexture();
 }
 
-int TextureManager::bindTexture(TextureIdentifier id)
+int TextureManager3D::bindTexture(TextureIdentifier3D id)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -63,7 +64,7 @@ int TextureManager::bindTexture(TextureIdentifier id)
             _boundTextures[q] = texture;
             ++_numBoundTextures;
             glActiveTexture(GL_TEXTURE0 + q);
-            glBindTexture(GL_TEXTURE_2D, texture);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
             return q;
         }
     }
@@ -73,7 +74,7 @@ int TextureManager::bindTexture(TextureIdentifier id)
     return -1;
 }
 
-void TextureManager::unbindTexture(TextureIdentifier id)
+void TextureManager3D::unbindTexture(TextureIdentifier3D id)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -90,22 +91,22 @@ void TextureManager::unbindTexture(TextureIdentifier id)
     _boundTextures[textureId] = 0;
     --_numBoundTextures;
     glActiveTexture(GL_TEXTURE0 + textureId);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
-void TextureManager::unbindAllTextures()
+void TextureManager3D::unbindAllTextures()
 {
     for (int v = 0; v < MAX_TEXTURES; ++v)
     {
         glActiveTexture(GL_TEXTURE0 + v);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         _boundTextures[v] = 0;
     }
 
     _numBoundTextures = 0;
 }
 
-void TextureManager::deallocateTexture(TextureIdentifier id)
+void TextureManager3D::deallocateTexture(TextureIdentifier3D id)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -119,7 +120,7 @@ void TextureManager::deallocateTexture(TextureIdentifier id)
     texture.deallocateTexture();
 }
 
-void TextureManager::unregisterTexture(TextureIdentifier id)
+void TextureManager3D::unregisterTexture(TextureIdentifier3D id)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -133,29 +134,29 @@ void TextureManager::unregisterTexture(TextureIdentifier id)
     _textures.erase(id);
 }
 
-void TextureManager::cleanUpGracefully()
+void TextureManager3D::cleanUpGracefully()
 {
     for (int f = 0; f < MAX_TEXTURES; ++f)
     {
         if (_boundTextures[f] == 0)
             continue;
         glActiveTexture(GL_TEXTURE0 + f);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }
 
     _textures.clear();
 }
 
-Texture2D *TextureManager::getTexture(TextureIdentifier tId)
-{ 
+Texture3D *TextureManager3D::getTexture(TextureIdentifier3D tId)
+{
     const auto tPtr = _textures.find(tId);
-    if(tPtr == _textures.end())
+    if (tPtr == _textures.end())
         return nullptr;
 
     return &tPtr->second.componentData;
 }
 
-int TextureManager::isTextureBound(const Texture2D &texture)
+int TextureManager3D::isTextureBound(const Texture3D &texture)
 {
     if (!texture.isAllocated())
         return -1;

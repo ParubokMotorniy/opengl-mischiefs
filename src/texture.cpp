@@ -50,11 +50,13 @@ void Texture2D::allocateTexture()
     glGenerateMipmap(GL_TEXTURE_2D);
 
     stbi_image_free(imageData);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Texture2D::deallocateTexture()
 {
-    if (_textureId = 0)
+    if (_textureId == 0)
         return;
     if (glIsTextureHandleResidentARB(_textureId))
     {

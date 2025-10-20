@@ -7,31 +7,33 @@
 #include <cstdint>
 #include <string>
 
-struct Texture2DParameters
+struct Texture3DParameters
 {
     uint32_t wrappingS = 0;
     uint32_t wrappingT = 0;
+    uint32_t wrappingR = 0;
 
     uint32_t filteringMin = 0;
     uint32_t filteringMag = 0;
 };
 
-class TextureManager;
-class Texture2D
+class TextureManager3D;
+class Texture3D
 {
-    friend class TextureManager;
+    friend class TextureManager3D;
 
 public:
     void setUseAnisotropic(bool useAniso, size_t level);
-    void setParameters(Texture2DParameters params);
+    void setParameters(Texture3DParameters params);
 
     operator int() const { return _textureId; }
 
-    ~Texture2D();
+    ~Texture3D();
 
 private:
-    Texture2D(const char *textureSourcePath, bool enableAnisotropicFiltering = false,
-              Texture2DParameters params = { GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT,
+    Texture3D(const std::array<const char *, 6> &cubemapPaths,
+              bool enableAnisotropicFiltering = false,
+              Texture3DParameters params = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
                                              GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR });
     void allocateTexture();
 
@@ -41,8 +43,8 @@ private:
 
 private:
     uint32_t _textureId = 0;
-    std::string _textureSourcePath;
-    Texture2DParameters _params;
+    std::array<std::string, 6> _cubemapPaths;
+    Texture3DParameters _params;
 
     bool _useAnisotropic = false;
     float _anisoLevel = 8.0f;

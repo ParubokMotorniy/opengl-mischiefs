@@ -8,6 +8,7 @@ using GameObjectIdentifier = uint64_t;
 using ComponentIdentifier = uint64_t;
 
 using TextureIdentifier = ComponentIdentifier;
+using TextureIdentifier3D = ComponentIdentifier;
 using MeshIdentifier = ComponentIdentifier;
 using MaterialIdentifier = ComponentIdentifier;
 using TransformIdentifier = ComponentIdentifier;
