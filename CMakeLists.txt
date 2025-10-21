@@ -89,13 +89,23 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     glm::glm
     assimp
     glad
+    pthread
 )
 
-if(CMAKE_CXX_COMPILER_ID  STREQUAL "MSVC")
+if(UNIX)
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+        pthread
+        Xrandr
+        Xi
+        dl
+    )
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)
     target_compile_definitions(${PROJECT_NAME} PUBLIC WINDOWS)
     message(STATUS "Compiling for Windows!")
-elseif( CMAKE_CXX_COMPILER_ID  STREQUAL "GNU" )
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
     target_compile_definitions(${PROJECT_NAME} PUBLIC LINUX)
     message(STATUS "Compiling for Linux!")

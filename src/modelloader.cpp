@@ -2,6 +2,7 @@
 #include "materialmanager.h"
 #include "objectmanager.h"
 #include "transformmanager.h"
+#include "stb/stb_image.h"
 
 #include <iostream>
 

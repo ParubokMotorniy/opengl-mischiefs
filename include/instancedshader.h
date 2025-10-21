@@ -17,8 +17,7 @@ public:
     void runInstancing(); // this instances all the necessary data for the shader.
                           // TODO: instanced buffers are currently bound to VAOs of meshes. Find a
                           // workaround.
-                          // TODO: now for each transforma change the buffer has to be recomputed ->
-                          // ineffiecient
+
     void updateInstancedBuffer(const std::unordered_set<GameObjectIdentifier> &bjsToUpdate);
 
     void runShader() override;

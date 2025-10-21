@@ -34,7 +34,7 @@ private:
     Texture3D(const std::array<const char *, 6> &cubemapPaths,
               bool enableAnisotropicFiltering = false,
               Texture3DParameters params = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
-                                             GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR });
+                                             GL_LINEAR, GL_LINEAR });
     void allocateTexture();
 
     void deallocateTexture();

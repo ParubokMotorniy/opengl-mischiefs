@@ -10,7 +10,6 @@
 #include <tuple>
 #include <unordered_map>
 
-// TODO: generalize the manager through templates like material manager does
 class TextureManager : public SystemSingleton<TextureManager> // crtp
 {
 public:

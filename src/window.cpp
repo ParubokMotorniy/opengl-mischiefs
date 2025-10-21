@@ -12,8 +12,8 @@ void framebufferResizeCallback(GLFWwindow *window, int width, int height)
 
 void mouseCallback(GLFWwindow *window, double xposIn, double yposIn)
 {
-    static float lastX{0.0f};
-    static float lastY{0.0f};
+    static float lastX{ 0.0f };
+    static float lastY{ 0.0f };
 
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
@@ -42,12 +42,12 @@ void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 
 namespace
 {
-    template <class... Ts>
-    struct overloaded : Ts...
-    {
-        using Ts::operator()...;
-    };
-}
+template <class... Ts>
+struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+} // namespace
 
 void Window::processInput()
 {
@@ -55,44 +55,37 @@ void Window::processInput()
         glfwSetWindowShouldClose(_window, true);
 
     // key ghosting does not allow some combinations of peek and diagonal motion :(
-    const auto currentInput =
-        KeyboardInput(
-            glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_SPACE) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_Q) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_E) == GLFW_PRESS,
-            glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS,
-            glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS,
-            glfwGetKey(_window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS);
+    const auto currentInput
+        = KeyboardInput(glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_SPACE) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_Q) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_E) == GLFW_PRESS,
+                        glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS,
+                        glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS,
+                        glfwGetKey(_window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS);
 
-    _releasedKeys = KeyboardInput{!currentInput.Forward && _lastInput.Forward,
-                                  !currentInput.Backward && _lastInput.Backward,
-                                  !currentInput.Right && _lastInput.Right,
-                                  !currentInput.Left && _lastInput.Left,
-                                  !currentInput.Up && _lastInput.Up,
-                                  !currentInput.Down && _lastInput.Down,
-                                  !currentInput.PeekLeft && _lastInput.PeekLeft,
-                                  !currentInput.PeekRight && _lastInput.PeekRight,
-                                  !currentInput.MouseLeft && _lastInput.MouseLeft,
-                                  !currentInput.MouseRight && _lastInput.MouseRight,
-                                  !currentInput.CtrlLeft && _lastInput.CtrlLeft,
-                                  !currentInput.CtrlRight && _lastInput.CtrlRight};
+    _releasedKeys = KeyboardInput{ !currentInput.Forward && _lastInput.Forward,
+                                   !currentInput.Backward && _lastInput.Backward,
+                                   !currentInput.Right && _lastInput.Right,
+                                   !currentInput.Left && _lastInput.Left,
+                                   !currentInput.Up && _lastInput.Up,
+                                   !currentInput.Down && _lastInput.Down,
+                                   !currentInput.PeekLeft && _lastInput.PeekLeft,
+                                   !currentInput.PeekRight && _lastInput.PeekRight,
+                                   !currentInput.MouseLeft && _lastInput.MouseLeft,
+                                   !currentInput.MouseRight && _lastInput.MouseRight,
+                                   !currentInput.CtrlLeft && _lastInput.CtrlLeft,
+                                   !currentInput.CtrlRight && _lastInput.CtrlRight };
     _lastInput = currentInput;
 }
 
-bool Window::shouldClose() const
-{
-    return glfwWindowShouldClose(_window);
-}
-GLFWwindow *Window::getRawWindow() const
-{
-    return _window;
-}
+bool Window::shouldClose() const { return glfwWindowShouldClose(_window); }
+GLFWwindow *Window::getRawWindow() const { return _window; }
 
 void Window::update(float deltaTime)
 {
@@ -143,7 +136,8 @@ void Window::setMouseAccuracy(bool accurate) const
     glfwSetInputMode(_window, GLFW_RAW_MOUSE_MOTION, accurate ? GLFW_TRUE : GLFW_FALSE);
 }
 
-Window::Window(size_t widthX, size_t heightY, const char *windowName) : _lastViewportWidth(widthX), _lastViewportHeight(heightY)
+Window::Window(size_t widthX, size_t heightY, const char *windowName)
+    : _lastViewportWidth(widthX), _lastViewportHeight(heightY)
 {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
