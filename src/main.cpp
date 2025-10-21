@@ -40,7 +40,6 @@ namespace
 constexpr size_t windowWidth = 1440;
 constexpr size_t windowHeight = 810;
 
-// TODO: add some shader source manager
 const char *vertexShaderSource = ENGINE_SHADERS "/vertex_standard.vs";
 const char *fragmentShaderSource = ENGINE_SHADERS "/fragment_standard.fs";
 
