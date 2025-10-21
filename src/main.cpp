@@ -137,17 +137,28 @@ int main(int argc, const char *argv[])
     // 2   6
 
     const MeshIdentifier simplePyramidMesh = MeshManager::instance()->registerMesh(
-        Mesh{ { { std::cos(0), 0.0f, std::sin(0), 0.0f, 1.0f, std::cos(0) - std::numbers::sqrt2 / 2,
-                  0.0f, std::sin(0) - std::numbers::sqrt2 / 2 },
-                { std::cos(2 * std::numbers::pi / 3), 0.0f, std::sin(2 * std::numbers::pi / 3),
-                  1.0f, 1.0f, std::cos(2 * std::numbers::pi / 3) - std::numbers::sqrt2 / 2, 0.0f,
-                  std::sin(2 * std::numbers::pi / 3) - std::numbers::sqrt2 / 2 },
-                { std::cos(4 * std::numbers::pi / 3), 0.0f, std::sin(4 * std::numbers::pi / 3),
-                  1.0f, 0.0f, std::cos(4 * std::numbers::pi / 3) - std::numbers::sqrt2 / 2, 0.0f,
-                  std::sin(4 * std::numbers::pi / 3) - std::numbers::sqrt2 / 2 },
-                { 0.0f, std::numbers::sqrt2, 0.0f, 0.0f, 0.0f, 0.0f, std::numbers::sqrt2, 0.0f } },
+        Mesh{
+            { { static_cast<float>(std::cos(0)), 0.0f, static_cast<float>(std::sin(0)), 0.0f, 1.0f,
+                static_cast<float>(std::cos(0)) - static_cast<float>(std::numbers::sqrt2) / 2, 0.0f,
+                static_cast<float>(std::sin(0)) - static_cast<float>(std::numbers::sqrt2) / 2 },
+              { static_cast<float>(std::cos(2 * std::numbers::pi / 3)), 0.0f,
+                static_cast<float>(std::sin(2 * std::numbers::pi / 3)), 1.0f, 1.0f,
+                static_cast<float>(std::cos(2 * std::numbers::pi / 3))
+                    - static_cast<float>(std::numbers::sqrt2) / 2,
+                0.0f,
+                static_cast<float>(std::sin(2 * std::numbers::pi / 3))
+                    - static_cast<float>(std::numbers::sqrt2) / 2 },
+              { static_cast<float>(std::cos(4 * std::numbers::pi / 3)), 0.0f,
+                static_cast<float>(std::sin(4 * std::numbers::pi / 3)), 1.0f, 0.0f,
+                static_cast<float>(std::cos(4 * std::numbers::pi / 3))
+                    - static_cast<float>(std::numbers::sqrt2) / 2,
+                0.0f,
+                static_cast<float>(std::sin(4 * std::numbers::pi / 3))
+                    - static_cast<float>(std::numbers::sqrt2) / 2 },
+              { 0.0f, static_cast<float>(std::numbers::sqrt2), 0.0f, 0.0f, 0.0f, 0.0f,
+                static_cast<float>(std::numbers::sqrt2), 0.0f } },
 
-              { 0, 1, 2, 1, 3, 2, 2, 3, 0, 0, 3, 1 } },
+            { 0, 1, 2, 1, 3, 2, 2, 3, 0, 0, 3, 1 } },
         "simple_pyramid");
 
     const MeshIdentifier dummyAxesMesh = MeshManager::instance()->registerMesh(Mesh(),

@@ -13,7 +13,7 @@ public:
     void runShader() override;
 
 protected:
-    void compileAndAttachNecessaryShaders(uint id) override;
+    void compileAndAttachNecessaryShaders(uint32_t id) override;
     void deleteShaders() override;
 
 private:

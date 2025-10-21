@@ -2,8 +2,8 @@
 
 #include "singleton.h"
 
-#include <string>
 #include <random>
+#include <string>
 
 class RandomNamer : public SystemSingleton<RandomNamer>
 {
@@ -17,5 +17,11 @@ private:
 
 private:
     std::mt19937 _generator;
-    std::uniform_int_distribution<uint8_t> _charDist; 
+#ifdef LINUX
+    std::uniform_int_distribution<uint8_t> _charDist;
+#endif
+
+#ifdef WINDOWS
+    std::uniform_int_distribution<unsigned short> _charDist;
+#endif
 };

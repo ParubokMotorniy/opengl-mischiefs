@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(engine VERSION 1.0.0 LANGUAGES CXX)
+project(engine VERSION 1.0.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -91,10 +91,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     glad
 )
 
-if(MSVC)
+if(CMAKE_CXX_COMPILER_ID  STREQUAL "MSVC")
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)
-else()
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WINDOWS)
+    message(STATUS "Compiling for Windows!")
+elseif( CMAKE_CXX_COMPILER_ID  STREQUAL "GNU" )
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC LINUX)
+    message(STATUS "Compiling for Linux!")
 endif()
 
 file(COPY ${CMAKE_SOURCE_DIR}/shaders DESTINATION ${CMAKE_BINARY_DIR})

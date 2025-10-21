@@ -48,6 +48,9 @@ void InstancedShader::updateInstancedBuffer(
             meshStart = meshEnd;
         }
 
+        if (meshEnd == shaderObjects.cend())
+            break;
+
         if (objsToUpdate.contains(*meshEnd))
         {
             const size_t objIdx = meshEnd - meshStart;
@@ -120,7 +123,8 @@ void InstancedShader::runTextureMapping()
     _objectsTextureMappings
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
               ->bindTextures(std::vector<GameObjectIdentifier>(_orderedShaderObjects.cbegin(),
-                                                          _orderedShaderObjects.cend()), 0, _texturesSSBO);
+                                                               _orderedShaderObjects.cend()),
+                             0, _texturesSSBO);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 }
 
@@ -226,8 +230,9 @@ std::vector<InstancedDataGenerator> InstancedShader::getDataGenerators()
 
 void InstancedShader::runInstancing()
 {
-    const std::vector<GameObjectIdentifier> shaderObjects = std::vector<GameObjectIdentifier>(_orderedShaderObjects.cbegin(),
-                                                          _orderedShaderObjects.cend());;
+    const std::vector<GameObjectIdentifier> shaderObjects
+        = std::vector<GameObjectIdentifier>(_orderedShaderObjects.cbegin(),
+                                            _orderedShaderObjects.cend());
 
     _instancedMeshes.clear();
     _instancedBufferIds.clear();
@@ -261,6 +266,9 @@ void InstancedShader::runInstancing()
             }
             meshStart = meshEnd;
         }
+
+        if (meshEnd == shaderObjects.cend())
+            break;
 
         ++meshEnd;
     }

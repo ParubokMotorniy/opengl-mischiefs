@@ -8,9 +8,11 @@
 #include <glad/glad.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <functional>
 #include <numeric>
 #include <span>
+#include <stdlib.h>
 #include <vector>
 
 using InstancedDataGeneratorFunc = std::function<void(void *, GameObjectIdentifier)>;
@@ -40,8 +42,16 @@ public:
                                   return rSum + gen.dataByteSize;
                               });
 
-        void *buffer = std::aligned_alloc(
-            16, dataSizePerObject); // not really necessary for vertex buffers, but whynot
+#ifdef LINUX
+        void *buffer = std::aligned_alloc(16, dataSizePerObject);
+        const auto cleanUp = Utilities::ScopeGuard([buffer]() { std::free(buffer); });
+#endif
+
+#ifdef WINDOWS
+        void *buffer = _aligned_malloc(dataSizePerObject, 16);
+        const auto cleanUp = Utilities::ScopeGuard([buffer]() { _aligned_free(buffer); });
+#endif
+
         glBindBuffer(GL_ARRAY_BUFFER, instancedElementBuffer);
 
         for (const auto [gId, gIdx] : indicesOfUpdatedBuffers)
@@ -70,8 +80,15 @@ public:
                               });
         const size_t totalBufferLength = instancedObjects.size() * dataSizePerObject;
 
+#ifdef LINUX
         void *buffer = std::aligned_alloc(16, totalBufferLength);
         const auto cleanUp = Utilities::ScopeGuard([buffer]() { std::free(buffer); });
+#endif
+
+#ifdef WINDOWS
+        void *buffer = _aligned_malloc(totalBufferLength, 16);
+        const auto cleanUp = Utilities::ScopeGuard([buffer]() { _aligned_free(buffer); });
+#endif
 
         size_t bytesAccumulated = 0;
         for (const GameObjectIdentifier id : instancedObjects)

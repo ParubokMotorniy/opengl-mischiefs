@@ -120,7 +120,7 @@ void GeometryShaderProgram::runShader()
     }
 }
 
-void GeometryShaderProgram::compileAndAttachNecessaryShaders(uint id)
+void GeometryShaderProgram::compileAndAttachNecessaryShaders(uint32_t id)
 {
     if (id == 0)
         return;

@@ -100,11 +100,20 @@ public:
             handleToIndex.emplace(std::make_pair(handle, m));
         }
 
-        // TODO: manage destruction and deallocation
+#ifdef LINUX
         glCreateBuffers(1, &textureBufferIdx);
         glNamedBufferStorage(textureBufferIdx, uniformHandles.size() * sizeof(TextureHandle),
                              (const void *)uniformHandles.data(), GL_DYNAMIC_STORAGE_BIT);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPoint, textureBufferIdx);
+#endif
+
+#ifdef WINDOWS
+        glGenBuffers(1, &textureBufferIdx);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, textureBufferIdx);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, uniformHandles.size() * sizeof(TextureHandle),
+                    uniformHandles.data(), GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPoint, textureBufferIdx);
+#endif
 
         // run over all objects and for each determine the indices of the textures in the bound buffer
         std::unordered_map<GameObjectIdentifier, std::array<int, textureCount>> objectIndices;
