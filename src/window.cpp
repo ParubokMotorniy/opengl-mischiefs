@@ -139,8 +139,8 @@ void Window::setMouseAccuracy(bool accurate) const
 Window::Window(size_t widthX, size_t heightY, const char *windowName)
     : _lastViewportWidth(widthX), _lastViewportHeight(heightY)
 {
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     _window = glfwCreateWindow(widthX, heightY, windowName, NULL, NULL);

@@ -89,7 +89,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     glm::glm
     assimp
     glad
-    pthread
 )
 
 if(UNIX)
@@ -117,3 +116,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ROOT="${PROJECT_SOURCE
     ENGINE_SHADERS="${PROJECT_SOURCE_DIR}/shaders"
     ENGINE_TEXTURES="${PROJECT_SOURCE_DIR}/textures"
     ENGINE_MODELS="${PROJECT_SOURCE_DIR}/models")
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
+    COMMAND git lfs pull #to make sure the models and textures are intact
+)
+

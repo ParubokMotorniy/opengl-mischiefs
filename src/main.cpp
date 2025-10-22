@@ -511,7 +511,7 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
-            t->setPosition(glm::vec3(0.0f, (fK / 2) * std::sin(k), (fK / 2) * std::cos(k)));
+            t->setPosition(glm::vec3(0.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
             t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
@@ -577,7 +577,7 @@ int main(int argc, const char *argv[])
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->bindLightBuffer(4);
 
             //// Render loop
-            camera->moveTo(glm::vec3(0.0f, 7.0f, 0.0f));
+            camera->moveTo(glm::vec3(20.0f, 7.0f, 0.0f));
             camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
         }
         while (!mainWindow.shouldClose())
@@ -676,11 +676,12 @@ int main(int argc, const char *argv[])
                 }
 
                 {
+                    //periodically rotates the textured spot light
                     auto transformStruct = TransformManager::instance()->getTransform(
                         texturedLight1Transform);
                     transformStruct->setRotation(
                         glm::rotate(transformStruct->rotation(),
-                                    (float)(glm::radians(std::cos(time) * 10.0f) * deltaTime),
+                                    (float)(glm::radians(std::sin(time) * 20.0f) * deltaTime),
                                     glm::vec3(0.0f, 1.0f, 0.0f)));
                 }
             }

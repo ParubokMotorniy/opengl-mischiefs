@@ -12,7 +12,7 @@ in vec3 vNorm;
 
 flat in ivec3 instanceMaterialIndices;
 
-layout(binding = 0, std430) readonly buffer TextureHandles { sampler2D textures[]; };
+layout(binding = 0, std430) readonly buffer TextureHandles { uvec2 textures[]; };
 
 struct DirectionalLight
 {
@@ -76,8 +76,6 @@ struct TexturedSpotLight
 
 uniform vec3 viewPos;
 
-// uniform sampler2D testTexture;
-
 #define NUM_DIRECTIONAL 8
 layout(binding = 1, std140) uniform DirectionalLights
 {
@@ -96,8 +94,8 @@ layout(binding = 4, std140) uniform TexturedSpotLights { TexturedSpotLight textu
 vec3 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, int diffuseIdx,
                                int specularIdx)
 {
-    vec4 diffuseColor = texture(textures[diffuseIdx], texCoord);
-    vec4 specularColor = texture(textures[specularIdx], texCoord);
+    vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
+    vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
 
     vec3 lightDir = normalize(-light.direction);
     // diffuse bit
@@ -115,8 +113,8 @@ vec3 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir
 vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, int diffuseIdx,
                          int specularIdx)
 {
-    vec4 diffuseColor = texture(textures[diffuseIdx], texCoord);
-    vec4 specularColor = texture(textures[specularIdx], texCoord);
+    vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
+    vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
 
     vec3 fragToLight = normalize(light.position - fragPos);
     // diffuse bit
@@ -142,8 +140,8 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewD
 vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, int diffuseIdx,
                         int specularIdx)
 {
-    vec4 diffuseColor = texture(textures[diffuseIdx], texCoord);
-    vec4 specularColor = texture(textures[specularIdx], texCoord);
+    vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
+    vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
 
     vec3 fragToLight = normalize(light.position - fragPos);
     // diffuse bit
@@ -178,8 +176,8 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir
 vec3 CalculateTexturedSpotLight(TexturedSpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, int diffuseIdx,
                         int specularIdx)
 {
-    vec4 diffuseColor = texture(textures[diffuseIdx], texCoord);
-    vec4 specularColor = texture(textures[specularIdx], texCoord);
+    vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
+    vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
 
     vec3 fragToLight = normalize(light.position - fragPos);
     vec3 lightToFrag = -fragToLight;
