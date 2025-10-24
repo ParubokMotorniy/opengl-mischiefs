@@ -227,8 +227,6 @@ int main(int argc, const char *argv[])
         "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
                                   // Surprisingly, it seems to be better optimized than bill
 
-    //"Sphere" (https://skfb.ly/CR77) by oatmas64134 is licensed under CC
-    // Attribution-NonCommercial-ShareAlike (http://creativecommons.org/licenses/by-nc-sa/4.0/).
     const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
         ENGINE_MODELS "/sphere/sphere.obj");
     const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
@@ -494,7 +492,7 @@ int main(int argc, const char *argv[])
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 5; k < 45; ++k)
+        for (int k = 5; k < 35; ++k)
         {
             const float fK = static_cast<float>(k);
             // add cubes and pyramids

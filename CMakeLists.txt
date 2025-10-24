@@ -110,12 +110,10 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     message(STATUS "Compiling for Linux!")
 endif()
 
-file(COPY ${CMAKE_SOURCE_DIR}/shaders DESTINATION ${CMAKE_BINARY_DIR})
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ROOT="${PROJECT_SOURCE_DIR}"
-    ENGINE_SHADERS="${PROJECT_SOURCE_DIR}/shaders"
-    ENGINE_TEXTURES="${PROJECT_SOURCE_DIR}/textures"
-    ENGINE_MODELS="${PROJECT_SOURCE_DIR}/models")
+target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ROOT="${CMAKE_CURRENT_LIST_DIR}"
+    ENGINE_SHADERS="${CMAKE_CURRENT_LIST_DIR}/shaders"
+    ENGINE_TEXTURES="${CMAKE_CURRENT_LIST_DIR}/textures"
+    ENGINE_MODELS="${CMAKE_CURRENT_LIST_DIR}/models")
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
     COMMAND git lfs pull #to make sure the models and textures are intact

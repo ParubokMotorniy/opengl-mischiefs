@@ -61,7 +61,7 @@ public:
                 generators[g].func((int8_t *)(buffer) + bytesAccumulated, gId);
                 bytesAccumulated += generators[g].dataByteSize;
             }
-
+            //TODO: try implementing through buffer mapping
             glBufferSubData(GL_ARRAY_BUFFER, gIdx * dataSizePerObject, dataSizePerObject, buffer);
         }
 
@@ -105,7 +105,7 @@ public:
         glGenBuffers(1, &vertexBuffer);
 
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-        glBufferData(GL_ARRAY_BUFFER, totalBufferLength, buffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, totalBufferLength, buffer, GL_DYNAMIC_DRAW);
 
         size_t bytesMapped = 0;
         for (const InstancedDataGenerator &gen : generators)

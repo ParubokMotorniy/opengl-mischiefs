@@ -80,6 +80,7 @@ struct SpotLight
         dummyPosition = TransformManager::instance()->getTransform(tId)->position();
     }
 
+    //allows to set the intrinsic values of the light with intuitive degrees
     void computeIntrinsics(float inCutOffDeg, float outCutOffDeg)
     {
         const auto inCutOffRad = glm::radians(inCutOffDeg);
@@ -114,6 +115,7 @@ struct TexturedSpotLight
 
     GLuint64 textureIdx = 0;
 
+    //allows to set the intrinsic values of the light with intuitive degrees
     void computeIntrinsics(float inCutOffDeg, float outCutOffDeg, TransformIdentifier tId)
     {
         const auto inCutOffRad = glm::radians(inCutOffDeg);
