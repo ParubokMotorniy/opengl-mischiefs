@@ -172,4 +172,5 @@ constexpr auto getStructForLightType()
         return SpotLight();
     if constexpr (cType == ComponentType::LIGHT_TEXTURED_SPOT)
         return TexturedSpotLight();
+    assert(false);
 }

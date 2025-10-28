@@ -33,6 +33,7 @@ public:
     Transform(const Transform &other) = default;
     Transform(Transform &&other) = default;
 
+    //this only copies the intrinsics of the transform. The parent Id is preserved.
     Transform *operator=(const Transform &other)
     {
         _scale = other._scale;
@@ -48,6 +49,7 @@ public:
         return this;
     }
 
+    //this only copies the intrinsics of the transform. The parent Id is preserved.
     Transform *operator=(Transform &&other)
     {
         _scale = other._scale;

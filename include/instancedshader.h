@@ -25,7 +25,7 @@ protected:
     void deleteShaders() override;
 
 protected:
-    uint32_t _texturesSSBO;
+    uint32_t _texturesSSBO = 0;
     std::unordered_map<GameObjectIdentifier, std::array<int, 3>> _objectsTextureMappings;
 
     std::unordered_map<MeshIdentifier, size_t> _instancedMeshes;
