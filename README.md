@@ -26,7 +26,8 @@ cmake --build .
 ### Tasks [1;2]
 
 Multiple light sources of each kind are possible. They are passed to shaders, which implement standard Blinn-Phong lighting, through uniform buffers.    
-The light sources have their own shaders and are represented with pointy spheres (which visualize the directions of spot&directional lights).
+The light sources have their own shaders and are represented with pointy spheres (which visualize the directions of spot&directional lights).       
+In the scene there are two point ligths and two directional lights.   
 
 ### Tasks [3]
 

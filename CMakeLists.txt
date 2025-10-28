@@ -4,6 +4,8 @@ project(engine VERSION 1.0.0 LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(ENGINE_DISABLE_BINDLESS_TEXTURES "Determines whether the bindless textures are used. Note: calls to the corresponding API are merely disabled in OFF mode." OFF)
+
 include(FetchContent)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -113,9 +115,13 @@ endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ROOT="${CMAKE_CURRENT_LIST_DIR}"
     ENGINE_SHADERS="${CMAKE_CURRENT_LIST_DIR}/shaders"
     ENGINE_TEXTURES="${CMAKE_CURRENT_LIST_DIR}/textures"
-    ENGINE_MODELS="${CMAKE_CURRENT_LIST_DIR}/models")
+    ENGINE_MODELS="${CMAKE_CURRENT_LIST_DIR}/models"
+)
+if(ENGINE_DISABLE_BINDLESS_TEXTURES)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_DISABLE_BINDLESS_TEXTURES)
+endif()
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND git lfs pull #to make sure the models and textures are intact
 )
 

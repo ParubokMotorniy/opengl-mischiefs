@@ -15,8 +15,6 @@ public:
     void
     runTextureMapping();  // this computes the textures used by the objects and puts them into SSBO
     void runInstancing(); // this instances all the necessary data for the shader.
-                          // TODO: instanced buffers are currently bound to VAOs of meshes. Find a
-                          // workaround.
 
     void updateInstancedBuffer(const std::unordered_set<GameObjectIdentifier> &bjsToUpdate);
 

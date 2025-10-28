@@ -74,15 +74,17 @@ public:
                     continue;
 
                 TextureManager::instance()->allocateTexture(tId);
-
+#if ENGINE_DISABLE_BINDLESS_TEXTURES
+                texturesToHandles.emplace(std::make_pair(tId, tId));
+#else
                 const TextureHandle texHandle = glGetTextureHandleARB(
                     *TextureManager::instance()->getTexture(tId));
                 assert(texHandle != 0);
 
                 texturesToHandles.emplace(std::make_pair(tId, texHandle));
-                // texturesToHandles.emplace(std::make_pair(tId, tId));
 
                 glMakeTextureHandleResidentARB(texHandle);
+#endif
             }
         });
 
@@ -102,7 +104,7 @@ public:
 
         glCreateBuffers(1, &textureBufferIdx);
         glNamedBufferStorage(textureBufferIdx, uniformHandles.size() * sizeof(TextureHandle),
-        (const void *)uniformHandles.data(), GL_DYNAMIC_STORAGE_BIT);
+                             (const void *)uniformHandles.data(), GL_DYNAMIC_STORAGE_BIT);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPoint, textureBufferIdx);
 
         // run over all objects and for each determine the indices of the textures in the bound buffer

@@ -140,8 +140,8 @@ void LightVisualizationShader::runShader()
         const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
                                                               _orderedShaderObjects.cend());
 
+        MeshManager::instance()->enableMeshInstancing(_lightMesh);
         const Mesh &mesh = *MeshManager::instance()->getMesh(_lightMesh);
-        MeshManager::instance()->allocateMesh(_lightMesh);
 
         const uint32_t vertexBufferId = Instancer::instance()->instanceData(shaderObjects,
                                                                             { modelMatrixCol0,
@@ -149,8 +149,8 @@ void LightVisualizationShader::runShader()
                                                                               modelMatrixCol2,
                                                                               modelMatrixCol3,
                                                                               lightSourceColor },
-                                                                            mesh);
-        MeshManager::instance()->bindMesh(_lightMesh);
+                                                                            mesh.instancedArrayId());
+        MeshManager::instance()->bindMeshInstanced(_lightMesh);
 
         glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0,
                                 shaderObjects.size());

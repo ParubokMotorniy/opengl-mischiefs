@@ -17,21 +17,20 @@ struct Mesh
 {
     Mesh() = default;
     Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint32_t> &&meshIndices);
+    ~Mesh();
 
+    bool isAllocated() const noexcept;
     void allocateMesh();
-
     void deallocateMesh();
 
     void bindMesh() const;
 
-    bool isAllocated() const noexcept;
+    void enableInstancing();
+    bool instancingEnabled();
+    void bindMeshInstanced();
 
-    ~Mesh();
-
-    operator int() const
-    {
-        return id;
-    }
+    uint32_t standardArrayId() const noexcept;
+    uint32_t instancedArrayId() const noexcept;
 
     // size in bytes
     uint32_t verticesSize() const;
@@ -46,5 +45,9 @@ struct Mesh
 private:
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+
+    uint32_t vId = 0; //vbo
     uint32_t id = 0; //vao
+
+    uint32_t instancedId = 0;
 };

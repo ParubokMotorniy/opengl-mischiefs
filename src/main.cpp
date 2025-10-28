@@ -474,11 +474,14 @@ int main(int argc, const char *argv[])
             lightStruct->computeIntrinsics(20, 25, texturedLight1Transform);
 
             TextureManager::instance()->allocateTexture(spotLightTexture);
+#if ENGINE_DISABLE_BINDLESS_TEXTURES
+            lightStruct->textureIdx = 0xFF00FF00FF00FF00;
+#else
             const auto texHandle = glGetTextureHandleARB(
                 *TextureManager::instance()->getTexture(spotLightTexture));
             glMakeTextureHandleResidentARB(texHandle);
             lightStruct->textureIdx = texHandle;
-            // lightStruct->textureIdx = 0xFF00FF00FF00FF00;
+#endif
 
             auto transformStruct = TransformManager::instance()->getTransform(
                 texturedLight1Transform);
@@ -674,7 +677,7 @@ int main(int argc, const char *argv[])
                 }
 
                 {
-                    //periodically rotates the textured spot light
+                    // periodically rotates the textured spot light
                     auto transformStruct = TransformManager::instance()->getTransform(
                         texturedLight1Transform);
                     transformStruct->setRotation(

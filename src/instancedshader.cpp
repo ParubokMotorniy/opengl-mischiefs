@@ -68,7 +68,7 @@ void InstancedShader::runShader()
     {
         const Mesh &mesh = *MeshManager::instance()->getMesh(meshId);
 
-        MeshManager::instance()->bindMesh(meshId);
+        MeshManager::instance()->bindMeshInstanced(meshId);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _texturesSSBO);
 
         glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0, count);
@@ -254,12 +254,12 @@ void InstancedShader::runInstancing()
                                                   .getIdentifierForComponent(ComponentType::MESH);
             if (sharedMesh != InvalidIdentifier)
             {
-                MeshManager::instance()->allocateMesh(sharedMesh);
+                MeshManager::instance()->enableMeshInstancing(sharedMesh);
                 const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
 
                 const GLuint vertexBufferid = Instancer::instance()
                                                   ->instanceData(std::span(meshStart, meshEnd),
-                                                                 getDataGenerators(), mesh);
+                                                                 getDataGenerators(), mesh.instancedArrayId());
 
                 _instancedMeshes.emplace(sharedMesh, meshEnd - meshStart);
                 _instancedBufferIds.emplace_back(vertexBufferid);

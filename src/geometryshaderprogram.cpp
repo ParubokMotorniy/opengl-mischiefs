@@ -10,6 +10,7 @@ GeometryShaderProgram::GeometryShaderProgram(const char *vertexPath, const char 
       _fragmentPath(fragmentPath),
       _geometryPath{ geometryPath }
 {
+    
 }
 
 void GeometryShaderProgram::runShader()
@@ -52,7 +53,6 @@ void GeometryShaderProgram::runShader()
                         sizeof(glm::vec4));
         }
     };
-
     InstancedDataGenerator modelMatrixCol2 = InstancedDataGenerator{
         sizeof(glm::vec4),
         4,
@@ -72,7 +72,6 @@ void GeometryShaderProgram::runShader()
                         sizeof(glm::vec4));
         }
     };
-
     InstancedDataGenerator modelMatrixCol3 = InstancedDataGenerator{
         sizeof(glm::vec4),
         4,
@@ -100,6 +99,7 @@ void GeometryShaderProgram::runShader()
         const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
                                                               _orderedShaderObjects.cend());
 
+        MeshManager::instance()->enableMeshInstancing(_dummyMesh);
         const Mesh &mesh = *MeshManager::instance()->getMesh(_dummyMesh);
 
         const uint32_t vertexBufferId = Instancer::instance()->instanceData(shaderObjects,
@@ -107,10 +107,10 @@ void GeometryShaderProgram::runShader()
                                                                               modelMatrixCol1,
                                                                               modelMatrixCol2,
                                                                               modelMatrixCol3 },
-                                                                            mesh);
+                                                                            mesh.instancedArrayId());
 
         MeshManager::instance()->allocateMesh(_dummyMesh);
-        MeshManager::instance()->bindMesh(_dummyMesh);
+        MeshManager::instance()->bindMeshInstanced(_dummyMesh);
 
         glDrawArraysInstanced(GL_POINTS, 0, 3, shaderObjects.size());
 
