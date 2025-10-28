@@ -1,97 +1,42 @@
 #pragma once
 
 #include "mesh.h"
+#include "types.h"
+#include "singleton.h"
 
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <cstdint>
 #include <unordered_set>
 
-class MeshManager
+class MeshManager : public SystemSingleton<MeshManager>
 {
 public:
-    static MeshManager *instance()
-    {
-        if (_instance == nullptr)
-            _instance = new MeshManager();
-        return _instance;
-    }
+    friend class SystemSingleton;
+    using NamedMesh = NamedComponent<Mesh>;
 
-    void registerMesh(const std::string name, const Mesh &&mesh)
-    {
-        _meshes.insert_or_assign(name, mesh);
-    }
+    MeshIdentifier registerMesh(const Mesh &&mesh, const std::string &name);
+    [[nodiscard]] std::pair<std::string, MeshIdentifier> registerMesh(const Mesh &&mesh);
 
-    void unregisterMesh(const std::string meshName)
-    {
-        const auto meshPtr = _meshes.find(meshName);
-        assert(meshPtr != _meshes.end());
-        if (meshPtr == _meshes.end())
-            return;
+    void unregisterMesh(MeshIdentifier id);
+    [[nodiscard]] MeshIdentifier meshRegistered(const std::string &meshName);
 
-        if (_boundMesh != 0 && meshPtr->second == _boundMesh)
-            return;
+    void allocateMesh(MeshIdentifier id);
+    void deallocateMesh(MeshIdentifier id);
 
-        _meshes.erase(meshName);
-    }
+    void bindMesh(MeshIdentifier id);
+    void unbindMesh();
 
-    void allocateMesh(const std::string &meshName)
-    {
-        const auto meshPtr = _meshes.find(meshName);
-        if (meshPtr == _meshes.end())
-            return;
+    void cleanUpGracefully();
 
-        meshPtr->second.allocateMesh();
-    }
-
-    void bindMesh(const std::string &meshName)
-    {
-        if (_boundMesh != 0)
-            return;
-        const auto meshPtr = _meshes.find(meshName);
-        if (meshPtr == _meshes.end())
-            return;
-
-        meshPtr->second.bindMesh();
-        _boundMesh = meshPtr->second;
-    }
-
-    void unbindMesh()
-    {
-        if (_boundMesh == 0)
-            return;
-        glBindVertexArray(0);
-        _boundMesh = 0;
-    }
-
-    void deallocateMesh(const std::string &meshName)
-    {
-        auto meshPtr = _meshes.find(meshName);
-        if (meshPtr == _meshes.end())
-            return;
-
-        meshPtr->second.deallocateMesh();
-    }
-
-    void cleanUpGracefully()
-    {
-        unbindMesh();
-        _meshes.clear();
-    }
-
-    const Mesh *getMesh(const std::string &meshName)
-    {
-        auto meshPtr = _meshes.find(meshName);
-        return meshPtr == _meshes.end() ? nullptr : &meshPtr->second;
-    }
-
+    const Mesh *getMesh(MeshIdentifier id);
 
 private:
     MeshManager() = default;
 
 private:
-    // TODO: rework not to use string as identifiers. Convenient but expensive
-    static MeshManager *_instance;
-    std::unordered_map<std::string, Mesh> _meshes;
-    uint _boundMesh = 0;
+    MeshIdentifier _identifiers = 0;
+    std::unordered_map<MeshIdentifier, NamedMesh> _meshes;
+    uint32_t _boundMesh = 0;
 };

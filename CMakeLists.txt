@@ -10,7 +10,7 @@ file(GLOB SRC_FILES src/*)
 
 add_executable(engine ${SRC_FILES})
 
-target_link_libraries(engine
+target_link_libraries(${PROJECT_NAME}
     glfw
     GL
     X11
@@ -18,4 +18,10 @@ target_link_libraries(engine
     Xrandr
     Xi
     dl
+    assimp
 )
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ROOT="${PROJECT_SOURCE_DIR}" 
+                                                   ENGINE_SHADERS="${PROJECT_SOURCE_DIR}/shaders" 
+                                                   ENGINE_TEXTURES="${PROJECT_SOURCE_DIR}/textures"
+                                                   ENGINE_MODELS="${PROJECT_SOURCE_DIR}/models")

@@ -1,154 +1,53 @@
 #pragma once
 
+#include "material.h"
+#include "singleton.h"
 #include "texture.h"
+#include "types.h"
 
-#include "unordered_map"
-#include "string"
+#include <cstdint>
+#include <string>
+#include <tuple>
+#include <unordered_map>
 
-#define MAX_TEXTURES 16
-
-class TextureManager
+// TODO: generalize the manager through templates like material manager does
+class TextureManager : public SystemSingleton<TextureManager> // crtp
 {
 public:
-    static TextureManager *instance()
-    {
-        if (_instance == nullptr)
-            _instance = new TextureManager();
-        return _instance;
-    }
+    friend class SystemSingleton; // so that the singleton can access the private constructor
+    using NamedTexture = NamedComponent<Texture2D>;
 
-    void registerTexture(const std::string &texName, const char *textureSource)
-    {
-        _textures.insert_or_assign(texName, Texture2D(textureSource));
-    }
+    TextureIdentifier registerTexture(const char *textureSource, const std::string &texName);
+    std::pair<std::string, TextureIdentifier> registerTexture(const char *textureSource);
 
-    void allocateTexture(const std::string &texName)
-    {
-        const auto texture = _textures.find(texName);
-        if (texture == _textures.end())
-            return;
+    void unregisterTexture(TextureIdentifier id);
+    TextureIdentifier textureRegistered(const std::string &texName) const;
 
-        texture->second.allocateTexture();
-    }
+    void allocateTexture(TextureIdentifier id);
+    void deallocateTexture(TextureIdentifier id);
 
-    int bindTexture(const std::string &texName)
-    {
-        const auto texture = _textures.find(texName);
-        if (texture == _textures.end())
-            return 0;
-        if (!texture->second.isAllocated())
-            return 0;
-        if (_numBoundTextures == MAX_TEXTURES)
-            return 0;
-        if(int location = isTextureBound(texture->second); location != -1)
-            return location;
+    int bindTexture(TextureIdentifier id);
+    void unbindTexture(TextureIdentifier id);
+    void unbindAllTextures();
 
-        for (int q = 0; q < MAX_TEXTURES; ++q)
-        {
-            if (_boundTextures[q] == 0)
-            {
-                _boundTextures[q] = texture->second;
-                ++_numBoundTextures;
-                glActiveTexture(GL_TEXTURE0 + q);
-                glBindTexture(GL_TEXTURE_2D, texture->second);
-                return q;
-            }
-        }
+    std::tuple<int, int, int> bindMaterial(const BasicMaterial &mat); // TODO: rethink this heresy
+    void allocateMaterial(const BasicMaterial &mat);
 
-        return 0;
-    }
+    void cleanUpGracefully();
 
-    void unbindTexture(int textureId)
-    {
-        if (textureId >= MAX_TEXTURES || textureId < 0)
-            return;
-        if (_numBoundTextures == 0)
-            return;
-        if (_boundTextures[textureId] == 0)
-            return;
-
-        _boundTextures[textureId] = 0;
-        --_numBoundTextures;
-        glActiveTexture(GL_TEXTURE0 + textureId);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    void unbindAllTextures()
-    {
-        for (int v = 0; v < MAX_TEXTURES; ++v)
-        {
-            glActiveTexture(GL_TEXTURE0 + v);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            _boundTextures[v] = 0;
-        }
-
-        _numBoundTextures = 0;
-    }
-
-    void deallocateTexture(const std::string &texName)
-    {
-        const auto texture = _textures.find(texName);
-        if (texture == _textures.end())
-            return;
-
-        assert(isTextureBound(texture->second));
-        if (isTextureBound(texture->second))
-            return;
-
-        texture->second.deallocateTexture();
-    }
-
-    void unregisterTexture(const std::string &texName)
-    {
-        const auto texture = _textures.find(texName);
-        if (texture == _textures.end())
-            return;
-
-        assert(isTextureBound(texture->second) != -1);
-        if (isTextureBound(texture->second) != -1)
-            return;
-
-        _textures.erase(texName);
-    }
-
-    void cleanUpGracefully()
-    {
-        for (int f = 0; f < MAX_TEXTURES; ++f)
-        {
-            if (_boundTextures[f] == 0)
-                continue;
-            glActiveTexture(GL_TEXTURE0 + f);
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
-
-        _textures.clear();
-    }
+    Texture2D *getTexture(TextureIdentifier tId);
 
 private:
-    TextureManager()
-    {
-        std::memset(_boundTextures, 0, MAX_TEXTURES);
-    }
+    TextureManager();
 
-    //returns -1 if is not bound and the binding index otherwise
-    int isTextureBound(const Texture2D &texture)
-    {
-        if (!texture.isAllocated())
-            return -1;
-
-        for (int b = 0; b < MAX_TEXTURES; ++b)
-        {
-            if (_boundTextures[b] == texture)
-                return b;
-        }
-
-        return -1;
-    }
+    // returns -1 if is not bound and the binding index otherwise
+    int isTextureBound(const Texture2D &texture);
 
 private:
-    static TextureManager *_instance;
-    std::unordered_map<std::string, Texture2D> _textures;
+    TextureIdentifier _identifiers = 0; // TODO: add some defragmentation logic
+    std::unordered_map<TextureIdentifier, NamedTexture> _textures;
 
-    uint _boundTextures[MAX_TEXTURES];
+    constexpr static uint32_t MAX_TEXTURES = 16;
+    uint32_t _boundTextures[MAX_TEXTURES];
     int _numBoundTextures = 0;
 };

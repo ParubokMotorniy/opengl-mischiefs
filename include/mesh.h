@@ -1,103 +1,50 @@
 #pragma once
+#include "material.h"
 
 #include <vector>
+#include <cstdint>
 
 #pragma pack(push, 1)
 struct Vertex
 {
-    float coordinates[3];
-    float texCoordinates[2];
-    float normal[3];
+    float coordinates[3] = {0.0f, 0.0f, 0.0f};
+    float texCoordinates[2] = {0.0f, 0.0f};
+    float normal[3] = {0.0f, 0.0f, 0.0f};
 };
 #pragma pack(pop)
 
 struct Mesh
 {
-    Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint> &&meshIndices) : vertices(std::move(meshVertices)), indices(std::move(meshIndices)) {}
+    Mesh() = default;
+    Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint32_t> &&meshIndices);
 
-    void allocateMesh()
-    {
-        if(id != 0)
-            return;
+    void allocateMesh();
 
-        glGenVertexArrays(1, &id);
-        glBindVertexArray(id);
+    void deallocateMesh();
 
-        uint VBO;
-        glGenBuffers(1, &VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, verticesSize(), vertices.data(), GL_STATIC_DRAW);
+    void bindMesh() const;
 
-        uint EBOOrange;
-        glGenBuffers(1, &EBOOrange);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOOrange);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesSize(), indices.data(), GL_STATIC_DRAW);
+    bool isAllocated() const noexcept;
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
-        glEnableVertexAttribArray(0); // space coords
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1); // texture coords
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(5 * sizeof(float)));
-        glEnableVertexAttribArray(2); // normals
+    ~Mesh();
 
-        glBindVertexArray(0);
-    }
-
-    void deallocateMesh()
-    {
-        if (id == 0)
-            return;
-
-        glDeleteVertexArrays(1, &id);
-        id = 0;
-    }
-
-    void bindMesh() const
-    {
-        if (id == 0)
-            return;
-        glBindVertexArray(id);
-    }
-
-    bool isAllocated() const noexcept
-    {
-        return id != 0;
-    }
-
-    ~Mesh()
-    {
-        deallocateMesh();
-    }
-
-    operator int()
+    operator int() const
     {
         return id;
     }
 
-    //size in bytes
-    uint verticesSize() const
-    {
-        return vertices.size() * sizeof(Vertex);
-    }
+    // size in bytes
+    uint32_t verticesSize() const;
 
-    uint numVertices() const 
-    {
-        return vertices.size();
-    }
+    uint32_t numVertices() const;
 
-    //size in bytes
-    uint indicesSize() const
-    {
-        return indices.size() * sizeof(uint);
-    }
+    // size in bytes
+    uint32_t indicesSize() const;
 
-    uint numIndices() const 
-    {
-        return indices.size();
-    }
+    uint32_t numIndices() const;
 
 private:
     std::vector<Vertex> vertices;
-    std::vector<uint> indices;
-    uint id = 0;
+    std::vector<uint32_t> indices;
+    uint32_t id = 0; //vao
 };

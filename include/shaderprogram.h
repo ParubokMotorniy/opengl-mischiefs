@@ -4,144 +4,73 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <string>
+#include <cstdint>
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+
+#include "meshmanager.h"
+#include "objectmanager.h"
 
 class ShaderProgram
 {
 public:
-    ShaderProgram(const char *vertexPath, const char *fragmentPath) : _vertexPath(vertexPath), _fragmentPath(fragmentPath)
-    {
-    }
+    ShaderProgram();
+    virtual ~ShaderProgram();
 
-    void initializeShaderProgram()
-    {
-        _id = glCreateProgram();
+    void initializeShaderProgram();
 
-        const std::string &vShaderCode = readShaderSource(_vertexPath);
-        const std::string &fShaderCode = readShaderSource(_fragmentPath);
+    void use() const;
 
-        const char *vPtr = vShaderCode.c_str();
-        const char *fPtr = fShaderCode.c_str();
+    void setBool(const std::string &name, bool value) const;
 
-        unsigned int vertex, fragment;
-        vertex = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertex, 1, &vPtr, NULL);
-        compileShader(vertex);
+    void setInt(const std::string &name, int value) const;
 
-        fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragment, 1, &fPtr, NULL);
-        compileShader(fragment);
+    void setFloat(const std::string &name, float value) const;
 
-        glAttachShader(_id, vertex);
-        glAttachShader(_id, fragment);
-        compileAndAttachNecessaryShaders(_id);
+    void setMatrix4(const std::string &name, const glm::mat4 &mat);
 
-        linkProgram(_id);
+    void setVec3(const std::string &name, const glm::vec3 &vec);
 
-        glDeleteShader(vertex);
-        glDeleteShader(fragment);
-        deleteShaders();
-    }
+    void setVec4(const std::string &name, const glm::vec4 &vec);
 
-    ~ShaderProgram()
-    {
-        glDeleteProgram(_id);
-    }
+    virtual void addObject(GameObjectIdentifier gId);
+    virtual void addObjectWithChildren(GameObjectIdentifier gId);
 
-    void use() const { glUseProgram(_id); }
+    virtual void runShader() = 0;
 
-    void setBool(const std::string &name, bool value) const
-    {
-        glUniform1i(glGetUniformLocation(_id, name.c_str()), (int)value);
-    }
-    void setInt(const std::string &name, int value) const
-    {
-        glUniform1i(glGetUniformLocation(_id, name.c_str()), value);
-    }
-    void setFloat(const std::string &name, float value) const
-    {
-        glUniform1f(glGetUniformLocation(_id, name.c_str()), value);
-    }
-    void setMatrix4(const std::string &name, const glm::mat4 &mat)
-    {
-        glUniformMatrix4fv(glGetUniformLocation(_id, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
-    }
-    void setVec3(const std::string &name, const glm::vec3 &vec)
-    {
-        glUniform3f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z);
-    }
-    void setVec4(const std::string &name, const glm::vec4 &vec)
-    {
-        glUniform4f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z, vec.w);
-    }
-
-    operator int()
-    {
-        return _id;
-    }
+    operator int() const { return _id; }
 
 protected:
-    virtual void compileAndAttachNecessaryShaders(uint id) {}
+    virtual void compileAndAttachNecessaryShaders(uint32_t id) = 0;
+    virtual void deleteShaders() = 0;
 
-    virtual void deleteShaders() {}
+    void compileShader(uint32_t shaderId);
+    void linkProgram(uint32_t programId);
 
-    void compileShader(uint shaderId)
-    {
-        glCompileShader(shaderId);
-
-        int success;
-        glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(shaderId, sizeof(_infoLog), NULL, _infoLog);
-            std::cerr << "Shader compilation failed. Details: " << _infoLog;
-        }
-    }
-
-    void linkProgram(uint programId)
-    {
-        glLinkProgram(programId);
-
-        int success;
-        glGetProgramiv(programId, GL_LINK_STATUS, &success);
-        if (!success)
-        {
-            glGetProgramInfoLog(programId, sizeof(_infoLog), NULL, _infoLog);
-            std::cerr << "Program linking failed. Details: " << _infoLog;
-        }
-    }
-
-    std::string readShaderSource(const char *shaderSource)
-    {
-        std::string shaderCode;
-        std::ifstream shaderFile;
-        shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        try
-        {
-            shaderFile.open(shaderSource);
-
-            std::stringstream shaderStream;
-            shaderStream << shaderFile.rdbuf();
-
-            shaderFile.close();
-
-            shaderCode = shaderStream.str();
-        }
-        catch (std::ifstream::failure &e)
-        {
-            std::cout << "Failed to read the shader file: " << e.what() << std::endl;
-        }
-        return shaderCode;
-    }
+    std::string readShaderSource(const char *shaderSource);
 
 protected:
     char _infoLog[512];
 
+    struct MeshOrderer
+    {
+        bool operator()(const GameObjectIdentifier &gId1, const GameObjectIdentifier &gId2) const
+        {
+            const MeshIdentifier mId1 = ObjectManager::instance()
+                                            ->getObject(gId1)
+                                            .getIdentifierForComponent(ComponentType::MESH);
+            const MeshIdentifier mId2 = ObjectManager::instance()
+                                            ->getObject(gId2)
+                                            .getIdentifierForComponent(ComponentType::MESH);
+            return mId1 < mId2;
+        }
+    };
+    std::multiset<GameObjectIdentifier, MeshOrderer> _orderedShaderObjects;
+
 private:
     unsigned int _id;
-    const char *_vertexPath = nullptr;
-    const char *_fragmentPath = nullptr;
 };

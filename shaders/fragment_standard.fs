@@ -1,4 +1,6 @@
-#version 400 core
+#version 460 core
+
+#extension GL_ARB_bindless_texture : require
 
 //outs
 out vec4 fragColor;
@@ -7,16 +9,12 @@ out vec4 fragColor;
 in vec2 texCoord;
 in vec3 vPos;
 in vec3 vNorm;
+flat in ivec3 instanceMaterialIndices; 
 
-//uniforms
-struct Material
+layout (binding = 0, std430) readonly buffer TextureHandles
 {
-    sampler2D diffTextureSampler;
-    sampler2D specTextureSampler;
-    sampler2D emissionTextureSampler;
+    sampler2D textures[];
 };
-
-uniform Material currentMaterial; 
 
 struct Light
 {
@@ -36,8 +34,9 @@ uniform vec3 viewPos;
 
 void main()
 {
-    vec4 diffColor = texture(currentMaterial.diffTextureSampler, texCoord);
-    vec4 specColor = texture(currentMaterial.specTextureSampler, texCoord);
+    vec4 diffColor = instanceMaterialIndices.x == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.x], texCoord);
+    vec4 specColor = instanceMaterialIndices.y == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.y], texCoord);
+    vec4 emColor = instanceMaterialIndices.z == -1 ? vec4(0.0f) : texture(textures[instanceMaterialIndices.z], texCoord);
 
     float intensityFallof = pow(currentLight.k, -currentLight.b * distance(viewPos, vPos));
     vec3 normVNorm = normalize(vNorm); //can interpolation denormalize it?
@@ -56,7 +55,9 @@ void main()
     float specMultiplier = pow(max(dot(viewDir, reflectionDir), 0.0f), specAlpha);
     vec3 specFraction = currentLight.specStrength * specMultiplier * specColor.xyz * intensityFallof;
 
-    vec3 emissionFraction = texture(currentMaterial.emissionTextureSampler, texCoord).xyz * (1.0f - clamp(dot(normVNorm, lightDir), 0.00f, 0.9f));
+    vec3 emissionFraction = emColor.xyz * (1.0f - clamp(dot(normVNorm, lightDir), 0.00f, 0.9f));
 
     fragColor = vec4((ambFraction + diffFraction + specFraction + emissionFraction), 1.0f);
+
+    // fragColor = vec4(normalize(instanceMaterialIndices),1.0f);
 }

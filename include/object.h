@@ -1,40 +1,68 @@
 #pragma once
 
-#include "mesh.h"
 #include "material.h"
+#include "mesh.h"
+#include "types.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-// one primitive (for now) object means:
-//  + one mesh
-//  + one material
-//  + one texture
+#include <algorithm>
+#include <unordered_set>
 
-struct PrimitiveObject
+struct ComponentPairHash
 {
-    std::string objMesh;
-    Material objMaterial;
-
-    glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
-    glm::mat4 rotation = glm::identity<glm::mat4>();
-    glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
-
-    glm::mat4 computeModelMatrix() const
+    std::size_t operator()(const Component &p) const noexcept
     {
-        glm::mat4 modelM = glm::identity<glm::mat4>();
-        modelM = glm::scale(modelM, scale);
-        modelM = rotation * modelM;
-        modelM = glm::translate(modelM, position);
+        return std::hash<std::underlying_type_t<ComponentType>>{}(
+            static_cast<std::underlying_type_t<ComponentType>>(p.first));
+    }
+};
 
-        return modelM;
+struct ComponentPairEqual
+{
+    bool operator()(const Component &lhs, const Component &rhs) const noexcept
+    {
+        return lhs.first == rhs.first;
+    }
+};
+
+struct GameObject
+{
+public:
+    friend class ObjectManager;
+
+    operator GameObjectIdentifier() const { return _objectId; }
+
+    void addComponent(Component newComponent, bool overwrite = false)
+    {
+        if (overwrite)
+        {
+            _objectComponents.erase(newComponent);
+        }
+        _objectComponents.emplace(newComponent);
     }
 
-    glm::mat4 computeModelMatrixNoScale() const 
+    void addChildObject(GameObjectIdentifier newChild)
     {
-        glm::mat4 modelM = glm::identity<glm::mat4>();
-        modelM = rotation * modelM;
-        modelM = glm::translate(modelM, position);
-
-        return modelM;
+        if (std::ranges::find(_objectChildren, newChild) != _objectChildren.end())
+            return;
+        _objectChildren.emplace_back(newChild);
     }
+
+    ComponentIdentifier getIdentifierForComponent(ComponentType type) const
+    {
+        auto cPtr = _objectComponents.find(Component(type, InvalidIdentifier));
+        return cPtr == _objectComponents.end() ? InvalidIdentifier : cPtr->second;
+    }
+
+    const std::vector<GameObjectIdentifier> &children() { return _objectChildren; }
+
+private:
+    GameObject(GameObjectIdentifier newId) : _objectId(newId) {}
+
+private:
+    GameObjectIdentifier _objectId;
+    std::unordered_set<Component, ComponentPairHash, ComponentPairEqual> _objectComponents;
+    std::vector<GameObjectIdentifier> _objectChildren;
 };
