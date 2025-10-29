@@ -352,8 +352,8 @@ int main(int argc, const char *argv[])
                 dirLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.012f, 0.031f, 0.039f);
-                lightStruct->diffuse = glm::vec3(0.029f, 0.078f, 0.086f);
+                lightStruct->ambient = glm::vec3(0.012f, 0.151f, 0.039f);
+                lightStruct->diffuse = glm::vec3(0.029f, 0.158f, 0.086f);
                 lightStruct->specular = glm::vec3(0.075f, 0.012f, 0.02f);
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
@@ -378,8 +378,8 @@ int main(int argc, const char *argv[])
                 dirLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.098f, 0.033f, 0.051f);
-                lightStruct->diffuse = glm::vec3(0.098f, 0.037f, 0.051f);
+                lightStruct->ambient = glm::vec3(0.148f, 0.033f, 0.081f);
+                lightStruct->diffuse = glm::vec3(0.148f, 0.037f, 0.081f);
                 lightStruct->specular = glm::vec3(0.035f, 0.055f, 0.012f);
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
@@ -512,7 +512,7 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
-            t->setPosition(glm::vec3(0.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
+            t->setPosition(glm::vec3(std::sin(k) * 5.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
             t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));

@@ -27,7 +27,8 @@ cmake --build .
 
 Multiple light sources of each kind are possible. They are passed to shaders, which implement standard Blinn-Phong lighting, through uniform buffers.    
 The light sources have their own shaders and are represented with pointy spheres (which visualize the directions of spot&directional lights).       
-In the scene there are two point ligths and two directional lights.   
+In the scene there are two point ligths and two directional lights.     
+The effect of individual lights can be verified by commenting out the lightint application loops in `fragment_standard.fs`
 
 ### Tasks [3]
 
