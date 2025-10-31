@@ -44,14 +44,14 @@ public:
 
     // returns frame_buffer_id + depth_texture_id
     static std::pair<GLuint, GLuint> createShadowMapPremises(size_t shadowResolutionX,
-                                                             size_t shadowResolutionY, size_t)
+                                                             size_t shadowResolutionY)
     {
         // TODO: wrap this thing through the texture manager. somehow. Once in place -> add support
         // for cubemaps
         unsigned int depthMap;
         glGenTextures(1, &depthMap);
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowResolutionX, shadowResolutionY , 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowResolutionX, shadowResolutionY, 0,
                      GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -165,6 +165,7 @@ public:
                          lightTId })
             .first->first;
     }
+
     std::string nameForLightSource(LightSourceIdentifier lId) const
     {
         auto lightPtr = _lightComponents.find(lId);
@@ -187,6 +188,17 @@ public:
             updateLightSource(lId, LightStruct());
 
         _lightComponents.erase(lId);
+    }
+
+    std::vector<LightStruct> getLights()
+    {
+        std::vector<LightStruct> target;
+        target.reserve(_lightComponents.size());
+
+        std::transform(_lightComponents.cbegin(), _lightComponents.cend(),
+                       std::back_inserter(target),
+                       [](const auto &lightPair) { return lightPair.second.first.componentData; });
+        return target;
     }
 
 protected:

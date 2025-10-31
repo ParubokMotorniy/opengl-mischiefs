@@ -7,6 +7,9 @@ WorldPlaneShader::WorldPlaneShader(MeshIdentifier planeMesh, TextureIdentifier p
     : _planeMesh(planeMesh), _planeTexture(planeTexture)
 {
 }
+
+// TODO: move the plane toggling here
+
 void WorldPlaneShader::runShader()
 {
     if (_planeMesh != InvalidIdentifier && _planeTexture != InvalidIdentifier)
@@ -22,8 +25,10 @@ void WorldPlaneShader::runShader()
             const Mesh *planeMesh = MeshManager::instance()->getMesh(_planeMesh);
 
             setInt("planeTexture", bindPoint);
-            setMatrix4("model",
-                       glm::scale(glm::identity<glm::mat4>(), glm::vec3(500.0f, 0.0f, 500.0f)));
+            glm::mat4 squashedCubeMatrix = glm::scale(glm::identity<glm::mat4>(),
+                                                 glm::vec3(500.0f, 0.0f, 500.0f));
+            squashedCubeMatrix = glm::translate(squashedCubeMatrix, glm::vec3(0.0f, -150.0f, 0.0f));
+            setMatrix4("model", squashedCubeMatrix);
             setFloat("checkerUnitWidth", 5.0f);
             setFloat("checkerUnitHeight", 5.0f);
 

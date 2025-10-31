@@ -142,7 +142,13 @@ std::pair<size_t, size_t> Window::currentWindowDimensions() const noexcept
     int width, height;
     glfwGetWindowSize(_window, &width, &height);
 
-    return {width, height};
+    return { width, height };
+}
+
+void Window::resetViewport() const
+{
+    const auto [w, h] = currentWindowDimensions();
+    glViewport(0, 0, w, h);
 }
 
 Window::Window(size_t widthX, size_t heightY, const char *windowName)

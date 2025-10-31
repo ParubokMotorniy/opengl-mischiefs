@@ -20,6 +20,7 @@
 #include "object.h"
 #include "objectmanager.h"
 #include "quaternioncamera.h"
+#include "shadowpass.h"
 #include "skyboxshader.h"
 #include "standardpass.h"
 #include "texture.h"
@@ -288,6 +289,9 @@ int main(int argc, const char *argv[])
                                              &lightVisualizationShader, &mainSkybox };
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
+
+        ShadowPass _shadowPass{ &shaderProgramMain, &worldPlaneShader, &lightVisualizationShader,
+                                &mainSkybox };
         // lights
 
         GameObject &pointLight1 = ObjectManager::instance()->getObject(
@@ -359,6 +363,14 @@ int main(int argc, const char *argv[])
                 lightStruct->diffuse = glm::vec3(0.029f, 0.158f, 0.086f);
                 lightStruct->specular = glm::vec3(0.075f, 0.012f, 0.02f);
 
+                const auto [bufId,
+                            texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                                         ->createShadowMapPremises(1024, 1024);
+                lightStruct->frameBufferId = bufId;
+                const auto depthTexhandle = glGetTextureHandleARB(texId);
+                glMakeTextureHandleResidentARB(depthTexhandle);
+                lightStruct->shadowTextureHandle = depthTexhandle;
+
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
                 transformStruct->setPosition(glm::vec3(0.0f, 30.0f, 0.0f));
@@ -384,6 +396,13 @@ int main(int argc, const char *argv[])
                 lightStruct->ambient = glm::vec3(0.148f, 0.033f, 0.081f);
                 lightStruct->diffuse = glm::vec3(0.148f, 0.037f, 0.081f);
                 lightStruct->specular = glm::vec3(0.035f, 0.055f, 0.012f);
+                const auto [bufId,
+                            texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                                         ->createShadowMapPremises(1024, 1024);
+                lightStruct->frameBufferId = bufId;
+                const auto depthTexhandle = glGetTextureHandleARB(texId);
+                glMakeTextureHandleResidentARB(depthTexhandle);
+                lightStruct->shadowTextureHandle = depthTexhandle;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
@@ -594,6 +613,7 @@ int main(int argc, const char *argv[])
 
             mainWindow.update();
 
+            _shadowPass.runPass();
             _standardRenderingPass.runPass();
 
             const glm::mat4 projection = glm::perspective(glm::radians(camera->zoom()),

@@ -4,7 +4,7 @@
 #include "singleton.h"
 #include <cstddef>
 
-class FrameBufferManager : SystemSingleton<FrameBufferManager>
+class FrameBufferManager : public SystemSingleton<FrameBufferManager>
 {
 public:
     friend class SystemSingleton<FrameBufferManager>;

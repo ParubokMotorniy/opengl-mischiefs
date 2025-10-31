@@ -21,6 +21,7 @@ StandardPass::StandardPass(InstancedShader *ins, WorldPlaneShader *wrld,
 void StandardPass::runPass()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    _currentTargetWindow->resetViewport();
 
     const auto [windowWidth, windowHeight] = _currentTargetWindow->currentWindowDimensions();
 

@@ -33,6 +33,7 @@ struct DirectionalLight
     float pad1;
 
     GLuint64 shadowTextureHandle = 0;
+    GLuint64 frameBufferId = 0; //TODO: ideally is mustn't be here. Eats up the bandwidth of the bus in vain.
 
     void setTransform(TransformIdentifier tId)
     {

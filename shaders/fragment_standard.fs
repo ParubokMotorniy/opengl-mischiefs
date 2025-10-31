@@ -22,6 +22,7 @@ struct DirectionalLight
 
     vec3 direction;
     uvec2 shadowTextureHandle;
+    uvec2 dummy_buffer_id; //TODO: REMOVE THIS HERESY
 };
 
 struct PointLight
