@@ -13,6 +13,7 @@
 #include "instancedshader.h"
 #include "instancer.h"
 #include "lightmanager.h"
+#include "timemanager.h"
 #include "lightvisualizationshader.h"
 #include "materialmanager.h"
 #include "meshmanager.h"
@@ -48,8 +49,6 @@ const char *axesFragmentShaderSource = ENGINE_SHADERS "/axis_fragment.fs";
 const char *axesGeometryShaderSource = ENGINE_SHADERS "/axis_geometry.gs";
 
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
-float deltaTime{ 0.0f };
-float previousTime{ 0.0f };
 const float lightRotationRadius = 50.0f;
 
 bool renderAxes = true;
@@ -234,15 +233,15 @@ int main(int argc, const char *argv[])
     // Events
     {
         mainWindow.subscribeEventListener(
-            [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
+            [&](KeyboardInput input, KeyboardInput releasedKeys) {
                 if (releasedKeys.CtrlLeft)
                     renderAxes = !renderAxes;
                 if (releasedKeys.CtrlRight)
                     renderOnlyGrid = !renderOnlyGrid;
             });
         mainWindow.subscribeEventListener(
-            [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
-                camPtr->processKeyboard(input, deltaTime);
+            [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys) {
+                camPtr->processKeyboard(input, TimeManager::instance()->getDeltaTime());
             });
         mainWindow.subscribeEventListener(
             [camPtr = camera, &mainWindow](KeyboardInput input,
@@ -583,12 +582,12 @@ int main(int argc, const char *argv[])
         }
         while (!mainWindow.shouldClose())
         {
-            // TODO: move time management to a separate class
-            const float time = glfwGetTime();
-            deltaTime = time - previousTime;
-            previousTime = time;
+            TimeManager::instance()->update();
 
-            mainWindow.update(deltaTime);
+            const float time = TimeManager::instance()->getTime();
+            const float deltaTime = TimeManager::instance()->getDeltaTime();
+
+            mainWindow.update();
 
             const glm::mat4 projection = glm::perspective(glm::radians(camera->zoom()),
                                                           (float)windowWidth / windowHeight, 0.1f,

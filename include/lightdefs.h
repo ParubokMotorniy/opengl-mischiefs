@@ -5,6 +5,19 @@
 #include "transformmanager.h"
 #include "types.h"
 
+// TODO:
+//  1. The light manager must take care of computing the shadowmaps somehow
+//  2. Add a separarate shader class for shadow mapping
+//  3. Split other shaders into shadowed and unshadowed -> run them correspondingly with the proper
+//  frame buffer bound
+//     I may need a ganeralization of framebuffer. Also some kind of manager. That does the binding -> rather a pass manager
+//  4. Extend the lightmanager to support binding of shadowmaps (cubemaps) to the lightdefs and
+//  propagation fo thsoe through the uniform buffers.
+ 
+// TODO: random ideas
+//  1. Recompute shadow maps only iff any objects have moved (optionally, in the effect area of the
+//  light). Or the light has moved itself.
+
 struct DirectionalLight
 {
     glm::vec3 ambient = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -18,6 +31,8 @@ struct DirectionalLight
 
     glm::vec3 dummyDirection;
     float pad1;
+
+    GLuint64 shadowTextureHandle = 0;
 
     void setTransform(TransformIdentifier tId)
     {
@@ -80,7 +95,7 @@ struct SpotLight
         dummyPosition = TransformManager::instance()->getTransform(tId)->position();
     }
 
-    //allows to set the intrinsic values of the light with intuitive degrees
+    // allows to set the intrinsic values of the light with intuitive degrees
     void computeIntrinsics(float inCutOffDeg, float outCutOffDeg)
     {
         const auto inCutOffRad = glm::radians(inCutOffDeg);
@@ -115,7 +130,7 @@ struct TexturedSpotLight
 
     GLuint64 textureIdx = 0;
 
-    //allows to set the intrinsic values of the light with intuitive degrees
+    // allows to set the intrinsic values of the light with intuitive degrees
     void computeIntrinsics(float inCutOffDeg, float outCutOffDeg, TransformIdentifier tId)
     {
         const auto inCutOffRad = glm::radians(inCutOffDeg);
@@ -129,10 +144,9 @@ struct TexturedSpotLight
 
     void setTransform(TransformIdentifier tId)
     {
-        const Transform *t = TransformManager::instance()->getTransform(tId); 
+        const Transform *t = TransformManager::instance()->getTransform(tId);
 
-        glm::vec3 front = t->rotation()
-                          * glm::vec4(0.0, 0.0, 1.0f, 1.0f);
+        glm::vec3 front = t->rotation() * glm::vec4(0.0, 0.0, 1.0f, 1.0f);
         glm::vec3 right = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
         glm::vec3 up = glm::normalize(glm::cross(right, front));
 

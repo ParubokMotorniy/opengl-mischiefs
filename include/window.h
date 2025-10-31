@@ -48,7 +48,7 @@ struct KeyboardInput
 class Window
 {
 public:
-    using KeyboardEventsListener = std::function<void(KeyboardInput, KeyboardInput, float)>; // pressed now; released, deltaTime
+    using KeyboardEventsListener = std::function<void(KeyboardInput, KeyboardInput)>; // pressed now; released
     using FrameBufferResizeEventsListener = std::function<void(int, int)>;
 
     struct MouseMotionDescriptor
@@ -68,7 +68,7 @@ public:
     Window(size_t widthX, size_t widthY, const char *windowName);
     bool shouldClose() const;
     GLFWwindow *getRawWindow() const;
-    virtual void update(float deltaTime);
+    virtual void update();
     void hideCursor(bool ifHide) const;
     void setMouseAccuracy(bool accurate) const;
 

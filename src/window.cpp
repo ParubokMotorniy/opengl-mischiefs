@@ -87,25 +87,25 @@ void Window::processInput()
 bool Window::shouldClose() const { return glfwWindowShouldClose(_window); }
 GLFWwindow *Window::getRawWindow() const { return _window; }
 
-void Window::update(float deltaTime)
+void Window::update()
 {
     processInput();
 
     // TODO: remove repeated flag checking. It's slow.
     const auto visitor = overloaded{
-        [this, deltaTime](const KeyboardEventsListener &listener) -> void
-        { listener(_lastInput, _releasedKeys, deltaTime); },
-        [this, deltaTime](const FrameBufferResizeEventsListener &listener) -> void
+        [this](const KeyboardEventsListener &listener) -> void
+        { listener(_lastInput, _releasedKeys); },
+        [this](const FrameBufferResizeEventsListener &listener) -> void
         { 
             if(!_dirtyViewportDelta)
                 return;
             listener(_lastViewportWidth, _lastViewportHeight); },
-        [this, deltaTime](const MouseMotionEventsListener &listener) -> void
+        [this](const MouseMotionEventsListener &listener) -> void
         { 
             if(!_dirtyMouseDelta)
                 return;
             listener(_lastInput, {_lastMouseDeltaX, _lastMouseDeltaY}); },
-        [this, deltaTime](const ScrollEventsListener &listener)
+        [this](const ScrollEventsListener &listener)
         {
             if (!_dirtyScrollDelta)
                 return;

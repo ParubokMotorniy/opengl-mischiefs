@@ -21,6 +21,7 @@ struct DirectionalLight
     vec3 specular;
 
     vec3 direction;
+    uvec2 shadowTextureHandle;
 };
 
 struct PointLight
