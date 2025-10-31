@@ -13,7 +13,6 @@
 #include "instancedshader.h"
 #include "instancer.h"
 #include "lightmanager.h"
-#include "timemanager.h"
 #include "lightvisualizationshader.h"
 #include "materialmanager.h"
 #include "meshmanager.h"
@@ -22,9 +21,11 @@
 #include "objectmanager.h"
 #include "quaternioncamera.h"
 #include "skyboxshader.h"
+#include "standardpass.h"
 #include "texture.h"
 #include "texturemanager.h"
 #include "texturemanager3d.h"
+#include "timemanager.h"
 #include "transformmanager.h"
 #include "window.h"
 #include "worldplaneshader.h"
@@ -232,13 +233,12 @@ int main(int argc, const char *argv[])
 
     // Events
     {
-        mainWindow.subscribeEventListener(
-            [&](KeyboardInput input, KeyboardInput releasedKeys) {
-                if (releasedKeys.CtrlLeft)
-                    renderAxes = !renderAxes;
-                if (releasedKeys.CtrlRight)
-                    renderOnlyGrid = !renderOnlyGrid;
-            });
+        mainWindow.subscribeEventListener([&](KeyboardInput input, KeyboardInput releasedKeys) {
+            if (releasedKeys.CtrlLeft)
+                renderAxes = !renderAxes;
+            if (releasedKeys.CtrlRight)
+                renderOnlyGrid = !renderOnlyGrid;
+        });
         mainWindow.subscribeEventListener(
             [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys) {
                 camPtr->processKeyboard(input, TimeManager::instance()->getDeltaTime());
@@ -271,10 +271,6 @@ int main(int argc, const char *argv[])
         InstancedShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
         shaderProgramMain.initializeShaderProgram();
 
-        GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
-                                               axesGeometryShaderSource, dummyAxesMesh };
-        worldAxesShader.initializeShaderProgram();
-
         WorldPlaneShader worldPlaneShader{ simpleCubeMesh, checkerboardTexture };
         worldPlaneShader.initializeShaderProgram();
 
@@ -284,6 +280,14 @@ int main(int argc, const char *argv[])
         SkyboxShader mainSkybox{ skyboxMesh, simpleSkybox };
         mainSkybox.initializeShaderProgram();
 
+        GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
+                                               axesGeometryShaderSource, dummyAxesMesh };
+        worldAxesShader.initializeShaderProgram();
+
+        StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
+                                             &lightVisualizationShader, &mainSkybox };
+        _standardRenderingPass.setCamera(camera);
+        _standardRenderingPass.setWindow(&mainWindow);
         // lights
 
         GameObject &pointLight1 = ObjectManager::instance()->getObject(
@@ -511,7 +515,8 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
-            t->setPosition(glm::vec3(std::sin(k) * 5.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
+            t->setPosition(
+                glm::vec3(std::sin(k) * 5.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
             t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
@@ -589,71 +594,23 @@ int main(int argc, const char *argv[])
 
             mainWindow.update();
 
+            _standardRenderingPass.runPass();
+
             const glm::mat4 projection = glm::perspective(glm::radians(camera->zoom()),
                                                           (float)windowWidth / windowHeight, 0.1f,
                                                           1000.0f);
             const glm::mat4 view = camera->getViewMatrix();
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            {
-                shaderProgramMain.use();
-
-                shaderProgramMain.setMatrix4("view", view);
-                shaderProgramMain.setMatrix4("projection", projection);
-
-                shaderProgramMain.setVec3("viewPos", camera->position());
-
-                shaderProgramMain.runShader();
-            }
-
-            {
-                worldPlaneShader.use();
-
-                if (renderOnlyGrid)
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-                worldPlaneShader.setMatrix4("view", view);
-                worldPlaneShader.setMatrix4("projection", projection);
-
-                worldPlaneShader.setFloat("checkerUnitWidth", 5.0f);
-                worldPlaneShader.setFloat("checkerUnitHeight", 5.0f);
-
-                worldPlaneShader.runShader();
-
-                if (renderOnlyGrid)
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }
-            {
-                lightVisualizationShader.use();
-                lightVisualizationShader.setMatrix4("view", view);
-                lightVisualizationShader.setMatrix4("projection", projection);
-
-                lightVisualizationShader.runShader();
-            }
-
             if (renderAxes)
             {
                 glDisable(GL_DEPTH_TEST);
                 worldAxesShader.use();
 
-                worldAxesShader.setFloat("axisLength", 0.25l);
-                worldAxesShader.setFloat("thickness", 0.002l);
                 worldAxesShader.setMatrix4("viewMat", view);
                 worldAxesShader.setMatrix4("projectionMat", projection);
 
                 worldAxesShader.runShader();
 
                 glEnable(GL_DEPTH_TEST);
-            }
-
-            {
-                glDepthFunc(GL_LEQUAL);
-                mainSkybox.use();
-                mainSkybox.setMatrix4("view", glm::mat4(glm::mat3(view)));
-                mainSkybox.setMatrix4("projection", projection);
-                mainSkybox.runShader();
-                glDepthFunc(GL_LESS);
             }
 
             {

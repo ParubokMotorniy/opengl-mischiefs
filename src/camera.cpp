@@ -14,7 +14,7 @@ Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch, float c
     updateCameraVectors();
 }
 
-glm::mat4 Camera::getViewMatrix() { return glm::lookAt(_position, _position + _front, _up); }
+glm::mat4 Camera::getViewMatrix() const { return glm::lookAt(_position, _position + _front, _up); }
 
 void Camera::lookAt(const glm::vec3 &target)
 {
@@ -99,9 +99,9 @@ void Camera::processMouseScroll(float yoffset)
         _zoom = 45.0f;
 }
 
-float Camera::zoom() { return _zoom; }
+float Camera::zoom() const { return _zoom; }
 
-glm::vec3 Camera::position() { return _position; }
+glm::vec3 Camera::position() const { return _position; }
 
 void Camera::updateCameraVectors()
 {

@@ -24,6 +24,8 @@ void WorldPlaneShader::runShader()
             setInt("planeTexture", bindPoint);
             setMatrix4("model",
                        glm::scale(glm::identity<glm::mat4>(), glm::vec3(500.0f, 0.0f, 500.0f)));
+            setFloat("checkerUnitWidth", 5.0f);
+            setFloat("checkerUnitHeight", 5.0f);
 
             glDrawElements(GL_TRIANGLES, planeMesh->numIndices(), GL_UNSIGNED_INT, 0);
             TextureManager::instance()->unbindTexture(_planeTexture);

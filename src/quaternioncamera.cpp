@@ -12,7 +12,7 @@ QuaternionCamera::QuaternionCamera(glm::vec3 position,
     updateCameraVectors();
 }
 
-glm::mat4 QuaternionCamera::getViewMatrix()
+glm::mat4 QuaternionCamera::getViewMatrix() const
 {
     const auto roll = getRoll();
 
@@ -64,7 +64,7 @@ void QuaternionCamera::processMouseMovement(float xoffset, float yoffset, GLbool
     updateCameraVectors();
 }
 
-std::optional<glm::quat> QuaternionCamera::getRoll()
+std::optional<glm::quat> QuaternionCamera::getRoll() const
 {
     if (_previousInput.PeekLeft == 1 ^ _previousInput.PeekRight == 1)
     {

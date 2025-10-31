@@ -71,6 +71,7 @@ public:
     virtual void update();
     void hideCursor(bool ifHide) const;
     void setMouseAccuracy(bool accurate) const;
+    std::pair<size_t, size_t> currentWindowDimensions() const noexcept;
 
     template <typename ListenerType>
     void subscribeEventListener(ListenerType &&listener)

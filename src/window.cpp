@@ -93,24 +93,25 @@ void Window::update()
 
     // TODO: remove repeated flag checking. It's slow.
     const auto visitor = overloaded{
-        [this](const KeyboardEventsListener &listener) -> void
-        { listener(_lastInput, _releasedKeys); },
-        [this](const FrameBufferResizeEventsListener &listener) -> void
-        { 
-            if(!_dirtyViewportDelta)
+        [this](const KeyboardEventsListener &listener) -> void {
+            listener(_lastInput, _releasedKeys);
+        },
+        [this](const FrameBufferResizeEventsListener &listener) -> void {
+            if (!_dirtyViewportDelta)
                 return;
-            listener(_lastViewportWidth, _lastViewportHeight); },
-        [this](const MouseMotionEventsListener &listener) -> void
-        { 
-            if(!_dirtyMouseDelta)
+            listener(_lastViewportWidth, _lastViewportHeight);
+        },
+        [this](const MouseMotionEventsListener &listener) -> void {
+            if (!_dirtyMouseDelta)
                 return;
-            listener(_lastInput, {_lastMouseDeltaX, _lastMouseDeltaY}); },
-        [this](const ScrollEventsListener &listener)
-        {
+            listener(_lastInput, { _lastMouseDeltaX, _lastMouseDeltaY });
+        },
+        [this](const ScrollEventsListener &listener) {
             if (!_dirtyScrollDelta)
                 return;
-            listener(_lastInput, {_lastScrollDeltaX, _lastScrollDeltaY});
-        }};
+            listener(_lastInput, { _lastScrollDeltaX, _lastScrollDeltaY });
+        }
+    };
 
     for (auto &listener : _eventListeners)
     {
@@ -134,6 +135,14 @@ void Window::setMouseAccuracy(bool accurate) const
         return;
 
     glfwSetInputMode(_window, GLFW_RAW_MOUSE_MOTION, accurate ? GLFW_TRUE : GLFW_FALSE);
+}
+
+std::pair<size_t, size_t> Window::currentWindowDimensions() const noexcept
+{
+    int width, height;
+    glfwGetWindowSize(_window, &width, &height);
+
+    return {width, height};
 }
 
 Window::Window(size_t widthX, size_t heightY, const char *windowName)
