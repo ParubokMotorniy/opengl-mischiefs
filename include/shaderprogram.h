@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <optional>
 
 #include "meshmanager.h"
 #include "objectmanager.h"
@@ -24,6 +25,10 @@ public:
     void initializeShaderProgram();
 
     void use() const;
+    GLuint programId() const;
+
+    void setShaderProgramOverride(GLuint programId);
+    void removeShaderProgramOverride();
 
     void setBool(const std::string &name, bool value) const;
 
@@ -73,4 +78,5 @@ protected:
 
 private:
     unsigned int _id = 0;
+    std::optional<GLuint> _shaderOverride = std::nullopt;
 };

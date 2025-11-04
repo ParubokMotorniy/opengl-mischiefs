@@ -19,33 +19,39 @@ void ShaderProgram::initializeShaderProgram()
     deleteShaders();
 }
 
-ShaderProgram::~ShaderProgram() { glDeleteProgram(_id); }
+ShaderProgram::~ShaderProgram() { glDeleteProgram(_id); } 
 
-void ShaderProgram::use() const { glUseProgram(_id); }
+void ShaderProgram::use() const { glUseProgram(programId()); }
+
+GLuint ShaderProgram::programId() const { return _shaderOverride.value_or(_id); }
+
+void ShaderProgram::setShaderProgramOverride(GLuint programId) { _shaderOverride = programId; }
+
+void ShaderProgram::removeShaderProgramOverride() { _shaderOverride = std::nullopt; }
 
 void ShaderProgram::setBool(const std::string &name, bool value) const
 {
-    glUniform1i(glGetUniformLocation(_id, name.c_str()), (int)value);
+    glUniform1i(glGetUniformLocation(programId(), name.c_str()), (int)value);
 }
 void ShaderProgram::setInt(const std::string &name, int value) const
 {
-    glUniform1i(glGetUniformLocation(_id, name.c_str()), value);
+    glUniform1i(glGetUniformLocation(programId(), name.c_str()), value);
 }
 void ShaderProgram::setFloat(const std::string &name, float value) const
 {
-    glUniform1f(glGetUniformLocation(_id, name.c_str()), value);
+    glUniform1f(glGetUniformLocation(programId(), name.c_str()), value);
 }
 void ShaderProgram::setMatrix4(const std::string &name, const glm::mat4 &mat)
 {
-    glUniformMatrix4fv(glGetUniformLocation(_id, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+    glUniformMatrix4fv(glGetUniformLocation(programId(), name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
 }
 void ShaderProgram::setVec3(const std::string &name, const glm::vec3 &vec)
 {
-    glUniform3f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z);
+    glUniform3f(glGetUniformLocation(programId(), name.c_str()), vec.x, vec.y, vec.z);
 }
 void ShaderProgram::setVec4(const std::string &name, const glm::vec4 &vec)
 {
-    glUniform4f(glGetUniformLocation(_id, name.c_str()), vec.x, vec.y, vec.z, vec.w);
+    glUniform4f(glGetUniformLocation(programId(), name.c_str()), vec.x, vec.y, vec.z, vec.w);
 }
 
 void ShaderProgram::addObject(GameObjectIdentifier gId) { _orderedShaderObjects.insert(gId); }

@@ -158,6 +158,10 @@ Window::Window(size_t widthX, size_t heightY, const char *windowName)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+#ifndef NDEBUG
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+#endif
+
     _window = glfwCreateWindow(widthX, heightY, windowName, NULL, NULL);
     if (_window == NULL)
     {
@@ -166,8 +170,8 @@ Window::Window(size_t widthX, size_t heightY, const char *windowName)
         glfwTerminate();
         return;
     }
-
     glfwMakeContextCurrent(_window);
+
     glfwSetFramebufferSizeCallback(_window, framebufferResizeCallback);
     glfwSetCursorPosCallback(_window, mouseCallback);
     glfwSetScrollCallback(_window, scrollCallback);

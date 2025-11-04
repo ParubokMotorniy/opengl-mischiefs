@@ -4,12 +4,14 @@
 #include "instancedshader.h"
 #include "lightmanager.h"
 #include "lightvisualizationshader.h"
-#include "skyboxshader.h"
-#include "worldplaneshader.h"
 
 ShadowPass::ShadowPass(InstancedShader *ins, LightVisualizationShader *lightVis)
-    : _shaderProgramMain(ins), _lightVisualizationShader(lightVis)
+    : _shaderProgramMain(ins),
+      _lightVisualizationShader(lightVis),
+      _passThroughOverride(ENGINE_SHADERS "/depth_pass_through.vs",
+                           ENGINE_SHADERS "/depth_pass_through.fs")
 {
+    _passThroughOverride.initializeShaderProgram();
 }
 
 void ShadowPass::runPass()
@@ -32,6 +34,9 @@ void ShadowPass::runPass()
         const glm::mat4 &view = l.dummyViewMatrix;
         const glm::vec3 &pos = l.dummyPosition;
 
+        _shaderProgramMain->setShaderProgramOverride(_passThroughOverride);
+        _lightVisualizationShader->setShaderProgramOverride(_passThroughOverride);
+
         glClear(GL_DEPTH_BUFFER_BIT);
 
         {
@@ -48,6 +53,9 @@ void ShadowPass::runPass()
             _lightVisualizationShader->setMatrix4("projection", projection);
             _lightVisualizationShader->runShader();
         }
+
+        _shaderProgramMain->removeShaderProgramOverride();
+        _lightVisualizationShader->removeShaderProgramOverride();
 
         FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
     }

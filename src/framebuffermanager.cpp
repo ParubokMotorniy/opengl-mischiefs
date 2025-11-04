@@ -7,7 +7,6 @@ void FrameBufferManager::bindFrameBuffer(GLenum target, GLuint frameBufferId, si
 {
     glViewport(0, 0, viewPortWidth, viewPortHeight);
     glBindFramebuffer(target, frameBufferId);
-    assert(glGetError() == GL_NO_ERROR);
 }
 
 void FrameBufferManager::bindDepthTexture(GLenum target, GLenum textureType, GLuint texIdx) const

@@ -54,6 +54,91 @@ Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 const float lightRotationRadius = 50.0f;
 
 bool renderAxes = true;
+
+#ifndef NDEBUG
+void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                            const GLchar *message, const void *userParam)
+{
+    // if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
+    //     return;
+
+    std::cerr << "---------------\n";
+    std::cerr << "OpenGL Debug Message (" << id << "): " << message << "\n";
+
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API:
+        std::cerr << "Source: API";
+        break;
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        std::cerr << "Source: Window System";
+        break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        std::cerr << "Source: Shader Compiler";
+        break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        std::cerr << "Source: Third Party";
+        break;
+    case GL_DEBUG_SOURCE_APPLICATION:
+        std::cerr << "Source: Application";
+        break;
+    case GL_DEBUG_SOURCE_OTHER:
+        std::cerr << "Source: Other";
+        break;
+    }
+    std::cerr << "\n";
+
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR:
+        std::cerr << "Type: Error";
+        break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        std::cerr << "Type: Deprecated Behaviour";
+        break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        std::cerr << "Type: Undefined Behaviour";
+        break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+        std::cerr << "Type: Portability";
+        break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        std::cerr << "Type: Performance";
+        break;
+    case GL_DEBUG_TYPE_MARKER:
+        std::cerr << "Type: Marker";
+        break;
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+        std::cerr << "Type: Push Group";
+        break;
+    case GL_DEBUG_TYPE_POP_GROUP:
+        std::cerr << "Type: Pop Group";
+        break;
+    case GL_DEBUG_TYPE_OTHER:
+        std::cerr << "Type: Other";
+        break;
+    }
+    std::cerr << "\n";
+
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH:
+        std::cerr << "Severity: high";
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        std::cerr << "Severity: medium";
+        break;
+    case GL_DEBUG_SEVERITY_LOW:
+        std::cerr << "Severity: low";
+        break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        std::cerr << "Severity: notification";
+        break;
+    }
+    std::cerr << "\n\n";
+}
+#endif
+
 } // namespace
 
 int main(int argc, const char *argv[])
@@ -72,6 +157,18 @@ int main(int argc, const char *argv[])
         std::cerr << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+
+#ifndef NDEBUG
+    int flags;
+    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+    {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(glDebugOutput, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    }
+#endif
 
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -255,7 +352,7 @@ int main(int argc, const char *argv[])
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
 
-        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader};
+        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader };
 
         // Events
         {
@@ -359,8 +456,8 @@ int main(int argc, const char *argv[])
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
                 lightStruct->ambient = glm::vec3(0.012f, 0.151f, 0.039f);
-                lightStruct->diffuse = glm::vec3(0.229f, 0.258f, 0.286f);
-                lightStruct->specular = glm::vec3(0.175f, 0.112f, 0.032f);
+                lightStruct->diffuse = glm::vec3(0.029f, 0.158f, 0.086f);
+                lightStruct->specular = glm::vec3(0.075f, 0.012f, 0.02f);
 
                 const auto [bufId,
                             texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
@@ -400,7 +497,7 @@ int main(int argc, const char *argv[])
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
                 lightStruct->ambient = glm::vec3(0.148f, 0.033f, 0.081f);
-                lightStruct->diffuse = glm::vec3(0.148f, 0.237f, 0.181f);
+                lightStruct->diffuse = glm::vec3(0.148f, 0.037f, 0.081f);
                 lightStruct->specular = glm::vec3(0.035f, 0.055f, 0.012f);
                 const auto [bufId,
                             texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
@@ -705,6 +802,7 @@ int main(int argc, const char *argv[])
 
                 shaderProgramMain.updateInstancedBuffer(objectsWithUpdatedTransforms);
 
+                assert(glGetError() == GL_NO_ERROR);
                 glfwSwapBuffers(mainWindow.getRawWindow());
                 glfwPollEvents();
             }

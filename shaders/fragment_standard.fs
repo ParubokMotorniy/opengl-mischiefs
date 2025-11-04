@@ -94,7 +94,7 @@ layout(binding = 1, std140) uniform DirectionalLights
     DirectionalLight dirLights[NUM_DIRECTIONAL];
 };
 
-#define NUM_POINT 16
+#define NUM_POINT 8
 layout(binding = 2, std140) uniform PointLights { PointLight pointLights[NUM_POINT]; };
 
 #define NUM_SPOT 8
@@ -174,7 +174,7 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewD
                                   / (light.attenuationConstantTerm
                                      + light.attenuationLinearTerm * distance
                                      + light.attenuationQuadraticTerm * (distance * distance)),
-                              0.0, 1.0f);
+                              0.0, 1.0);
     // combination
     vec3 ambient = light.ambient * vec3(diffuseColor) * attenuation;
     vec3 diffuse = light.diffuse * diff * vec3(diffuseColor) * attenuation;
@@ -199,7 +199,7 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir
     float distance = length(light.position - fragPos);
     float attenuation = clamp(1.0
                         / (light.attenuationConstantTerm + light.attenuationLinearTerm * distance
-                           + light.attenuationQuadraticTerm * (distance * distance)), 0.0f, 1.0f);
+                           + light.attenuationQuadraticTerm * (distance * distance)), 0.0f, 1.0);
     // combination
     vec3 ambient = light.ambient * vec3(diffuseColor);
     vec3 diffuse = light.diffuse * diff * vec3(diffuseColor);

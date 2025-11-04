@@ -2,6 +2,7 @@
 
 #include "camera.h"
 #include "framepass.h"
+#include "passthroughshader.h"
 #include "window.h"
 
 class InstancedShader;
@@ -18,6 +19,6 @@ public:
 private:
     // TODO: ideally, these shouldn't be set by name from constructor
     InstancedShader *_shaderProgramMain = nullptr;
-
     LightVisualizationShader *_lightVisualizationShader = nullptr;
+    PassThroughShader _passThroughOverride{ nullptr, nullptr };
 };

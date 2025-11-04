@@ -181,7 +181,7 @@ constexpr size_t getMaxLightsForLightType(ComponentType lType)
     case ComponentType::LIGHT_SPOT:
         return 8;
     case ComponentType::LIGHT_POINT:
-        return 16;
+        return 8;
     case ComponentType::LIGHT_DIRECTIONAL:
         return 8;
     case ComponentType::LIGHT_TEXTURED_SPOT:
