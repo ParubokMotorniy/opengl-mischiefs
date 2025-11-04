@@ -74,7 +74,9 @@ public:
                     continue;
 
                 TextureManager::instance()->allocateTexture(tId);
-
+#if ENGINE_DISABLE_BINDLESS_TEXTURES
+                texturesToHandles.emplace(std::make_pair(tId, tId));
+#else
                 const TextureHandle texHandle = glGetTextureHandleARB(
                     *TextureManager::instance()->getTexture(tId));
                 assert(texHandle != 0);
@@ -82,6 +84,7 @@ public:
                 texturesToHandles.emplace(std::make_pair(tId, texHandle));
 
                 glMakeTextureHandleResidentARB(texHandle);
+#endif
             }
         });
 
@@ -99,7 +102,6 @@ public:
             handleToIndex.emplace(std::make_pair(handle, m));
         }
 
-        // TODO: manage destruction and deallocation
         glCreateBuffers(1, &textureBufferIdx);
         glNamedBufferStorage(textureBufferIdx, uniformHandles.size() * sizeof(TextureHandle),
                              (const void *)uniformHandles.data(), GL_DYNAMIC_STORAGE_BIT);

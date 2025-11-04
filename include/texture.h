@@ -3,6 +3,7 @@
 #include "glad/glad.h"
 #include "stb_image.h"
 
+#include <array>
 #include <cstdint>
 #include <string>
 

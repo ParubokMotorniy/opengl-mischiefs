@@ -14,7 +14,15 @@ std::pair<std::string, TextureIdentifier> TextureManager::registerTexture(const 
     return std::make_pair(rName, id);
 }
 
-TextureManager::TextureManager() { std::memset(_boundTextures, 0, MAX_TEXTURES); }
+TextureManager::TextureManager()
+{
+    std::memset(_boundTextures, 0, MAX_TEXTURES);
+
+#ifndef NDEBUG
+    _debugMagenta = registerTexture(ENGINE_TEXTURES "/debug_magenta.jpg", "debug_magenta_tex");
+    allocateTexture(_debugMagenta);
+#endif
+}
 
 TextureIdentifier TextureManager::registerTexture(const char *textureSource,
                                                   const std::string &texName)
@@ -71,19 +79,6 @@ int TextureManager::bindTexture(TextureIdentifier id)
     assert(false); // to catch cases in debug when the engine can't support more shaders
 
     return -1;
-}
-
-std::tuple<int, int, int> TextureManager::bindMaterial(const BasicMaterial &mat)
-{
-    return { bindTexture(mat.diffTextureName), bindTexture(mat.specTextureName),
-             bindTexture(mat.emissionTextureName) };
-}
-
-void TextureManager::allocateMaterial(const BasicMaterial &mat)
-{
-    allocateTexture(mat.diffTextureName);
-    allocateTexture(mat.specTextureName);
-    allocateTexture(mat.emissionTextureName);
 }
 
 void TextureManager::unbindTexture(TextureIdentifier id)
@@ -160,10 +155,16 @@ void TextureManager::cleanUpGracefully()
 }
 
 Texture2D *TextureManager::getTexture(TextureIdentifier tId)
-{ 
+{
     const auto tPtr = _textures.find(tId);
-    if(tPtr == _textures.end())
+    if (tPtr == _textures.end())
+    {
+#ifndef NDEBUG
+        return &_textures.find(_debugMagenta)->second.componentData;
+#else
         return nullptr;
+#endif
+    }
 
     return &tPtr->second.componentData;
 }

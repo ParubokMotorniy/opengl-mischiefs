@@ -6,14 +6,17 @@
 glm::mat4 Transform::computeModelMatrix() const
 {
     glm::mat4 modelM = glm::identity<glm::mat4>();
+
     glm::mat4 scaleMat = { { _scale.x, 0.0f, 0.0f, 0.0f },
                            { 0.0f, _scale.y, 0.0f, 0.0f },
                            { 0.0f, 0.0f, _scale.z, 0.0f },
                            { 0.0f, 0.0f, 0.0f, 1.0f } };
+
     glm::mat4 transMat = { { 1.0f, 0.0f, 0.0f, 0.0f },
                            { 0.0f, 1.0f, 0.0f, 0.0f },
                            { 0.0f, 0.0f, 1.0f, 0.0f },
                            { _position.x, _position.y, _position.z, 1.0f } };
+
     modelM = transMat * _rotation * scaleMat * modelM;
 
     return modelM;
@@ -53,9 +56,9 @@ void Transform::setRotation(const glm::mat4 &newRotation)
     _dirty = true;
 }
 
-void Transform::propagateTransformUpdate(const glm::vec3 &parentDeltaScale,
-                                         const glm::vec3 &parentDeltaPos,
-                                         const glm::mat4 &parentDeltaRot)
+void Transform::propagateTransformUpdate(
+    const glm::vec3 &parentDeltaScale, const glm::vec3 &parentDeltaPos,
+    const glm::mat4 &parentDeltaRot, std::unordered_set<GameObjectIdentifier> &updatedTransforms)
 {
     const glm::vec3 effectiveDeltaScale = parentDeltaScale
                                           * (_dirty ? (_newScale / _scale)
@@ -71,6 +74,9 @@ void Transform::propagateTransformUpdate(const glm::vec3 &parentDeltaScale,
     effectiveDeltaRotation[3][3] = 1.0f;
     normalizeMatrix(effectiveDeltaRotation);
 
+    if (_dirty)
+        updatedTransforms.insert(_parentId);
+
     _dirty = false;
 
     _scale = effectiveDeltaScale * _scale;
@@ -79,12 +85,13 @@ void Transform::propagateTransformUpdate(const glm::vec3 &parentDeltaScale,
     normalizeMatrix(_rotation);
 
     std::ranges::for_each(TransformManager::instance()->getChildTransforms(_parentId),
-                          [=](TransformIdentifier tId) {
+                          [&](TransformIdentifier tId) {
                               TransformManager::instance()
                                   ->getTransform(tId)
                                   ->propagateTransformUpdate(effectiveDeltaScale,
                                                              effectiveDeltaPosition,
-                                                             effectiveDeltaRotation);
+                                                             effectiveDeltaRotation,
+                                                             updatedTransforms);
                           });
 }
 
@@ -112,7 +119,7 @@ TransformIdentifier TransformManager::registerNewTransform(GameObjectIdentifier 
 Transform *TransformManager::getTransform(TransformIdentifier tId)
 {
     auto t = _transforms.find(tId);
-    return t == _transforms.end() ? nullptr : (&t->second);
+    return t == _transforms.end() ? nullptr : (&(t->second));
 }
 
 std::vector<TransformIdentifier> TransformManager::getChildTransforms(GameObjectIdentifier parentId)
@@ -130,16 +137,20 @@ std::vector<TransformIdentifier> TransformManager::getChildTransforms(GameObject
     return childrenTransforms;
 }
 
-void TransformManager::flushUpdates()
+std::unordered_set<GameObjectIdentifier> TransformManager::flushUpdates()
 {
-    std::ranges::for_each(_transforms, [this](const auto &pair) {
+    std::unordered_set<GameObjectIdentifier> updatedTransforms;
+
+    std::ranges::for_each(_transforms, [this, &updatedTransforms](const auto &pair) {
         Transform *t = getTransform(pair.first);
         if (t->_dirty)
         {
             t->propagateTransformUpdate(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                                        glm::identity<glm::mat4>());
+                                        glm::identity<glm::mat4>(), updatedTransforms);
         }
     });
+
+    return updatedTransforms;
 }
 
 TransformManager::TransformManager() = default;

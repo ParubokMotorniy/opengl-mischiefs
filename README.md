@@ -1,11 +1,52 @@
 ### opengl-mischiefs engine
 
+**Name/Surname**:      
+Oles Yarish
+
 **API: OpenGL**
+
+**Late days**: 0/7
+
+## How to build
+
+```
+mkdir build && cd build
+cmake ..
+cmake --build . 
+```
 
 # In-engine How-to:
 + Navigation: W-A-S-D=planar motion. Space=Up. LShift=Down. Q=Peek left. E=Peek right.
 + Zoom: mouse scroll.
 + Hit LeftCtrl to toggle axes
++ Hit RightCtrl to toggle world plane
+
+## Homework 3 report:
+
+### Tasks [1;2]
+
+Multiple light sources of each kind are possible. They are passed to shaders, which implement standard Blinn-Phong lighting, through uniform buffers.    
+The light sources have their own shaders and are represented with pointy spheres (which visualize the directions of spot&directional lights).       
+In the scene there are two point ligths and two directional lights.     
+The effect of individual lights can be verified by commenting out the lightint application loops in `fragment_standard.fs`
+
+### Tasks [3]
+
+I tested my engine, besides the beloved Linux, on Windows machine with Intel (R) UHD 770 graphics (which does support bindless textures), compiled with MSVC 2022.  
+Both compilation and rendering succeeded.    
+
+I pray to all known gods the engine will compile with other versions of MSVC on different machines.
+
+
+### Extras
+1. Textured spotlight.          
+As demonstrated by the projected texture of Bill, the spotlights can have textures represent their diffuse color.  
+**Note:** the texturing only works with bindless textures. 
+
+2. Skybox support    
+The whole-new manager takes care of cubemaps now, and so skyboxes can be added to the scene. 
+   
+![extra-demo](./data/demo.png)
 
 ## Homework 2 report:     
 ### Tasks [1;2;3;4]:   

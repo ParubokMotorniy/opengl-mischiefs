@@ -32,6 +32,9 @@ GameObjectIdentifier ModelLoader::loadModel(std::string const &path, bool flipTe
         ObjectManager::instance()->addObject());
 
     processNode(scene->mRootNode, scene, path.substr(0, path.find_last_of('/')), loadedObject);
+    loadedObject.addComponent(
+        Component(ComponentType::TRANSFORM,
+                  TransformManager::instance()->registerNewTransform(loadedObject)));
 
     return loadedObject;
 }
@@ -54,7 +57,8 @@ GameObjectIdentifier ModelLoader::processNode(aiNode *node, const aiScene *scene
     }
 
     nodeObject.addComponent(
-        Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform(nodeObject)));
+        Component(ComponentType::TRANSFORM,
+                  TransformManager::instance()->registerNewTransform(nodeObject)));
     ObjectManager::instance()->getObject(parentObject).addChildObject(nodeObject);
 
     return nodeObject;
@@ -129,7 +133,8 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
     meshContainer.addComponent(Component(ComponentType::MESH, meshId));
     meshContainer.addComponent(Component(ComponentType::BASIC_MATERIAL, mi));
     meshContainer.addComponent(
-        Component(ComponentType::TRANSFORM, TransformManager::instance()->registerNewTransform(meshContainer)));
+        Component(ComponentType::TRANSFORM,
+                  TransformManager::instance()->registerNewTransform(meshContainer)));
     return meshContainer;
 }
 

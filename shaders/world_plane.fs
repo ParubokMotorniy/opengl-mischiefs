@@ -10,8 +10,8 @@ out vec4 fragColor;
 
 void main()
 {
-    float texXCoord =  mod(fragmentPos.x, checkerUnitWidth) / checkerUnitWidth;
-    float texZCoord =  mod(fragmentPos.z, checkerUnitHeight) / checkerUnitHeight;
+    float texXCoord = mod(fragmentPos.x, checkerUnitWidth) / checkerUnitWidth;
+    float texZCoord = mod(fragmentPos.z, checkerUnitHeight) / checkerUnitHeight;
 
     fragColor = texture(planeTexture, vec2(texXCoord, texZCoord));
 }

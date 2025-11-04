@@ -4,9 +4,10 @@ layout(location = 3) in mat4 modelMatrix;
 
 out VS_OUT
 {
-int vertexID;
-mat4 modelMat;
-} vsOut;
+    int vertexID;
+    mat4 modelMat;
+}
+vsOut;
 
 void main()
 {

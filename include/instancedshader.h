@@ -1,8 +1,10 @@
 #pragma once
 
 #include "shaderprogram.h"
+#include "instancer.h"
 
 #include <unordered_map>
+#include <unordered_set>
 
 class InstancedShader : public ShaderProgram
 {
@@ -13,10 +15,9 @@ public:
     void
     runTextureMapping();  // this computes the textures used by the objects and puts them into SSBO
     void runInstancing(); // this instances all the necessary data for the shader.
-                          // TODO: instanced buffers are currently bound to VAOs of meshes. Find a
-                          // workaround.
-                          // TODO: now for each transforma change the buffer has to be recomputed ->
-                          // ineffiecient
+
+    void updateInstancedBuffer(const std::unordered_set<GameObjectIdentifier> &bjsToUpdate);
+
     void runShader() override;
 
 protected:
@@ -24,11 +25,15 @@ protected:
     void deleteShaders() override;
 
 protected:
-    uint32_t _texturesSSBO;
+    uint32_t _texturesSSBO = 0;
     std::unordered_map<GameObjectIdentifier, std::array<int, 3>> _objectsTextureMappings;
 
     std::unordered_map<MeshIdentifier, size_t> _instancedMeshes;
     std::vector<GLuint> _instancedBufferIds;
+    const std::vector<GameObjectIdentifier> &getShaderObjectsAsVector();
+
+private:
+    std::vector<InstancedDataGenerator> getDataGenerators();
 
 private:
     const char *_vertexPath = nullptr;

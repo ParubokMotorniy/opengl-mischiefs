@@ -26,7 +26,10 @@ public:
     void deallocateMesh(MeshIdentifier id);
 
     void bindMesh(MeshIdentifier id);
+    void bindMeshInstanced(MeshIdentifier id);
     void unbindMesh();
+
+    void enableMeshInstancing(MeshIdentifier id);
 
     void cleanUpGracefully();
 
@@ -38,5 +41,5 @@ private:
 private:
     MeshIdentifier _identifiers = 0;
     std::unordered_map<MeshIdentifier, NamedMesh> _meshes;
-    uint32_t _boundMesh = 0;
+    MeshIdentifier _boundMesh = 0;
 };

@@ -3,9 +3,6 @@
 in vec4 outColor;
 out vec4 fragColor;
 
-//red - right, green - up, blue - forward
+// red - right, green - up, blue - forward
 
-void main()
-{
-    fragColor = outColor;
-}
+void main() { fragColor = outColor; }

@@ -72,5 +72,5 @@ protected:
     std::multiset<GameObjectIdentifier, MeshOrderer> _orderedShaderObjects;
 
 private:
-    unsigned int _id;
+    unsigned int _id = 0;
 };

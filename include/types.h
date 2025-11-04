@@ -1,16 +1,18 @@
 #pragma once
 
-#include <string>
 #include <cstdint>
+#include <string>
 #include <utility>
 
 using GameObjectIdentifier = uint64_t;
 using ComponentIdentifier = uint64_t;
 
 using TextureIdentifier = ComponentIdentifier;
+using TextureIdentifier3D = ComponentIdentifier;
 using MeshIdentifier = ComponentIdentifier;
 using MaterialIdentifier = ComponentIdentifier;
 using TransformIdentifier = ComponentIdentifier;
+using LightSourceIdentifier = ComponentIdentifier;
 
 constexpr ComponentIdentifier InvalidIdentifier = 0;
 
@@ -19,6 +21,10 @@ enum class ComponentType
     MESH,
     TRANSFORM,
     BASIC_MATERIAL,
+    LIGHT_POINT,
+    LIGHT_DIRECTIONAL,
+    LIGHT_SPOT,
+    LIGHT_TEXTURED_SPOT,
 };
 using Component = std::pair<ComponentType, ComponentIdentifier>;
 

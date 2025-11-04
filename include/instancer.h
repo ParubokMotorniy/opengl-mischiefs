@@ -8,9 +8,11 @@
 #include <glad/glad.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <functional>
 #include <numeric>
 #include <span>
+#include <stdlib.h>
 #include <vector>
 
 using InstancedDataGeneratorFunc = std::function<void(void *, GameObjectIdentifier)>;
@@ -30,6 +32,42 @@ class Instancer : public SystemSingleton<Instancer>
 public:
     friend class SystemSingleton<Instancer>;
 
+    void updateInstancedData(
+        const GLuint instancedElementBuffer, const std::vector<InstancedDataGenerator> &generators,
+        const std::vector<std::pair<GameObjectIdentifier, uint32_t>> &indicesOfUpdatedBuffers)
+    {
+        const size_t dataSizePerObject
+            = std::accumulate(generators.cbegin(), generators.cend(), (size_t)0,
+                              [](size_t rSum, const InstancedDataGenerator &gen) -> size_t {
+                                  return rSum + gen.dataByteSize;
+                              });
+
+#ifdef LINUX
+        void *buffer = std::aligned_alloc(16, dataSizePerObject);
+        const auto cleanUp = Utilities::ScopeGuard([buffer]() { std::free(buffer); });
+#endif
+
+#ifdef WINDOWS
+        void *buffer = _aligned_malloc(dataSizePerObject, 16);
+        const auto cleanUp = Utilities::ScopeGuard([buffer]() { _aligned_free(buffer); });
+#endif
+
+        glBindBuffer(GL_ARRAY_BUFFER, instancedElementBuffer);
+
+        for (const auto [gId, gIdx] : indicesOfUpdatedBuffers)
+        {
+            for (size_t g = 0, bytesAccumulated = 0; g < generators.size(); ++g)
+            {
+                generators[g].func((int8_t *)(buffer) + bytesAccumulated, gId);
+                bytesAccumulated += generators[g].dataByteSize;
+            }
+            //TODO: try implementing through buffer mapping
+            glBufferSubData(GL_ARRAY_BUFFER, gIdx * dataSizePerObject, dataSizePerObject, buffer);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
     // TODO: try to make use of compile-time polymorphism of the generators
     GLuint instanceData(
         const std::span<const GameObjectIdentifier, std::dynamic_extent> &instancedObjects,
@@ -42,8 +80,15 @@ public:
                               });
         const size_t totalBufferLength = instancedObjects.size() * dataSizePerObject;
 
+#ifdef LINUX
         void *buffer = std::aligned_alloc(16, totalBufferLength);
         const auto cleanUp = Utilities::ScopeGuard([buffer]() { std::free(buffer); });
+#endif
+
+#ifdef WINDOWS
+        void *buffer = _aligned_malloc(totalBufferLength, 16);
+        const auto cleanUp = Utilities::ScopeGuard([buffer]() { _aligned_free(buffer); });
+#endif
 
         size_t bytesAccumulated = 0;
         for (const GameObjectIdentifier id : instancedObjects)
@@ -60,7 +105,7 @@ public:
         glGenBuffers(1, &vertexBuffer);
 
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-        glBufferData(GL_ARRAY_BUFFER, totalBufferLength, buffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, totalBufferLength, buffer, GL_DYNAMIC_DRAW);
 
         size_t bytesMapped = 0;
         for (const InstancedDataGenerator &gen : generators)

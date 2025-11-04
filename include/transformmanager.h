@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <vector>
+#include <unordered_set>
 
 class TransformManager;
 
@@ -16,6 +17,7 @@ struct Transform
 {
     friend class TransformManager;
 
+public:
     glm::mat4 computeModelMatrix() const;
     glm::mat4 computeModelMatrixNoScale() const;
 
@@ -27,9 +29,45 @@ struct Transform
     void setPosition(const glm::vec3 &newPosition);
     void setRotation(const glm::mat4 &newRotation);
 
+    //TODO: these shouldn't be public
+    Transform(const Transform &other) = default;
+    Transform(Transform &&other) = default;
+
+    //this only copies the intrinsics of the transform. The parent Id is preserved.
+    Transform *operator=(const Transform &other)
+    {
+        _scale = other._scale;
+        _rotation = other._rotation;
+        _position = other._position;
+
+        _newScale = other._newScale;
+        _newRotation = other._newRotation;
+        _newPosition = other._newPosition;
+
+        _dirty = other._dirty;
+
+        return this;
+    }
+
+    //this only copies the intrinsics of the transform. The parent Id is preserved.
+    Transform *operator=(Transform &&other)
+    {
+        _scale = other._scale;
+        _rotation = other._rotation;
+        _position = other._position;
+
+        _newScale = other._newScale;
+        _newRotation = other._newRotation;
+        _newPosition = other._newPosition;
+
+        _dirty = other._dirty;
+
+        return this;
+    }
+
 private:
     void propagateTransformUpdate(const glm::vec3 &parentDeltaScale,
-                                  const glm::vec3 &parentDeltaPos, const glm::mat4 &parentDeltaRot);
+                                  const glm::vec3 &parentDeltaPos, const glm::mat4 &parentDeltaRot, std::unordered_set<GameObjectIdentifier> &updatedTransforms);
     void normalizeMatrix(glm::mat4 &target) const;
 
     explicit Transform(GameObjectIdentifier parent);
@@ -55,7 +93,7 @@ public:
     TransformIdentifier registerNewTransform(GameObjectIdentifier parentId);
     Transform *getTransform(TransformIdentifier tId);
     std::vector<TransformIdentifier> getChildTransforms(GameObjectIdentifier parentId);
-    void flushUpdates();
+    std::unordered_set<GameObjectIdentifier> flushUpdates();
 
 private:
     TransformManager();

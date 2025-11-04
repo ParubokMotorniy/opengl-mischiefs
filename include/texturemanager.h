@@ -10,7 +10,6 @@
 #include <tuple>
 #include <unordered_map>
 
-// TODO: generalize the manager through templates like material manager does
 class TextureManager : public SystemSingleton<TextureManager> // crtp
 {
 public:
@@ -30,9 +29,6 @@ public:
     void unbindTexture(TextureIdentifier id);
     void unbindAllTextures();
 
-    std::tuple<int, int, int> bindMaterial(const BasicMaterial &mat); // TODO: rethink this heresy
-    void allocateMaterial(const BasicMaterial &mat);
-
     void cleanUpGracefully();
 
     Texture2D *getTexture(TextureIdentifier tId);
@@ -50,4 +46,9 @@ private:
     constexpr static uint32_t MAX_TEXTURES = 16;
     uint32_t _boundTextures[MAX_TEXTURES];
     int _numBoundTextures = 0;
+
+#ifndef NDEBUG
+    // the screaming magenta texture shall be used for debugging purposes
+    TextureIdentifier _debugMagenta = InvalidIdentifier;
+#endif
 };
