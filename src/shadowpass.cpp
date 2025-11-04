@@ -7,12 +7,8 @@
 #include "skyboxshader.h"
 #include "worldplaneshader.h"
 
-ShadowPass::ShadowPass(InstancedShader *ins, WorldPlaneShader *wrld,
-                       LightVisualizationShader *lightVis, SkyboxShader *skybox)
-    : _shaderProgramMain(ins),
-      _worldPlaneShader(wrld),
-      _lightVisualizationShader(lightVis),
-      _mainSkybox(skybox)
+ShadowPass::ShadowPass(InstancedShader *ins, LightVisualizationShader *lightVis)
+    : _shaderProgramMain(ins), _lightVisualizationShader(lightVis)
 {
 }
 
@@ -29,30 +25,23 @@ void ShadowPass::runPass()
     for (const DirectionalLight &l :
          LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->getLights())
     {
-        FrameBufferManager::instance()->bindFrameBuffer(GL_FRAMEBUFFER, l.frameBufferId, 1024,
-                                                        1024);
+        FrameBufferManager::instance()->bindFrameBuffer(GL_FRAMEBUFFER, l.frameBufferId, 2048,
+                                                        2048);
 
-        const glm::mat4 projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 1000.0f);
-        const auto defPos = glm::vec3(10.0f, 10.0f, 10.0f);
-        const glm::mat4 view = glm::lookAt(defPos, defPos + l.dummyDirection,
-                                           glm::vec3(0.0f, 1.0f, 0.0f));
+        const glm::mat4 &projection = l.dummyProjectionMatrix;
+        const glm::mat4 &view = l.dummyViewMatrix;
+        const glm::vec3 &pos = l.dummyPosition;
+
+        glClear(GL_DEPTH_BUFFER_BIT);
 
         {
             _shaderProgramMain->use();
             _shaderProgramMain->setMatrix4("view", view);
             _shaderProgramMain->setMatrix4("projection", projection);
-            _shaderProgramMain->setVec3("viewPos", defPos);
+            _shaderProgramMain->setVec3("viewPos", pos);
             _shaderProgramMain->runShader();
         }
 
-        {
-            _worldPlaneShader->use();
-
-            _worldPlaneShader->setMatrix4("view", view);
-            _worldPlaneShader->setMatrix4("projection", projection);
-
-            _worldPlaneShader->runShader();
-        }
         {
             _lightVisualizationShader->use();
             _lightVisualizationShader->setMatrix4("view", view);
@@ -60,14 +49,6 @@ void ShadowPass::runPass()
             _lightVisualizationShader->runShader();
         }
 
-        {
-            glDepthFunc(GL_LEQUAL);
-            _mainSkybox->use();
-            _mainSkybox->setMatrix4("view", glm::mat4(glm::mat3(view)));
-            _mainSkybox->setMatrix4("projection", projection);
-            _mainSkybox->runShader();
-            glDepthFunc(GL_LESS);
-        }
         FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
     }
 }

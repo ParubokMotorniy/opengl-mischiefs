@@ -9,6 +9,7 @@ uniform mat4 view;
 uniform mat4 projection;
 
 out vec3 fragmentPos;
+out vec3 vNorm;
 
 void main()
 {
@@ -16,4 +17,5 @@ void main()
     gl_Position = projection * view * vWorldPos;
 
     fragmentPos = vWorldPos.xyz;
+    vNorm = mat3(transpose(inverse(model))) * normal;
 }

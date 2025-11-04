@@ -54,7 +54,6 @@ Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 const float lightRotationRadius = 50.0f;
 
 bool renderAxes = true;
-bool renderOnlyGrid = false;
 } // namespace
 
 int main(int argc, const char *argv[])
@@ -232,40 +231,6 @@ int main(int argc, const char *argv[])
         ENGINE_MODELS "/sphere/sphere.obj");
     const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
 
-    // Events
-    {
-        mainWindow.subscribeEventListener([&](KeyboardInput input, KeyboardInput releasedKeys) {
-            if (releasedKeys.CtrlLeft)
-                renderAxes = !renderAxes;
-            if (releasedKeys.CtrlRight)
-                renderOnlyGrid = !renderOnlyGrid;
-        });
-        mainWindow.subscribeEventListener(
-            [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys) {
-                camPtr->processKeyboard(input, TimeManager::instance()->getDeltaTime());
-            });
-        mainWindow.subscribeEventListener(
-            [camPtr = camera, &mainWindow](KeyboardInput input,
-                                           Window::MouseMotionDescriptor descriptor) {
-                if (input.MouseRight == 1)
-                {
-                    camPtr->processMouseMovement(descriptor.deltaPosX, descriptor.deltaPosY);
-                    mainWindow.hideCursor(true);
-                    mainWindow.setMouseAccuracy(true);
-                }
-                else
-                {
-                    mainWindow.hideCursor(false);
-                    mainWindow.setMouseAccuracy(false);
-                }
-            });
-        mainWindow.subscribeEventListener(
-            [camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor) {
-                camPtr->processMouseScroll(descriptor.deltaScrollY);
-            });
-        mainWindow.subscribeEventListener([](int w, int h) { glViewport(0, 0, w, h); });
-    }
-
     {
         //// Shaders
 
@@ -290,8 +255,42 @@ int main(int argc, const char *argv[])
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
 
-        ShadowPass _shadowPass{ &shaderProgramMain, &worldPlaneShader, &lightVisualizationShader,
-                                &mainSkybox };
+        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader};
+
+        // Events
+        {
+            mainWindow.subscribeEventListener([&](KeyboardInput input, KeyboardInput releasedKeys) {
+                if (releasedKeys.CtrlLeft)
+                    renderAxes = !renderAxes;
+                if (releasedKeys.CtrlRight)
+                    worldPlaneShader.setPlaneEnabled(!worldPlaneShader.isPlaneEnabled());
+            });
+            mainWindow.subscribeEventListener(
+                [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys) {
+                    camPtr->processKeyboard(input, TimeManager::instance()->getDeltaTime());
+                });
+            mainWindow.subscribeEventListener(
+                [camPtr = camera, &mainWindow](KeyboardInput input,
+                                               Window::MouseMotionDescriptor descriptor) {
+                    if (input.MouseRight == 1)
+                    {
+                        camPtr->processMouseMovement(descriptor.deltaPosX, descriptor.deltaPosY);
+                        mainWindow.hideCursor(true);
+                        mainWindow.setMouseAccuracy(true);
+                    }
+                    else
+                    {
+                        mainWindow.hideCursor(false);
+                        mainWindow.setMouseAccuracy(false);
+                    }
+                });
+            mainWindow.subscribeEventListener(
+                [camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor) {
+                    camPtr->processMouseScroll(descriptor.deltaScrollY);
+                });
+            mainWindow.subscribeEventListener([](int w, int h) { glViewport(0, 0, w, h); });
+        }
+
         // lights
 
         GameObject &pointLight1 = ObjectManager::instance()->getObject(
@@ -360,23 +359,30 @@ int main(int argc, const char *argv[])
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
                 lightStruct->ambient = glm::vec3(0.012f, 0.151f, 0.039f);
-                lightStruct->diffuse = glm::vec3(0.029f, 0.158f, 0.086f);
-                lightStruct->specular = glm::vec3(0.075f, 0.012f, 0.02f);
+                lightStruct->diffuse = glm::vec3(0.229f, 0.258f, 0.286f);
+                lightStruct->specular = glm::vec3(0.175f, 0.112f, 0.032f);
 
                 const auto [bufId,
                             texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
-                                         ->createShadowMapPremises(1024, 1024);
+                                         ->createShadowMapPremises(2048, 2048);
                 lightStruct->frameBufferId = bufId;
+#if ENGINE_DISABLE_BINDLESS_TEXTURES
+                lightStruct->shadowTextureHandle = 0xFF00FF00FF00FF00;
+#else
                 const auto depthTexhandle = glGetTextureHandleARB(texId);
                 glMakeTextureHandleResidentARB(depthTexhandle);
                 lightStruct->shadowTextureHandle = depthTexhandle;
+#endif
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
                 transformStruct->setPosition(glm::vec3(0.0f, 30.0f, 0.0f));
                 transformStruct->setRotation(glm::rotate(glm::identity<glm::mat4>(),
-                                                         glm::radians(55.0f),
-                                                         glm::vec3(1.0f, -1.0f, 0.0f)));
+                                                         glm::radians(90.0f),
+                                                         glm::vec3(1.0f, 0.0f, 0.0f)));
+
+                lightStruct->setProjectionMatrix(
+                    glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, 0.01f, 300.0f));
 
                 lightVisualizationShader.addObject(dirLight1);
             }
@@ -394,22 +400,29 @@ int main(int argc, const char *argv[])
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
                 lightStruct->ambient = glm::vec3(0.148f, 0.033f, 0.081f);
-                lightStruct->diffuse = glm::vec3(0.148f, 0.037f, 0.081f);
+                lightStruct->diffuse = glm::vec3(0.148f, 0.237f, 0.181f);
                 lightStruct->specular = glm::vec3(0.035f, 0.055f, 0.012f);
                 const auto [bufId,
                             texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
-                                         ->createShadowMapPremises(1024, 1024);
+                                         ->createShadowMapPremises(2048, 2048);
                 lightStruct->frameBufferId = bufId;
+#if ENGINE_DISABLE_BINDLESS_TEXTURES
+                lightStruct->shadowTextureHandle = 0x00FF00FF00FF00FF;
+#else
                 const auto depthTexhandle = glGetTextureHandleARB(texId);
                 glMakeTextureHandleResidentARB(depthTexhandle);
                 lightStruct->shadowTextureHandle = depthTexhandle;
+#endif
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
                 transformStruct->setPosition(glm::vec3(0.0f, -30.0f, 0.0f));
                 transformStruct->setRotation(glm::rotate(glm::identity<glm::mat4>(),
-                                                         glm::radians(55.0f),
-                                                         glm::vec3(-1.0f, 1.0f, 0.0f)));
+                                                         glm::radians(90.0f),
+                                                         glm::vec3(-1.0f, 0.0f, 0.0f)));
+
+                lightStruct->setProjectionMatrix(
+                    glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, 0.01f, 300.0f));
 
                 lightVisualizationShader.addObject(dirLight2);
             }
@@ -600,10 +613,10 @@ int main(int argc, const char *argv[])
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->initializeLightBuffer();
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->bindLightBuffer(4);
 
-            //// Render loop
             camera->moveTo(glm::vec3(20.0f, 7.0f, 0.0f));
             camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
         }
+        //// Render loop
         while (!mainWindow.shouldClose())
         {
             TimeManager::instance()->update();

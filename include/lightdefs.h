@@ -32,6 +32,12 @@ struct DirectionalLight
     glm::vec3 dummyDirection;
     float pad1;
 
+    glm::vec3 dummyPosition; //now the directional light effectively defines a plane
+    float pad5;
+
+    glm::mat4 dummyViewMatrix;
+    glm::mat4 dummyProjectionMatrix;
+
     GLuint64 shadowTextureHandle = 0;
     GLuint64 frameBufferId = 0; //TODO: ideally is mustn't be here. Eats up the bandwidth of the bus in vain.
 
@@ -39,6 +45,15 @@ struct DirectionalLight
     {
         dummyDirection = TransformManager::instance()->getTransform(tId)->rotation()
                          * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
+        dummyPosition = TransformManager::instance()->getTransform(tId)->position();
+
+        dummyViewMatrix = glm::lookAt(dummyPosition, dummyPosition + dummyDirection, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+
+    void setProjectionMatrix(const glm::mat4 &projection)
+    {
+        dummyProjectionMatrix = projection;
     }
 };
 
@@ -164,9 +179,9 @@ constexpr size_t getMaxLightsForLightType(ComponentType lType)
     switch (lType)
     {
     case ComponentType::LIGHT_SPOT:
-        return 16;
+        return 8;
     case ComponentType::LIGHT_POINT:
-        return 32;
+        return 16;
     case ComponentType::LIGHT_DIRECTIONAL:
         return 8;
     case ComponentType::LIGHT_TEXTURED_SPOT:

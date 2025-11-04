@@ -12,17 +12,12 @@ class SkyboxShader;
 class ShadowPass : public FramePass
 {
 public:
-    ShadowPass(InstancedShader *ins, WorldPlaneShader *wrld, LightVisualizationShader *lightVis,
-                 SkyboxShader *skybox);
+    ShadowPass(InstancedShader *ins, LightVisualizationShader *lightVis);
     void runPass() override;
 
 private:
     // TODO: ideally, these shouldn't be set by name from constructor
     InstancedShader *_shaderProgramMain = nullptr;
 
-    WorldPlaneShader *_worldPlaneShader = nullptr;
-
     LightVisualizationShader *_lightVisualizationShader = nullptr;
-
-    SkyboxShader *_mainSkybox = nullptr;
 };

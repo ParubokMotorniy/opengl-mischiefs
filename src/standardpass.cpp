@@ -3,11 +3,10 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 
-#include "lightvisualizationshader.h"
 #include "instancedshader.h"
+#include "lightvisualizationshader.h"
 #include "skyboxshader.h"
 #include "worldplaneshader.h"
-
 
 StandardPass::StandardPass(InstancedShader *ins, WorldPlaneShader *wrld,
                            LightVisualizationShader *lightVis, SkyboxShader *skybox)
@@ -40,16 +39,11 @@ void StandardPass::runPass()
     {
         _worldPlaneShader->use();
 
-        // if (renderOnlyGrid)
-        //     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
         _worldPlaneShader->setMatrix4("view", view);
         _worldPlaneShader->setMatrix4("projection", projection);
+        _worldPlaneShader->setVec3("viewPos", _currentViewCamera->position());
 
         _worldPlaneShader->runShader();
-
-        // if (renderOnlyGrid)
-        //     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
     {
         _lightVisualizationShader->use();

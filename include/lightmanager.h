@@ -120,6 +120,8 @@ public:
         const size_t lightIdx = lightPtr - _boundSources.cbegin();
         newLight.setTransform(_lightComponents.at(*lightPtr).second);
 
+        _lightComponents.at(*lightPtr).first.componentData = newLight;
+
         glBindBuffer(GL_UNIFORM_BUFFER, _lBufferId);
         glBufferSubData(GL_UNIFORM_BUFFER, lightIdx * sizeof(LightStruct), sizeof(LightStruct),
                         &newLight);

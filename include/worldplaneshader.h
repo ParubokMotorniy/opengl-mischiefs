@@ -9,6 +9,8 @@ public:
     WorldPlaneShader( MeshIdentifier planeMesh,
                      TextureIdentifier planeTexture);
     void runShader() override;
+    void setPlaneEnabled(bool ifEnabled) noexcept;
+    bool isPlaneEnabled() const noexcept;
 
 protected:
     void compileAndAttachNecessaryShaders(uint32_t id) override;
@@ -23,4 +25,6 @@ private:
 
     uint32_t _vertexShaderId = 0;
     uint32_t _fragmentShaderId = 0;
+
+    bool _planeEnabled = true;
 };
