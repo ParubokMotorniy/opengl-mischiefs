@@ -143,6 +143,7 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severi
 
 int main(int argc, const char *argv[])
 {
+
     glfwInit();
     Window mainWindow(windowWidth, windowHeight, "opengl-mischiefs");
 
@@ -455,9 +456,9 @@ int main(int argc, const char *argv[])
                 dirLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.012f, 0.151f, 0.039f);
-                lightStruct->diffuse = glm::vec3(0.029f, 0.158f, 0.086f);
-                lightStruct->specular = glm::vec3(0.075f, 0.012f, 0.02f);
+                lightStruct->ambient = glm::vec3(0.929f, 0.878f, 0.675f);
+                lightStruct->diffuse = glm::vec3(0.922f, 0.835f, 0.498f);
+                lightStruct->specular = glm::vec3(0.91f, 0.878f, 0.757f);
 
                 const auto [bufId,
                             texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
@@ -496,9 +497,9 @@ int main(int argc, const char *argv[])
                 dirLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.148f, 0.033f, 0.081f);
-                lightStruct->diffuse = glm::vec3(0.148f, 0.037f, 0.081f);
-                lightStruct->specular = glm::vec3(0.035f, 0.055f, 0.012f);
+                lightStruct->ambient = glm::vec3(0.89f, 0.439f, 0.369f);
+                lightStruct->diffuse = glm::vec3(0.969f, 0.545f, 0.71f);
+                lightStruct->specular = glm::vec3(0.98f, 0.702f, 0.808f);
                 const auto [bufId,
                             texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                          ->createShadowMapPremises(2048, 2048);

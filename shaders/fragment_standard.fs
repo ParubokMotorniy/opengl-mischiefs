@@ -7,8 +7,8 @@ out vec4 fragColor;
 
 // ins
 in vec2 texCoord;
-in vec3 vPos;
-in vec3 vNorm;
+in vec3 vPos; //fragment dorld position
+in vec3 vNorm; //fragment world normal
 
 //TODO: 
 // 1. multiply the vPos by the light perspective matrix -> have to sneak the matrix into the shader
@@ -106,38 +106,25 @@ layout(binding = 4, std140) uniform TexturedSpotLights { TexturedSpotLight textu
 float fragmentInDirectionalShadow(DirectionalLight light, vec3 fragWorldPos, vec3 norm)
 {
     float bias = 0.003;
-    vec3 displacedFragment = fragWorldPos + norm * bias; 
+    vec3 displacedFragment = fragWorldPos + (norm * bias); 
     vec4 ndcPos = light.projectionMatrix * light.viewMatrix * vec4(displacedFragment, 1.0);
     ndcPos /= ndcPos.w;
 
     ndcPos = ndcPos * 0.5 + 0.5;
 
-    float shadowDepth = texture(sampler2D(light.shadowTextureHandle), ndcPos.xy).r;
-    float fragmentDepth = ndcPos.z;
-    float shadow = fragmentDepth > shadowDepth ? 1.0 : 0.0;
-    return shadow;
+    //pcf 
+    float shadowDepth = texture(sampler2DShadow(light.shadowTextureHandle), ndcPos.xyz).r;
+    return 1.0 - shadowDepth;
+
+    // float shadowDepth = texture(sampler2D(light.shadowTextureHandle), ndcPos.xy).r;
+    // float fragmentDepth = ndcPos.z;
+    // float shadow = fragmentDepth > shadowDepth ? 1.0 : 0.0;
+    // return shadow;
 }
-
-// vec3 directionalShadowDiffuse(DirectionalLight light, vec4 fragWorldPos, vec3 norm)
-// {
-//     float bias = 0.003;
-//     vec3 displacedFragment = fragWorldPos.xyz + norm * bias; 
-//     vec4 ndcPos = light.projectionMatrix * light.viewMatrix * vec4(displacedFragment, 1.0);
-//     ndcPos /= ndcPos.w;
-//     ndcPos = ndcPos * 0.5 + 0.5;
-
-//     return texture(sampler2D(light.shadowTextureHandle), ndcPos.xy).rgb;
-// }
 
 vec3 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, int diffuseIdx,
                                int specularIdx)
 {
-    // vec4 diffuseColor = texture(sampler2D(light.shadowTextureHandle), texCoord);
-    // return diffuseColor.rgb;
-
-    // vec3 diffColor = directionalShadowDiffuse(light, vPos, normal);
-    // return diffColor;
-
     vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
     vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
 
@@ -153,6 +140,7 @@ vec3 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir
     vec3 ambient = light.ambient * vec3(diffuseColor);
     vec3 diffuse = light.diffuse * diff * vec3(diffuseColor) * shadowEffect;
     vec3 specular = light.specular * spec * vec3(specularColor) * shadowEffect;
+    // return vec3(shadowEffect,shadowEffect,shadowEffect);
     return (ambient + diffuse + specular);
 }
 
@@ -240,7 +228,7 @@ vec3 CalculateTexturedSpotLight(TexturedSpotLight light, vec3 normal, vec3 fragP
 
     //projected texture sampling
     vec4 mappedFrag = light.lightProj * light.lightView * vec4(fragPos, 1.0f);
-    mappedFrag /= mappedFrag.z;
+    mappedFrag /= mappedFrag.w;
     float tCoordX = (mappedFrag.x + 1.0) / 2.0f;
     float tCoordY = (-mappedFrag.y + 1.0) / 2.0f;
 
