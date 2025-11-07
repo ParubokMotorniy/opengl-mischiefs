@@ -32,7 +32,7 @@ void BasicShader::runShader()
             {
                 for (int x = 0; x < _objCountY; ++x)
                 {
-                    auto model = glm::scale(glm::identity<glm::mat4>(),
+                    glm::mat4 model = glm::scale(glm::identity<glm::mat4>(),
                                             glm::vec3(5.0f, 5.0f, 5.0f));
                     model = glm::translate(model, glm::vec3((f - (int)_objCountX / 2) * 7, 0.0f,
                                                             (x - (int)_objCountY / 2) * 7));

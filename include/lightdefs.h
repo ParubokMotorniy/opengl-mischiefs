@@ -10,10 +10,11 @@
 //  2. Add a separarate shader class for shadow mapping
 //  3. Split other shaders into shadowed and unshadowed -> run them correspondingly with the proper
 //  frame buffer bound
-//     I may need a ganeralization of framebuffer. Also some kind of manager. That does the binding -> rather a pass manager
+//     I may need a ganeralization of framebuffer. Also some kind of manager. That does the binding
+//     -> rather a pass manager
 //  4. Extend the lightmanager to support binding of shadowmaps (cubemaps) to the lightdefs and
 //  propagation fo thsoe through the uniform buffers.
- 
+
 // TODO: random ideas
 //  1. Recompute shadow maps only iff any objects have moved (optionally, in the effect area of the
 //  light). Or the light has moved itself.
@@ -32,14 +33,14 @@ struct DirectionalLight
     glm::vec3 dummyDirection;
     float pad1;
 
-    glm::vec3 dummyPosition; //now the directional light effectively defines a plane
+    glm::vec3 dummyPosition; // now the directional light effectively defines a plane
     float pad5;
 
     glm::mat4 dummyViewMatrix;
     glm::mat4 dummyProjectionMatrix;
 
-    GLuint64 shadowTextureHandle = 0;
-    GLuint64 frameBufferId = 0; //TODO: ideally is mustn't be here. Eats up the bandwidth of the bus in vain.
+    GLuint64 shadowMapIdentifier;
+    GLuint64 frameBufferId;
 
     void setTransform(TransformIdentifier tId)
     {
@@ -48,13 +49,11 @@ struct DirectionalLight
 
         dummyPosition = TransformManager::instance()->getTransform(tId)->position();
 
-        dummyViewMatrix = glm::lookAt(dummyPosition, dummyPosition + dummyDirection, glm::vec3(0.0f, 1.0f, 0.0f));
+        dummyViewMatrix = glm::lookAt(dummyPosition, dummyPosition + dummyDirection,
+                                      glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
-    void setProjectionMatrix(const glm::mat4 &projection)
-    {
-        dummyProjectionMatrix = projection;
-    }
+    void setProjectionMatrix(const glm::mat4 &projection) { dummyProjectionMatrix = projection; }
 };
 
 struct PointLight

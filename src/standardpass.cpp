@@ -4,9 +4,28 @@
 #include "glm/glm.hpp"
 
 #include "instancedshader.h"
+#include "lightmanager.h"
 #include "lightvisualizationshader.h"
 #include "skyboxshader.h"
+#include "texturemanager.h"
 #include "worldplaneshader.h"
+
+namespace
+{
+void bindDirectionalShadowMaps(ShaderProgram *target)
+{
+    size_t mapCounter = 0;
+    target->use();
+    for (const DirectionalLight &l :
+         LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->getLights())
+    {
+        const int bindingPoint = TextureManager::instance()->bindTexture(l.shadowMapIdentifier);
+        assert(bindingPoint != -1);
+        const auto targetUniform = "directionalShadowMaps[" + std::to_string(mapCounter++) + "]";
+        target->setInt(targetUniform, bindingPoint);
+    }
+}
+} // namespace
 
 StandardPass::StandardPass(InstancedShader *ins, WorldPlaneShader *wrld,
                            LightVisualizationShader *lightVis, SkyboxShader *skybox)
@@ -19,8 +38,9 @@ StandardPass::StandardPass(InstancedShader *ins, WorldPlaneShader *wrld,
 
 void StandardPass::runPass()
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
     _currentTargetWindow->resetViewport();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     const auto [windowWidth, windowHeight] = _currentTargetWindow->currentWindowDimensions();
 
@@ -30,26 +50,33 @@ void StandardPass::runPass()
 
     {
         _shaderProgramMain->use();
+        bindDirectionalShadowMaps(_shaderProgramMain);
         _shaderProgramMain->setMatrix4("view", view);
         _shaderProgramMain->setMatrix4("projection", projection);
         _shaderProgramMain->setVec3("viewPos", _currentViewCamera->position());
         _shaderProgramMain->runShader();
+        TextureManager::instance()->unbindAllTextures();
+        MeshManager::instance()->unbindMesh();
     }
 
     {
         _worldPlaneShader->use();
-
+        bindDirectionalShadowMaps(_worldPlaneShader);
         _worldPlaneShader->setMatrix4("view", view);
         _worldPlaneShader->setMatrix4("projection", projection);
         _worldPlaneShader->setVec3("viewPos", _currentViewCamera->position());
 
         _worldPlaneShader->runShader();
+        TextureManager::instance()->unbindAllTextures();
+        MeshManager::instance()->unbindMesh();
     }
     {
         _lightVisualizationShader->use();
         _lightVisualizationShader->setMatrix4("view", view);
         _lightVisualizationShader->setMatrix4("projection", projection);
         _lightVisualizationShader->runShader();
+        TextureManager::instance()->unbindAllTextures();
+        MeshManager::instance()->unbindMesh();
     }
 
     {
@@ -59,6 +86,8 @@ void StandardPass::runPass()
         _mainSkybox->setMatrix4("projection", projection);
         _mainSkybox->runShader();
         glDepthFunc(GL_LESS);
+        TextureManager::instance()->unbindAllTextures();
+        MeshManager::instance()->unbindMesh();
     }
 }
 

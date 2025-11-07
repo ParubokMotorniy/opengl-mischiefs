@@ -27,6 +27,11 @@ public:
     using LightComponent = std::pair<NamedComponent<LightStruct>, TransformIdentifier>;
 
 public:
+    size_t getMaxLights()
+    {
+        return MaxLights;
+    }
+
     void setLightSourceValidator(std::function<bool(LightStruct)> &&newSourceValidator)
     {
         _sourceValidator = std::move(newSourceValidator);
@@ -43,8 +48,8 @@ public:
     }
 
     // returns frame_buffer_id + depth_texture_id
-    static std::pair<GLuint, GLuint> createShadowMapPremises(size_t shadowResolutionX,
-                                                             size_t shadowResolutionY)
+    static std::pair<GLuint, TextureIdentifier> createShadowMapPremises(size_t shadowResolutionX,
+                                                                        size_t shadowResolutionY)
     {
         // TODO: wrap this thing through the texture manager. somehow. Once in place -> add support
         // for cubemaps
@@ -76,7 +81,9 @@ public:
         FrameBufferManager::instance()->bindDepthTexture(GL_FRAMEBUFFER, GL_TEXTURE_2D, depthMap);
         FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
 
-        return { depthMapFBO, depthMap };
+        const TextureIdentifier shadowIdentifier = TextureManager::instance()->registerTexture(depthMap);
+
+        return { depthMapFBO, shadowIdentifier };
     }
 
     void updateManager() // both boundBuffer and uniform buffer can be left fragmented after this

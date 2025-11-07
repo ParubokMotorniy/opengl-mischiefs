@@ -143,7 +143,6 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severi
 
 int main(int argc, const char *argv[])
 {
-
     glfwInit();
     Window mainWindow(windowWidth, windowHeight, "opengl-mischiefs");
 
@@ -252,8 +251,8 @@ int main(int argc, const char *argv[])
 
     const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
 
-    const GameObjectIdentifier cubeModel = ModelLoader::instance()->loadModel(
-        ENGINE_MODELS "/cube/cube.obj");
+    const GameObjectIdentifier cubeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
+                                                                              "/cube/cube.obj");
     const MeshIdentifier cubeMesh = MeshManager::instance()->meshRegistered("Cube");
 
     const GameObjectIdentifier pyramidModel = ModelLoader::instance()->loadModel(
@@ -334,9 +333,9 @@ int main(int argc, const char *argv[])
             pointLight1.addComponent(Component(ComponentType::TRANSFORM, pointLight1Transform));
             auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
                 pointLight1Light);
-            lightStruct->ambient = glm::vec3(0.929f, 0.878f, 0.675f);
-            lightStruct->diffuse = glm::vec3(0.922f, 0.835f, 0.498f);
-            lightStruct->specular = glm::vec3(0.91f, 0.878f, 0.757f);
+            lightStruct->ambient = glm::vec3(0.329f, 0.578f, 0.475f);
+            lightStruct->diffuse = glm::vec3(0.622f, 0.535f, 0.198f);
+            lightStruct->specular = glm::vec3(0.691f, 0.478f, 0.057f);
             lightStruct->attenuationConstantTerm = 1.0e-2;
             lightStruct->attenuationLinearTerm = 1.0e-2;
             lightStruct->attenuationQuadraticTerm = 1.0e-3;
@@ -361,9 +360,9 @@ int main(int argc, const char *argv[])
 
             auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
                 pointLight2Light);
-            lightStruct->ambient = glm::vec3(0.89f, 0.439f, 0.369f);
-            lightStruct->diffuse = glm::vec3(0.969f, 0.545f, 0.71f);
-            lightStruct->specular = glm::vec3(0.98f, 0.702f, 0.808f);
+            lightStruct->ambient = glm::vec3(0.489f, 0.339f, 0.269f);
+            lightStruct->diffuse = glm::vec3(0.469f, 0.345f, 0.271f);
+            lightStruct->specular = glm::vec3(0.498f, 0.402f, 0.408f);
             lightStruct->attenuationConstantTerm = 1.0e-2;
             lightStruct->attenuationLinearTerm = 1.0e-2;
             lightStruct->attenuationQuadraticTerm = 1.0e-3;
@@ -387,21 +386,15 @@ int main(int argc, const char *argv[])
                 dirLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.929f, 0.878f, 0.675f);
-                lightStruct->diffuse = glm::vec3(0.922f, 0.835f, 0.498f);
-                lightStruct->specular = glm::vec3(0.91f, 0.878f, 0.757f);
+                lightStruct->ambient = glm::vec3(0.029f, 0.078f, 0.075f);
+                lightStruct->diffuse = glm::vec3(0.122f, 0.135f, 0.298f);
+                lightStruct->specular = glm::vec3(0.091f, 0.078f, 0.057f);
 
-                const auto [bufId,
-                            texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
-                                         ->createShadowMapPremises(2048, 2048);
+                const auto [bufId, textureIdentifier]
+                    = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                          ->createShadowMapPremises(2048, 2048);
                 lightStruct->frameBufferId = bufId;
-#if ENGINE_DISABLE_BINDLESS_TEXTURES
-                lightStruct->shadowTextureHandle = 0xFF00FF00FF00FF00;
-#else
-                const auto depthTexhandle = glGetTextureHandleARB(texId);
-                glMakeTextureHandleResidentARB(depthTexhandle);
-                lightStruct->shadowTextureHandle = depthTexhandle;
-#endif
+                lightStruct->shadowMapIdentifier = textureIdentifier;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
@@ -428,20 +421,14 @@ int main(int argc, const char *argv[])
                 dirLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.89f, 0.439f, 0.369f);
-                lightStruct->diffuse = glm::vec3(0.969f, 0.545f, 0.71f);
-                lightStruct->specular = glm::vec3(0.98f, 0.702f, 0.808f);
-                const auto [bufId,
-                            texId] = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
-                                         ->createShadowMapPremises(2048, 2048);
+                lightStruct->ambient = glm::vec3(0.089f, 0.039f, 0.069f);
+                lightStruct->diffuse = glm::vec3(0.169f, 0.245f, 0.171f);
+                lightStruct->specular = glm::vec3(0.098f, 0.002f, 0.008f);
+                const auto [bufId, textureIdentifier]
+                    = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                          ->createShadowMapPremises(2048, 2048);
                 lightStruct->frameBufferId = bufId;
-#if ENGINE_DISABLE_BINDLESS_TEXTURES
-                lightStruct->shadowTextureHandle = 0x00FF00FF00FF00FF;
-#else
-                const auto depthTexhandle = glGetTextureHandleARB(texId);
-                glMakeTextureHandleResidentARB(depthTexhandle);
-                lightStruct->shadowTextureHandle = depthTexhandle;
-#endif
+                lightStruct->shadowMapIdentifier = textureIdentifier;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
@@ -470,7 +457,7 @@ int main(int argc, const char *argv[])
                 auto lightStruct = LightManager<ComponentType::LIGHT_SPOT>::instance()->getLight(
                     lId);
                 lightStruct->ambient = glm::vec3(0.251f, 0.251f, 0.012f);
-                lightStruct->diffuse = glm::vec3(0.871f, 0.871f, 0.063f);
+                lightStruct->diffuse = glm::vec3(0.671f, 0.871f, 0.063f);
                 lightStruct->specular = glm::vec3(0.6f, 0.6f, 0.055f);
                 lightStruct->attenuationConstantTerm = 1.0e-3;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
@@ -559,7 +546,7 @@ int main(int argc, const char *argv[])
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 5; k < 35; ++k)
+        for (int k = 10; k < 40; ++k)
         {
             const float fK = static_cast<float>(k);
             // add cubes and pyramids
@@ -577,7 +564,7 @@ int main(int argc, const char *argv[])
 
             Transform *t = TransformManager::instance()->getTransform(tId);
             t->setPosition(
-                glm::vec3(std::sin(k) * 5.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
+                glm::vec3(std::sin(k) * 10.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
             t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
@@ -594,18 +581,18 @@ int main(int argc, const char *argv[])
             worldAxesShader.addObject(standardAxes);
 
             /// add bills
-            auto billCopy = ObjectManager::instance()->copyObject(billModel);
-            auto billTransform = TransformManager::instance()->getTransform(
-                ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
-                    ComponentType::TRANSFORM));
-            billTransform->setPosition(
-                glm::vec3(-k * std::sin(k), k * std::sin(k), k * std::cos(k)));
-            billTransform->setRotation(
-                glm::rotate(billTransform->rotation(), glm::radians((float)k),
-                            glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-            billTransform->setScale(glm::vec3(20.0f));
+            // auto billCopy = ObjectManager::instance()->copyObject(billModel);
+            // auto billTransform = TransformManager::instance()->getTransform(
+            //     ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
+            //         ComponentType::TRANSFORM));
+            // billTransform->setPosition(
+            //     glm::vec3(-k * std::sin(k), k * std::sin(k), k * std::cos(k)));
+            // billTransform->setRotation(
+            //     glm::rotate(billTransform->rotation(), glm::radians((float)k),
+            //                 glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
+            // billTransform->setScale(glm::vec3(20.0f));
 
-            shaderProgramMain.addObjectWithChildren(billCopy);
+            // shaderProgramMain.addObjectWithChildren(billCopy);
         }
         {
             GameObject &worldAxes = ObjectManager::instance()->getObject(
@@ -658,17 +645,17 @@ int main(int argc, const char *argv[])
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
 
-            const glm::mat4 projection = glm::perspective(glm::radians(camera->zoom()),
-                                                          (float)windowWidth / windowHeight, 0.1f,
-                                                          1000.0f);
-            const glm::mat4 view = camera->getViewMatrix();
+            // TODO: move this into some gizmos pass
             if (renderAxes)
             {
                 glDisable(GL_DEPTH_TEST);
                 worldAxesShader.use();
 
-                worldAxesShader.setMatrix4("viewMat", view);
-                worldAxesShader.setMatrix4("projectionMat", projection);
+                worldAxesShader.setMatrix4("viewMat", camera->getViewMatrix());
+                worldAxesShader.setMatrix4("projectionMat",
+                                           glm::perspective(glm::radians(camera->zoom()),
+                                                            (float)windowWidth / windowHeight, 0.1f,
+                                                            1000.0f));
 
                 worldAxesShader.runShader();
 

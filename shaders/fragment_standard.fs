@@ -31,8 +31,9 @@ struct DirectionalLight
     mat4 viewMatrix;
     mat4 projectionMatrix;
 
-    uvec2 shadowTextureHandle;
-    uvec2 dummy_buffer_id; //TODO: REMOVE THIS HERESY
+    //TODO: these ideally shouldn't be here
+    uvec2 shadowMapIdentifier;
+    uvec2 frameBufferId;
 };
 
 struct PointLight
@@ -103,26 +104,45 @@ layout(binding = 3, std140) uniform SpotLights { SpotLight spotLights[NUM_SPOT];
 #define NUM_TEXTURED_SPOT 4
 layout(binding = 4, std140) uniform TexturedSpotLights { TexturedSpotLight texturedSpotLights[NUM_TEXTURED_SPOT]; };
 
-float fragmentInDirectionalShadow(DirectionalLight light, vec3 fragWorldPos, vec3 norm)
+uniform sampler2DShadow directionalShadowMaps[NUM_DIRECTIONAL];
+
+float fragmentInDirectionalShadow(DirectionalLight light, int lightIdx, vec3 fragWorldPos, vec3 norm)
 {
-    float bias = 0.003;
-    vec3 displacedFragment = fragWorldPos + (norm * bias); 
+    float bias = 0.07;
+    vec3 displacedFragment = fragWorldPos.xyz + norm * bias; 
     vec4 ndcPos = light.projectionMatrix * light.viewMatrix * vec4(displacedFragment, 1.0);
     ndcPos /= ndcPos.w;
 
     ndcPos = ndcPos * 0.5 + 0.5;
+    float fragmentDepth = ndcPos.z;
 
-    //pcf 
-    float shadowDepth = texture(sampler2DShadow(light.shadowTextureHandle), ndcPos.xyz).r;
+    if(ndcPos.z > 1.0)
+        return 0.0;
+
+    //hardware pcf 
+    float shadowDepth = texture(directionalShadowMaps[lightIdx], ndcPos.xyz).r;
     return 1.0 - shadowDepth;
 
-    // float shadowDepth = texture(sampler2D(light.shadowTextureHandle), ndcPos.xy).r;
-    // float fragmentDepth = ndcPos.z;
+    //software pcf
+    // vec2 texelSize = 1.0 / textureSize(directionalShadowMaps[lightIdx], 0);
+    // float shadow = 0.0;
+    // for(int x = -1; x <= 1; ++x)
+    // {
+    //     for(int y = -1; y <= 1; ++y)
+    //     {
+    //         float pcfDepth = texture(directionalShadowMaps[lightIdx], ndcPos.xy + vec2(x, y) * texelSize).r; 
+    //         shadow += fragmentDepth > pcfDepth ? 1.0 : 0.0;        
+    //     }    
+    // }
+    // shadow /= 9.0;
+    // return shadow;
+
+    // float shadowDepth = texture(directionalShadowMaps[lightIdx], ndcPos.xy).r;
     // float shadow = fragmentDepth > shadowDepth ? 1.0 : 0.0;
     // return shadow;
 }
 
-vec3 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, int diffuseIdx,
+vec3 CalculateDirectionalLight(DirectionalLight light, int lightIdx, vec3 normal, vec3 viewDir, int diffuseIdx,
                                int specularIdx)
 {
     vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
@@ -135,12 +155,11 @@ vec3 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 
-    float shadowEffect = 1.0 - fragmentInDirectionalShadow(light, vPos, normal);
+    float shadowEffect = 1.0 - fragmentInDirectionalShadow(light, lightIdx, vPos, normal);
     // // combination
     vec3 ambient = light.ambient * vec3(diffuseColor);
     vec3 diffuse = light.diffuse * diff * vec3(diffuseColor) * shadowEffect;
     vec3 specular = light.specular * spec * vec3(specularColor) * shadowEffect;
-    // return vec3(shadowEffect,shadowEffect,shadowEffect);
     return (ambient + diffuse + specular);
 }
 
@@ -258,7 +277,7 @@ void main()
 
     for (int d = 0; d < NUM_DIRECTIONAL; ++d)
     {
-        effectiveColor += CalculateDirectionalLight(dirLights[d], normalize(vNorm), viewDir,
+        effectiveColor += CalculateDirectionalLight(dirLights[d], d, normalize(vNorm), viewDir,
                                                     instanceMaterialIndices.x,
                                                     instanceMaterialIndices.y);
     }

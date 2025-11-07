@@ -62,7 +62,7 @@ void Texture3D::deallocateTexture()
     if (_textureId == 0)
         return;
 #if !ENGINE_DISABLE_BINDLESS_TEXTURES
-    if (glIsTextureHandleResidentARB(_textureId))
+    if (glIsTextureHandleResidentARB(glGetTextureHandleARB(_textureId)))
     {
         glMakeTextureHandleNonResidentARB(glGetTextureHandleARB(_textureId));
     }
@@ -80,5 +80,3 @@ void Texture3D::setUseAnisotropic(bool useAniso, size_t level)
 }
 
 void Texture3D::setParameters(Texture3DParameters params) { _params = params; }
-
-Texture3D::~Texture3D() { deallocateTexture(); }

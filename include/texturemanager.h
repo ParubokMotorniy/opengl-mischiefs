@@ -17,6 +17,7 @@ public:
     using NamedTexture = NamedComponent<Texture2D>;
 
     TextureIdentifier registerTexture(const char *textureSource, const std::string &texName);
+    TextureIdentifier registerTexture(uint32_t textureId);
     std::pair<std::string, TextureIdentifier> registerTexture(const char *textureSource);
 
     void unregisterTexture(TextureIdentifier id);

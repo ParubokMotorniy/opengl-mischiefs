@@ -29,6 +29,7 @@ void ShadowPass::runPass()
     {
         FrameBufferManager::instance()->bindFrameBuffer(GL_FRAMEBUFFER, l.frameBufferId, 2048,
                                                         2048);
+        glClear(GL_DEPTH_BUFFER_BIT);
 
         const glm::mat4 &projection = l.dummyProjectionMatrix;
         const glm::mat4 &view = l.dummyViewMatrix;
@@ -36,8 +37,6 @@ void ShadowPass::runPass()
 
         _shaderProgramMain->setShaderProgramOverride(_passThroughOverride);
         _lightVisualizationShader->setShaderProgramOverride(_passThroughOverride);
-
-        glClear(GL_DEPTH_BUFFER_BIT);
 
         {
             _shaderProgramMain->use();

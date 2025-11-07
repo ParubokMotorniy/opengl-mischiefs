@@ -28,8 +28,6 @@ public:
 
     operator int() const { return _textureId; }
 
-    ~Texture3D();
-
 private:
     Texture3D(const std::array<const char *, 6> &cubemapPaths,
               bool enableAnisotropicFiltering = false,

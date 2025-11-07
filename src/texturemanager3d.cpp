@@ -144,7 +144,10 @@ void TextureManager3D::cleanUpGracefully()
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }
 
-    _textures.clear();
+    std::for_each(_textures.begin(), _textures.end(),
+                  [](auto &pair) { pair.second.componentData.deallocateTexture(); });
+
+    _textures.clear(); // just for future me
 }
 
 Texture3D *TextureManager3D::getTexture(TextureIdentifier3D tId)

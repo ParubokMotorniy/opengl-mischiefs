@@ -14,8 +14,8 @@ out vec3 vNorm;
 void main()
 {
     vec4 vWorldPos = (model * vec4(aPos, 1.0f));
-    gl_Position = projection * view * vWorldPos;
 
     fragmentPos = vWorldPos.xyz;
     vNorm = mat3(transpose(inverse(model))) * normal;
+    gl_Position = projection * view * vWorldPos;
 }
