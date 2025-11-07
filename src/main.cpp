@@ -179,84 +179,6 @@ int main(int argc, const char *argv[])
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     //// Meshes
-    // TODO: make sure the cubes reuse the same mesh but index vertices in their cutsom way
-
-    const MeshIdentifier simpleCubeMesh = MeshManager::instance()->registerMesh(
-        Mesh{ { { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
-                { -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
-                { -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
-                { -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
-
-                { 0.5f, -0.5f, -0.5f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
-                { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
-                { 0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
-                { 0.5f, 0.5f, -0.5f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
-
-              { 0, 1, 2, 2, 3, 0,
-
-                0, 4, 5, 5, 1, 0,
-
-                6, 5, 4, 4, 7, 6,
-
-                7, 3, 2, 2, 6, 7,
-
-                6, 2, 1, 1, 5, 6,
-
-                0, 3, 7, 7, 4, 0 } },
-        "simple_cube");
-
-    const MeshIdentifier skyboxMesh = MeshManager::instance()->registerMesh(
-        Mesh{ { { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
-                { -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
-                { -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
-                { -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
-
-                { 0.5f, -0.5f, -0.5f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
-                { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
-                { 0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
-                { 0.5f, 0.5f, -0.5f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
-
-              { 2, 1, 0, 0, 3, 2,
-
-                5, 4, 0, 0, 1, 5,
-
-                4, 5, 6, 6, 7, 4,
-
-                2, 3, 7, 7, 6, 2,
-
-                1, 2, 6, 6, 5, 1,
-
-                7, 3, 0, 0, 4, 7 } },
-        "skybox_cube");
-
-    //   0  4
-    // 1 3 5 7
-    // 2   6
-
-    const MeshIdentifier simplePyramidMesh = MeshManager::instance()->registerMesh(
-        Mesh{
-            { { static_cast<float>(std::cos(0)), 0.0f, static_cast<float>(std::sin(0)), 0.0f, 1.0f,
-                static_cast<float>(std::cos(0)) - static_cast<float>(std::numbers::sqrt2) / 2, 0.0f,
-                static_cast<float>(std::sin(0)) - static_cast<float>(std::numbers::sqrt2) / 2 },
-              { static_cast<float>(std::cos(2 * std::numbers::pi / 3)), 0.0f,
-                static_cast<float>(std::sin(2 * std::numbers::pi / 3)), 1.0f, 1.0f,
-                static_cast<float>(std::cos(2 * std::numbers::pi / 3))
-                    - static_cast<float>(std::numbers::sqrt2) / 2,
-                0.0f,
-                static_cast<float>(std::sin(2 * std::numbers::pi / 3))
-                    - static_cast<float>(std::numbers::sqrt2) / 2 },
-              { static_cast<float>(std::cos(4 * std::numbers::pi / 3)), 0.0f,
-                static_cast<float>(std::sin(4 * std::numbers::pi / 3)), 1.0f, 0.0f,
-                static_cast<float>(std::cos(4 * std::numbers::pi / 3))
-                    - static_cast<float>(std::numbers::sqrt2) / 2,
-                0.0f,
-                static_cast<float>(std::sin(4 * std::numbers::pi / 3))
-                    - static_cast<float>(std::numbers::sqrt2) / 2 },
-              { 0.0f, static_cast<float>(std::numbers::sqrt2), 0.0f, 0.0f, 0.0f, 0.0f,
-                static_cast<float>(std::numbers::sqrt2), 0.0f } },
-
-            { 0, 1, 2, 1, 3, 2, 2, 3, 0, 0, 3, 1 } },
-        "simple_pyramid");
 
     const MeshIdentifier dummyAxesMesh = MeshManager::instance()->registerMesh(Mesh(),
                                                                                "dummy_mesh");
@@ -327,7 +249,16 @@ int main(int argc, const char *argv[])
 
     const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
         ENGINE_MODELS "/sphere/sphere.obj");
+
     const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
+
+    const GameObjectIdentifier cubeModel = ModelLoader::instance()->loadModel(
+        ENGINE_MODELS "/cube/cube.obj");
+    const MeshIdentifier cubeMesh = MeshManager::instance()->meshRegistered("Cube");
+
+    const GameObjectIdentifier pyramidModel = ModelLoader::instance()->loadModel(
+        ENGINE_MODELS "/pyramid/pyramid.obj");
+    const MeshIdentifier pyramidMesh = MeshManager::instance()->meshRegistered("Pyramid");
 
     {
         //// Shaders
@@ -335,13 +266,13 @@ int main(int argc, const char *argv[])
         InstancedShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
         shaderProgramMain.initializeShaderProgram();
 
-        WorldPlaneShader worldPlaneShader{ simpleCubeMesh, checkerboardTexture };
+        WorldPlaneShader worldPlaneShader{ cubeMesh, checkerboardTexture };
         worldPlaneShader.initializeShaderProgram();
 
         LightVisualizationShader lightVisualizationShader{ sphereMesh };
         lightVisualizationShader.initializeShaderProgram();
 
-        SkyboxShader mainSkybox{ skyboxMesh, simpleSkybox };
+        SkyboxShader mainSkybox{ cubeMesh, simpleSkybox };
         mainSkybox.initializeShaderProgram();
 
         GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
@@ -636,7 +567,7 @@ int main(int argc, const char *argv[])
                 ObjectManager::instance()->addObject());
 
             standardObject.addComponent(
-                Component(ComponentType::MESH, (k % 20 < 10) ? simpleCubeMesh : simplePyramidMesh));
+                Component(ComponentType::MESH, (k % 20 < 10) ? cubeMesh : pyramidMesh));
             standardObject.addComponent(Component(ComponentType::BASIC_MATERIAL,
                                                   (k % 20 < 10) ? floppaMaterial : catMaterial));
 

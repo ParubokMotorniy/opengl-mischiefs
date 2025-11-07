@@ -22,7 +22,10 @@ void SkyboxShader::runShader()
         {
             const Mesh *skyMesh = MeshManager::instance()->getMesh(_skyboxMesh);
 
+            const glm::mat4 skyboxModel = glm::scale(glm::identity<glm::mat4>(),
+                                                      glm::vec3(-1.0f, -1.0f, -1.0f));
             setInt("skyboxSampler", bindPoint);
+            setMatrix4("model", skyboxModel);
 
             glDrawElements(GL_TRIANGLES, skyMesh->numIndices(), GL_UNSIGNED_INT, 0);
             TextureManager3D::instance()->unbindTexture(_skyboxTexture);
