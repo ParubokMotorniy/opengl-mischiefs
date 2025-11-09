@@ -105,11 +105,11 @@ layout(binding = 3, std140) uniform SpotLights { SpotLight spotLights[NUM_SPOT];
 layout(binding = 4, std140) uniform TexturedSpotLights { TexturedSpotLight texturedSpotLights[NUM_TEXTURED_SPOT]; };
 
 uniform sampler2DShadow directionalShadowMaps[NUM_DIRECTIONAL];
+uniform float directionalShadowBias;
 
 float fragmentInDirectionalShadow(DirectionalLight light, int lightIdx, vec3 fragWorldPos, vec3 norm)
 {
-    float bias = 0.07;
-    vec3 displacedFragment = fragWorldPos.xyz + norm * bias; 
+    vec3 displacedFragment = fragWorldPos.xyz + norm * directionalShadowBias; 
     vec4 ndcPos = light.projectionMatrix * light.viewMatrix * vec4(displacedFragment, 1.0);
     ndcPos /= ndcPos.w;
 

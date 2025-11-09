@@ -3,6 +3,8 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 
+#include "imgui.h"
+
 #include "instancedshader.h"
 #include "lightmanager.h"
 #include "lightvisualizationshader.h"
@@ -48,12 +50,22 @@ void StandardPass::runPass()
                                                   (float)windowWidth / windowHeight, 0.1f, 1000.0f);
     const glm::mat4 view = _currentViewCamera->getViewMatrix();
 
+    static float directionalShadowBias = 0.0f;
+    {
+        ImGui::Begin("Standard pass parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Text("Shadow mapping");
+        ImGui::Separator();
+        ImGui::SliderFloat("Directional shadow bias", &directionalShadowBias, 0.001f, 0.05f);
+        ImGui::End();
+    }
+
     {
         _shaderProgramMain->use();
         bindDirectionalShadowMaps(_shaderProgramMain);
         _shaderProgramMain->setMatrix4("view", view);
         _shaderProgramMain->setMatrix4("projection", projection);
         _shaderProgramMain->setVec3("viewPos", _currentViewCamera->position());
+        _shaderProgramMain->setFloat("directionalShadowBias", directionalShadowBias);
         _shaderProgramMain->runShader();
         TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();
@@ -65,6 +77,7 @@ void StandardPass::runPass()
         _worldPlaneShader->setMatrix4("view", view);
         _worldPlaneShader->setMatrix4("projection", projection);
         _worldPlaneShader->setVec3("viewPos", _currentViewCamera->position());
+        _worldPlaneShader->setFloat("directionalShadowBias", directionalShadowBias);
 
         _worldPlaneShader->runShader();
         TextureManager::instance()->unbindAllTextures();

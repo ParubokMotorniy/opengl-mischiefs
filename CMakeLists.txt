@@ -61,6 +61,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
+message(STATUS "Fetching imgui")
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(imgui)
+
 message(STATUS "Fetching Assimp...")
 FetchContent_Declare(
     assimp
@@ -77,6 +85,17 @@ set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(assimp)
 
 file(GLOB SRC_FILES src/*)
+file(GLOB imgui_FILES 
+    ${imgui_SOURCE_DIR}/*.cpp 
+    ${imgui_SOURCE_DIR}/*.h 
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3*
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw*
+    ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.*
+)
+
+list(APPEND SRC_FILES 
+    ${imgui_FILES}
+)
 
 add_executable(${PROJECT_NAME}
     ${SRC_FILES}
@@ -86,6 +105,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_SOURCE_DIR}/include
     ${stb_SOURCE_DIR}
     ${khr_SOURCE_DIR}/api
+    ${imgui_SOURCE_DIR}/
+    ${imgui_SOURCE_DIR}/backends
+    ${imgui_SOURCE_DIR}/misc/cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC

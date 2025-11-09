@@ -7,6 +7,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include "basicshader.h"
 #include "camera.h"
 #include "geometryshaderprogram.h"
@@ -139,6 +143,22 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severi
 }
 #endif
 
+void imGuiInitialization(Window *windowToBindTo)
+{
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; 
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(windowToBindTo->getRawWindow(),
+                                 true); 
+                                        
+    ImGui_ImplOpenGL3_Init();
+}
+
 } // namespace
 
 int main(int argc, const char *argv[])
@@ -157,6 +177,8 @@ int main(int argc, const char *argv[])
         std::cerr << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+
+    imGuiInitialization(&mainWindow);
 
 #ifndef NDEBUG
     int flags;
@@ -642,6 +664,13 @@ int main(int argc, const char *argv[])
 
             mainWindow.update();
 
+            {
+                ImGui_ImplOpenGL3_NewFrame();
+                ImGui_ImplGlfw_NewFrame();
+                ImGui::NewFrame();
+                // ImGui::ShowDemoWindow();
+            }
+
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
 
@@ -709,6 +738,12 @@ int main(int argc, const char *argv[])
             }
 
             {
+                // Rendering
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            }
+
+            {
                 const std::unordered_set<GameObjectIdentifier> objectsWithUpdatedTransforms
                     = TransformManager::instance()->flushUpdates();
 
@@ -723,7 +758,6 @@ int main(int argc, const char *argv[])
 
                 assert(glGetError() == GL_NO_ERROR);
                 glfwSwapBuffers(mainWindow.getRawWindow());
-                glfwPollEvents();
             }
         }
     }
@@ -731,6 +765,12 @@ int main(int argc, const char *argv[])
     MeshManager::instance()->cleanUpGracefully();
     TextureManager::instance()->cleanUpGracefully();
     TextureManager3D::instance()->cleanUpGracefully();
+
+    {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
 
     glfwTerminate();
 

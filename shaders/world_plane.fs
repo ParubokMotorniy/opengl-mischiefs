@@ -36,11 +36,11 @@ layout(binding = 1, std140) uniform DirectionalLights
 };
 
 uniform sampler2DShadow directionalShadowMaps[NUM_DIRECTIONAL];
+uniform float directionalShadowBias;
 
 float fragmentInDirectionalShadow(DirectionalLight light, int lightIdx, vec3 fragWorldPos, vec3 norm)
 {
-    float bias = 0.007;
-    vec3 displacedFragment = fragWorldPos.xyz + norm * bias; 
+    vec3 displacedFragment = fragWorldPos.xyz + norm * directionalShadowBias; 
     vec4 ndcPos = light.projectionMatrix * light.viewMatrix * vec4(displacedFragment, 1.0);
     ndcPos /= ndcPos.w;
 

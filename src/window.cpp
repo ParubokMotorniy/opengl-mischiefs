@@ -1,6 +1,12 @@
 #include "window.h"
 
 #include <iostream>
+#include <cstdio>
+
+static void glfwErrorCallback(int error, const char* description)
+{
+    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+}
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
@@ -51,6 +57,7 @@ struct overloaded : Ts...
 
 void Window::processInput()
 {
+    glfwPollEvents();
     if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(_window, true);
 
@@ -175,6 +182,7 @@ Window::Window(size_t widthX, size_t heightY, const char *windowName)
     glfwSetFramebufferSizeCallback(_window, framebufferResizeCallback);
     glfwSetCursorPosCallback(_window, mouseCallback);
     glfwSetScrollCallback(_window, scrollCallback);
+    glfwSetErrorCallback(glfwErrorCallback);
 
     glfwSetWindowUserPointer(_window, this);
 }
