@@ -235,8 +235,8 @@ vec3 CalculateTexturedSpotLight(TexturedSpotLight light, vec3 normal, vec3 fragP
     float tCoordY = (-mappedFrag.y + 1.0) / 2.0f;
 
     // combination
-    vec3 ambient = light.ambient * ambientColor;
     vec3 diffuse = texture(sampler2D(light.textureIdx), vec2(tCoordX, tCoordY)).xyz * diff * diffuseColor;
+    vec3 ambient = light.ambient * ambientColor;
     vec3 specular = light.specular * spec * specularColor;
 
     float theta = dot(lightToFrag, normalize(light.direction));
@@ -266,24 +266,26 @@ void main()
 
     vec3 ambientColor = instanceMaterialIndices.x == -1 ? vec3(0.0) : texture(sampler2D(textures[instanceMaterialIndices.x]), texCoord).xyz;
 
-    for (int d = 0; d < NUM_DIRECTIONAL; ++d)
+    //TODO: find a reliable way of telling shader how many lights are currently bound
+
+    for (int d = 0; d < 2; ++d)
     {
         effectiveColor += CalculateDirectionalLight(dirLights[d], d, normalize(vNorm), viewDir, diffuseColor, ambientColor, specularColor);
     }
 
-    for (int p = 0; p < NUM_POINT; ++p)
+    for (int p = 0; p < 2; ++p)
     {
         effectiveColor += CalculatePointLight(pointLights[p], normalize(vNorm), vPos, viewDir,
                                               diffuseColor, ambientColor, specularColor);
     }
 
-    for (int s = 0; s < NUM_SPOT; ++s)
+    for (int s = 0; s < 2; ++s)
     {
         effectiveColor += CalculateSpotLight(spotLights[s], normalize(vNorm), vPos, viewDir,
                                             diffuseColor, ambientColor, specularColor);
     }
 
-    for (int s = 0; s < NUM_TEXTURED_SPOT; ++s)
+    for (int s = 0; s < 1; ++s)
     {
         effectiveColor += CalculateTexturedSpotLight(texturedSpotLights[s], normalize(vNorm), vPos, viewDir,
                                             diffuseColor, ambientColor, specularColor);

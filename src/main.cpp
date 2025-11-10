@@ -226,7 +226,7 @@ int main(int argc, const char *argv[])
                                                                                 "black");
 
     const TextureIdentifier specular = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
-                                                                                   "/specular.png",
+                                                                                   "/specular_squiggle.png",
                                                                                    "tex_specular");
     const TextureIdentifier floppaEm = TextureManager::instance()
                                            ->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg",
@@ -418,7 +418,7 @@ int main(int argc, const char *argv[])
             pointLight1.addComponent(Component(ComponentType::TRANSFORM, pointLight1Transform));
             auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
                 pointLight1Light);
-            lightStruct->ambient = glm::vec3(0.329f, 0.578f, 0.475f);
+            lightStruct->ambient = glm::vec3(0.229f, 0.378f, 0.275f);
             lightStruct->diffuse = glm::vec3(0.622f, 0.535f, 0.198f);
             lightStruct->specular = glm::vec3(0.691f, 0.478f, 0.057f);
             lightStruct->attenuationConstantTerm = 1.0e-2;
@@ -445,7 +445,7 @@ int main(int argc, const char *argv[])
 
             auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
                 pointLight2Light);
-            lightStruct->ambient = glm::vec3(0.489f, 0.339f, 0.269f);
+            lightStruct->ambient = glm::vec3(0.189f, 0.239f, 0.269f);
             lightStruct->diffuse = glm::vec3(0.469f, 0.345f, 0.271f);
             lightStruct->specular = glm::vec3(0.498f, 0.402f, 0.408f);
             lightStruct->attenuationConstantTerm = 1.0e-2;
@@ -541,7 +541,7 @@ int main(int argc, const char *argv[])
                 spotLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_SPOT>::instance()->getLight(
                     lId);
-                lightStruct->ambient = glm::vec3(0.251f, 0.251f, 0.012f);
+                lightStruct->ambient = glm::vec3(0.151f, 0.151f, 0.012f);
                 lightStruct->diffuse = glm::vec3(0.671f, 0.871f, 0.063f);
                 lightStruct->specular = glm::vec3(0.6f, 0.6f, 0.055f);
                 lightStruct->attenuationConstantTerm = 1.0e-4;
