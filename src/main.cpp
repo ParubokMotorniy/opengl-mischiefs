@@ -225,9 +225,9 @@ int main(int argc, const char *argv[])
                                                                                 "/black.jpg",
                                                                                 "black");
 
-    const TextureIdentifier specular = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
-                                                                                   "/specular_squiggle.png",
-                                                                                   "tex_specular");
+    const TextureIdentifier specular
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/specular_squiggle.png",
+                                                      "tex_specular");
     const TextureIdentifier floppaEm = TextureManager::instance()
                                            ->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg",
                                                              "big_floppa_emission");
@@ -781,6 +781,13 @@ int main(int argc, const char *argv[])
                 worldAxesShader.runShader();
 
                 glEnable(GL_DEPTH_TEST);
+            }
+            {
+                ImGui::Begin("Gizmos", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+                ImGui::Text("Transform");
+                ImGui::Separator();
+                ImGui::Checkbox("Toggle axes", &renderAxes);
+                ImGui::End();
             }
 
             {
