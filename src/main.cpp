@@ -32,6 +32,8 @@
 #include "texturemanager3d.h"
 #include "timemanager.h"
 #include "transformmanager.h"
+#include "transparentpass.h"
+#include "transparentshader.h"
 #include "window.h"
 #include "worldplaneshader.h"
 
@@ -53,6 +55,10 @@ const char *fragmentShaderSource = ENGINE_SHADERS "/fragment_standard.fs";
 const char *axesVertexShaderSource = ENGINE_SHADERS "/axis_vertex.vs";
 const char *axesFragmentShaderSource = ENGINE_SHADERS "/axis_fragment.fs";
 const char *axesGeometryShaderSource = ENGINE_SHADERS "/axis_geometry.gs";
+
+const char *simpleTransparentVertexShaderSource = ENGINE_SHADERS "/simple_transparent_vertex.vs";
+const char *simpleTransparentFragmentShaderSource = ENGINE_SHADERS
+    "/simple_transparent_fragment.fs";
 
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 const float lightRotationRadius = 50.0f;
@@ -150,12 +156,11 @@ void imGuiInitialization(Window *windowToBindTo)
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; 
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(windowToBindTo->getRawWindow(),
-                                 true); 
-                                        
+    ImGui_ImplGlfw_InitForOpenGL(windowToBindTo->getRawWindow(), true);
+
     ImGui_ImplOpenGL3_Init();
 }
 
@@ -300,12 +305,19 @@ int main(int argc, const char *argv[])
                                                axesGeometryShaderSource, dummyAxesMesh };
         worldAxesShader.initializeShaderProgram();
 
+        TransparentShader simpleTransparentShader{ simpleTransparentVertexShaderSource,
+                                                   simpleTransparentFragmentShaderSource };
+
+        // passes
         StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
                                              &lightVisualizationShader, &mainSkybox };
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
 
         ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader };
+
+        SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader };
+        _sortingTransparentPass.setCamera(camera);
 
         // Events
         {
@@ -668,11 +680,11 @@ int main(int argc, const char *argv[])
                 ImGui_ImplOpenGL3_NewFrame();
                 ImGui_ImplGlfw_NewFrame();
                 ImGui::NewFrame();
-                // ImGui::ShowDemoWindow();
             }
 
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
+            _sortingTransparentPass.runPass();
 
             // TODO: move this into some gizmos pass
             if (renderAxes)

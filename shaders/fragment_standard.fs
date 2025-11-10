@@ -7,13 +7,8 @@ out vec4 fragColor;
 
 // ins
 in vec2 texCoord;
-in vec3 vPos; //fragment dorld position
+in vec3 vPos; //fragment world position
 in vec3 vNorm; //fragment world normal
-
-//TODO: 
-// 1. multiply the vPos by the light perspective matrix -> have to sneak the matrix into the shader
-// 2. check if the fragment is behind the depth of the bound texture of the light
-// 3. modify the diffuse+specular accordingly 
 
 flat in ivec3 instanceMaterialIndices;
 
@@ -142,12 +137,9 @@ float fragmentInDirectionalShadow(DirectionalLight light, int lightIdx, vec3 fra
     // return shadow;
 }
 
-vec3 CalculateDirectionalLight(DirectionalLight light, int lightIdx, vec3 normal, vec3 viewDir, int diffuseIdx,
-                               int specularIdx)
+vec3 CalculateDirectionalLight(DirectionalLight light, int lightIdx, vec3 normal, vec3 viewDir, vec3 diffuseColor,
+                               vec3 ambientColor, vec3 specularColor)
 {
-    vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
-    vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
-
     vec3 lightDir = normalize(-light.direction);
     // diffuse bit
     float diff = max(dot(normal, lightDir), 0.0);
@@ -157,18 +149,15 @@ vec3 CalculateDirectionalLight(DirectionalLight light, int lightIdx, vec3 normal
 
     float shadowEffect = 1.0 - fragmentInDirectionalShadow(light, lightIdx, vPos, normal);
     // // combination
-    vec3 ambient = light.ambient * vec3(diffuseColor);
-    vec3 diffuse = light.diffuse * diff * vec3(diffuseColor) * shadowEffect;
-    vec3 specular = light.specular * spec * vec3(specularColor) * shadowEffect;
+    vec3 ambient = light.ambient * ambientColor;
+    vec3 diffuse = light.diffuse * diff * diffuseColor * shadowEffect;
+    vec3 specular = light.specular * spec * specularColor * shadowEffect;
     return (ambient + diffuse + specular);
 }
 
-vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, int diffuseIdx,
-                         int specularIdx)
+vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseColor,
+                               vec3 ambientColor, vec3 specularColor)
 {
-    vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
-    vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
-
     vec3 fragToLight = normalize(light.position - fragPos);
     // diffuse bit
     float diff = max(dot(normal, fragToLight), 0.0);
@@ -183,19 +172,16 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewD
                                      + light.attenuationQuadraticTerm * (distance * distance)),
                               0.0, 1.0);
     // combination
-    vec3 ambient = light.ambient * vec3(diffuseColor) * attenuation;
-    vec3 diffuse = light.diffuse * diff * vec3(diffuseColor) * attenuation;
-    vec3 specular = light.specular * spec * vec3(specularColor) * attenuation;
+    vec3 ambient = light.ambient * ambientColor * attenuation;
+    vec3 diffuse = light.diffuse * diff *diffuseColor * attenuation;
+    vec3 specular = light.specular * spec * specularColor * attenuation;
 
     return (ambient + diffuse + specular);
 }
 
-vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, int diffuseIdx,
-                        int specularIdx)
+vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseColor,
+                               vec3 ambientColor, vec3 specularColor)
 {
-    vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
-    vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
-
     vec3 fragToLight = normalize(light.position - fragPos);
     // diffuse bit
     float diff = max(dot(normal, fragToLight), 0.0);
@@ -208,9 +194,9 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir
                         / (light.attenuationConstantTerm + light.attenuationLinearTerm * distance
                            + light.attenuationQuadraticTerm * (distance * distance)), 0.0f, 1.0);
     // combination
-    vec3 ambient = light.ambient * vec3(diffuseColor);
-    vec3 diffuse = light.diffuse * diff * vec3(diffuseColor);
-    vec3 specular = light.specular * spec * vec3(specularColor);
+    vec3 ambient = light.ambient * ambientColor;
+    vec3 diffuse = light.diffuse * diff * diffuseColor;
+    vec3 specular = light.specular * spec * specularColor;
 
     float theta = dot(fragToLight, normalize(-light.direction));
     float epsilon = (light.innerCutOff - light.outerCutOff);
@@ -226,12 +212,9 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir
     return (ambient + diffuse + specular);
 }
 
-vec3 CalculateTexturedSpotLight(TexturedSpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, int diffuseIdx,
-                        int specularIdx)
+vec3 CalculateTexturedSpotLight(TexturedSpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseColor,
+                               vec3 ambientColor, vec3 specularColor)
 {
-    vec4 diffuseColor = texture(sampler2D(textures[diffuseIdx]), texCoord);
-    vec4 specularColor = texture(sampler2D(textures[specularIdx]), texCoord);
-
     vec3 fragToLight = normalize(light.position - fragPos);
     vec3 lightToFrag = -fragToLight;
     // diffuse bit
@@ -252,9 +235,9 @@ vec3 CalculateTexturedSpotLight(TexturedSpotLight light, vec3 normal, vec3 fragP
     float tCoordY = (-mappedFrag.y + 1.0) / 2.0f;
 
     // combination
-    vec3 ambient = light.ambient * vec3(diffuseColor);
-    vec3 diffuse = texture(sampler2D(light.textureIdx), vec2(tCoordX, tCoordY)).xyz * diff * vec3(diffuseColor);
-    vec3 specular = light.specular * spec * vec3(specularColor);
+    vec3 ambient = light.ambient * ambientColor;
+    vec3 diffuse = texture(sampler2D(light.textureIdx), vec2(tCoordX, tCoordY)).xyz * diff * diffuseColor;
+    vec3 specular = light.specular * spec * specularColor;
 
     float theta = dot(lightToFrag, normalize(light.direction));
     float epsilon = (light.innerCutOff - light.outerCutOff);
@@ -275,29 +258,35 @@ void main()
     vec3 effectiveColor = vec3(0.0f, 0.0f, 0.0f);
     vec3 viewDir = normalize(viewPos - vPos.xyz);
 
+    //emission textures are currently ignored
+
+    vec3 diffuseColor = instanceMaterialIndices.x == -1 ? vec3(0.0) : texture(sampler2D(textures[instanceMaterialIndices.x]), texCoord).xyz;
+
+    vec3 specularColor = instanceMaterialIndices.y == -1 ? vec3(0.0) : texture(sampler2D(textures[instanceMaterialIndices.y]), texCoord).xyz;
+
+    vec3 ambientColor = instanceMaterialIndices.x == -1 ? vec3(0.0) : texture(sampler2D(textures[instanceMaterialIndices.x]), texCoord).xyz;
+
     for (int d = 0; d < NUM_DIRECTIONAL; ++d)
     {
-        effectiveColor += CalculateDirectionalLight(dirLights[d], d, normalize(vNorm), viewDir,
-                                                    instanceMaterialIndices.x,
-                                                    instanceMaterialIndices.y);
+        effectiveColor += CalculateDirectionalLight(dirLights[d], d, normalize(vNorm), viewDir, diffuseColor, ambientColor, specularColor);
     }
 
     for (int p = 0; p < NUM_POINT; ++p)
     {
         effectiveColor += CalculatePointLight(pointLights[p], normalize(vNorm), vPos, viewDir,
-                                              instanceMaterialIndices.x, instanceMaterialIndices.y);
+                                              diffuseColor, ambientColor, specularColor);
     }
 
     for (int s = 0; s < NUM_SPOT; ++s)
     {
         effectiveColor += CalculateSpotLight(spotLights[s], normalize(vNorm), vPos, viewDir,
-                                            instanceMaterialIndices.x, instanceMaterialIndices.y);
+                                            diffuseColor, ambientColor, specularColor);
     }
 
     for (int s = 0; s < NUM_TEXTURED_SPOT; ++s)
     {
         effectiveColor += CalculateTexturedSpotLight(texturedSpotLights[s], normalize(vNorm), vPos, viewDir,
-                                            instanceMaterialIndices.x, instanceMaterialIndices.y);
+                                            diffuseColor, ambientColor, specularColor);
     }
 
     fragColor = vec4(effectiveColor, 1.0f);

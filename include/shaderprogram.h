@@ -7,11 +7,11 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <optional>
 
 #include "meshmanager.h"
 #include "objectmanager.h"
@@ -41,6 +41,8 @@ public:
     void setVec3(const std::string &name, const glm::vec3 &vec);
 
     void setVec4(const std::string &name, const glm::vec4 &vec);
+
+    void setUvec2(const std::string &name, GLuint64 value);
 
     virtual void addObject(GameObjectIdentifier gId);
     virtual void addObjectWithChildren(GameObjectIdentifier gId);
@@ -74,6 +76,7 @@ protected:
             return mId1 < mId2;
         }
     };
+    // the objects of the shader are ordered by meshes to enable easier batching of meshes
     std::multiset<GameObjectIdentifier, MeshOrderer> _orderedShaderObjects;
 
 private:
