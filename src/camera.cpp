@@ -103,6 +103,13 @@ float Camera::zoom() const { return _zoom; }
 
 glm::vec3 Camera::position() const { return _position; }
 
+void Camera::setProjectionMatrix(const glm::mat4 &newProjectionMatrix)
+{
+    _currentProjectionMatrix = newProjectionMatrix;
+}
+
+glm::mat4 Camera::projectionMatrix() const { return _currentProjectionMatrix; }
+
 void Camera::updateCameraVectors()
 {
     glm::vec3 front;

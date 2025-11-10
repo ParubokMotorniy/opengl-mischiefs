@@ -27,6 +27,8 @@ public:
     virtual void processMouseScroll(float yoffset);
     virtual float zoom() const;
     glm::vec3 position() const;
+    void setProjectionMatrix(const glm::mat4 &newProjectionMatrix);
+    glm::mat4 projectionMatrix() const;
 
 private:
     void updateCameraVectors();
@@ -37,6 +39,8 @@ protected:
     glm::vec3 _up;
     glm::vec3 _right;
     glm::vec3 _worldUp;
+
+    glm::mat4 _currentProjectionMatrix;
 
     float _movementSpeed;
     float _mouseSensitivity;

@@ -56,7 +56,7 @@ void ShaderProgram::setVec4(const std::string &name, const glm::vec4 &vec)
 
 void ShaderProgram::setUvec2(const std::string &name, GLuint64 value)
 {
-    glUniform2ui(glGetUniformLocation(programId(), name.c_str()), (value >> 32) & 0xFFFFFFFF, value & 0xFFFFFFFF);
+    glUniform2ui(glGetUniformLocation(programId(), name.c_str()), value & 0xFFFFFFFF, (value >> 32) & 0xFFFFFFFF);
 }
 
 void ShaderProgram::addObject(GameObjectIdentifier gId) { _orderedShaderObjects.insert(gId); }

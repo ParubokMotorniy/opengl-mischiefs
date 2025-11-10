@@ -6,10 +6,11 @@ in vec3 vPos;
 in vec3 vNorm;
 in vec2 texCoord;
 
-uniform uvec2 diffuseColorHandle;
-uniform uvec2 specularColorHandle;
-
+uniform uvec2 diffuseTextureHandle;
+uniform uvec2 specularTextureHandle;
 uniform vec3 viewPos;
+
+out vec4 fragColor;
 
 struct PointLight
 {
@@ -35,7 +36,7 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewD
     float diff = max(dot(normal, fragToLight), 0.0);
     // specular bit
     vec3 reflectDir = reflect(-fragToLight, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64);
     // attenuation computation
     float distance = length(light.position - fragPos);
     float attenuation = clamp(1.0
@@ -56,15 +57,17 @@ void main()
     vec3 effectiveColor = vec3(0.0f, 0.0f, 0.0f);
     vec3 viewDir = normalize(viewPos - vPos.xyz);
 
-    vec3 diffuseColor = diffuseColorHandle == uvec2(0, 0) ? vec3(0.0) : texture(sampler2D(diffuseColorHandle), texCoord).xyz;
+    vec4 diffuseColor = diffuseTextureHandle == uvec2(0, 0) ? vec4(0.0) : texture(sampler2D(diffuseTextureHandle), texCoord);
 
-    vec3 specularColor = specularColorHandle == uvec2(0, 0) ? vec3(0.0) : texture(sampler2D(specularColorHandle), texCoord).xyz;
+    vec3 specularColor = specularTextureHandle == uvec2(0, 0) ? vec3(0.0) : texture(sampler2D(specularTextureHandle), texCoord).xyz;
 
-    vec3 ambientColor = diffuseColorHandle == uvec2(0, 0) ? vec3(0.0) : texture(sampler2D(diffuseColorHandle), texCoord).xyz;
+    vec3 ambientColor = diffuseTextureHandle == uvec2(0, 0) ? vec3(0.0) : texture(sampler2D(diffuseTextureHandle), texCoord).xyz;
 
     for (int p = 0; p < NUM_POINT; ++p)
     {
         effectiveColor += CalculatePointLight(pointLights[p], normalize(vNorm), vPos, viewDir,
-                                              diffuseColor, ambientColor, specularColor);
+                                              diffuseColor.xyz, ambientColor, specularColor);
     }
+
+    fragColor = vec4(effectiveColor, diffuseColor.a);
 }   

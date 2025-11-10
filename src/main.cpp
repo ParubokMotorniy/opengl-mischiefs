@@ -61,7 +61,7 @@ const char *simpleTransparentFragmentShaderSource = ENGINE_SHADERS
     "/simple_transparent_fragment.fs";
 
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
-const float lightRotationRadius = 50.0f;
+const float lightRotationRadius = 40.0f;
 
 bool renderAxes = true;
 
@@ -185,6 +185,9 @@ int main(int argc, const char *argv[])
 
     imGuiInitialization(&mainWindow);
 
+    camera->setProjectionMatrix(glm::perspective(glm::radians(camera->zoom()),
+                                                 (float)windowWidth / windowHeight, 0.1f, 1000.0f));
+
 #ifndef NDEBUG
     int flags;
     glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
@@ -250,6 +253,22 @@ int main(int argc, const char *argv[])
     const TextureIdentifier spotLightTexture
         = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/bill.jpg", "bill");
 
+    const TextureIdentifier greenGlassTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/green_glass.png",
+                                                      "green_glass_diffuse");
+    const TextureIdentifier yellowGlassTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/yellow_glass.png",
+                                                      "yellow_glass_diffuse");
+    const TextureIdentifier purpleGlassTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/purple_glass.png",
+                                                      "purple_glass_diffuse");
+    const TextureIdentifier blueGlassTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/blue_glass.png",
+                                                      "blue_glass_diffuse");
+    const TextureIdentifier glassSpecularTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/glass_specular.png",
+                                                      "glass_specular");
+
     // Materials
     const MaterialIdentifier floppaMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
@@ -265,6 +284,30 @@ int main(int argc, const char *argv[])
                                                 InvalidIdentifier },
                                  "checker_material");
 
+    const MaterialIdentifier greenGlassMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ greenGlassTexture, glassSpecularTexture,
+                                                InvalidIdentifier },
+                                 "green_glass_material");
+
+    const MaterialIdentifier yellowGlassMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ yellowGlassTexture, glassSpecularTexture,
+                                                InvalidIdentifier },
+                                 "yellow_glass_material");
+
+    const MaterialIdentifier purpleGlassMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ purpleGlassTexture, glassSpecularTexture,
+                                                InvalidIdentifier },
+                                 "purple_glass_material");
+
+    const MaterialIdentifier blueGlassMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ blueGlassTexture, glassSpecularTexture,
+                                                InvalidIdentifier },
+                                 "blue_glass_material");
+
     // Models
 
     // Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
@@ -275,8 +318,11 @@ int main(int argc, const char *argv[])
 
     const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
         ENGINE_MODELS "/sphere/sphere.obj");
-
     const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
+
+    const GameObjectIdentifier planeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
+                                                                               "/plane/plane.obj");
+    const MeshIdentifier planeMesh = MeshManager::instance()->meshRegistered("Plane");
 
     const GameObjectIdentifier cubeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
                                                                               "/cube/cube.obj");
@@ -307,6 +353,7 @@ int main(int argc, const char *argv[])
 
         TransparentShader simpleTransparentShader{ simpleTransparentVertexShaderSource,
                                                    simpleTransparentFragmentShaderSource };
+        simpleTransparentShader.initializeShaderProgram();
 
         // passes
         StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
@@ -350,7 +397,11 @@ int main(int argc, const char *argv[])
                 [camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor) {
                     camPtr->processMouseScroll(descriptor.deltaScrollY);
                 });
-            mainWindow.subscribeEventListener([](int w, int h) { glViewport(0, 0, w, h); });
+            mainWindow.subscribeEventListener([camPtr = camera](int w, int h) {
+                glViewport(0, 0, w, h);
+                camPtr->setProjectionMatrix(
+                    glm::perspective(glm::radians(camPtr->zoom()), (float)w / h, 0.1f, 1000.0f));
+            });
         }
 
         // lights
@@ -493,7 +544,7 @@ int main(int argc, const char *argv[])
                 lightStruct->ambient = glm::vec3(0.251f, 0.251f, 0.012f);
                 lightStruct->diffuse = glm::vec3(0.671f, 0.871f, 0.063f);
                 lightStruct->specular = glm::vec3(0.6f, 0.6f, 0.055f);
-                lightStruct->attenuationConstantTerm = 1.0e-3;
+                lightStruct->attenuationConstantTerm = 1.0e-4;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
                 lightStruct->attenuationQuadraticTerm = 1.0e-4;
                 lightStruct->computeIntrinsics(45, 60);
@@ -524,7 +575,7 @@ int main(int argc, const char *argv[])
                 lightStruct->ambient = glm::vec3(0.016f, 0.012f, 0.188f);
                 lightStruct->diffuse = glm::vec3(0.075f, 0.059f, 0.91f);
                 lightStruct->specular = glm::vec3(0.102f, 0.098f, 0.329f);
-                lightStruct->attenuationConstantTerm = 1.0e-3;
+                lightStruct->attenuationConstantTerm = 1.0e-4;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
                 lightStruct->attenuationQuadraticTerm = 1.0e-4;
                 lightStruct->computeIntrinsics(45, 60);
@@ -638,6 +689,36 @@ int main(int argc, const char *argv[])
             worldAxesShader.addObject(worldAxes);
         }
         {
+            for (const auto &[materialId, rotationAxis, position] :
+                 std::initializer_list<std::tuple<MaterialIdentifier, glm::vec3, glm::vec3>>{
+                     { greenGlassMaterial, glm::vec3(0.0f, 0.0f, 1.0f),
+                       glm::vec3(-20.0f, 0.0f, 0.0f) },
+                     { yellowGlassMaterial, glm::vec3(1.0f, 0.0f, 0.0f),
+                       glm::vec3(0.0f, 0.0f, -20.0f) },
+                     { blueGlassMaterial, glm::vec3(0.0f, 0.0f, 1.0f),
+                       glm::vec3(20.0f, 0.0f, 0.0f) },
+                     { purpleGlassMaterial, glm::vec3(1.0f, 0.0f, 0.0f),
+                       glm::vec3(0.0f, 0.0f, 20.0f) } })
+            {
+                GameObject &glassObject = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+
+                glassObject.addComponent(Component(ComponentType::MESH, planeMesh));
+                glassObject.addComponent(Component(ComponentType::BASIC_MATERIAL, materialId));
+
+                const TransformIdentifier tId = TransformManager::instance()->registerNewTransform(
+                    glassObject);
+                glassObject.addComponent(Component(ComponentType::TRANSFORM, tId));
+
+                Transform *t = TransformManager::instance()->getTransform(tId);
+                t->setPosition(position);
+                t->setRotation(glm::rotate(t->rotation(), glm::radians(90.0f), rotationAxis));
+                t->setScale(glm::vec3(7.0f));
+
+                simpleTransparentShader.addObject(glassObject);
+            }
+        }
+        {
             TransformManager::instance()->flushUpdates();
 
             shaderProgramMain.runTextureMapping();
@@ -682,6 +763,8 @@ int main(int argc, const char *argv[])
                 ImGui::NewFrame();
             }
 
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
             _sortingTransparentPass.runPass();
@@ -693,10 +776,7 @@ int main(int argc, const char *argv[])
                 worldAxesShader.use();
 
                 worldAxesShader.setMatrix4("viewMat", camera->getViewMatrix());
-                worldAxesShader.setMatrix4("projectionMat",
-                                           glm::perspective(glm::radians(camera->zoom()),
-                                                            (float)windowWidth / windowHeight, 0.1f,
-                                                            1000.0f));
+                worldAxesShader.setMatrix4("projectionMat", camera->projectionMatrix());
 
                 worldAxesShader.runShader();
 

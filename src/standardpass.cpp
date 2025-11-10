@@ -42,12 +42,10 @@ void StandardPass::runPass()
 {
     FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
     _currentTargetWindow->resetViewport();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     const auto [windowWidth, windowHeight] = _currentTargetWindow->currentWindowDimensions();
 
-    const glm::mat4 projection = glm::perspective(glm::radians(_currentViewCamera->zoom()),
-                                                  (float)windowWidth / windowHeight, 0.1f, 1000.0f);
+    const glm::mat4 projection = _currentViewCamera->projectionMatrix();
     const glm::mat4 view = _currentViewCamera->getViewMatrix();
 
     static float directionalShadowBias = 0.0f;

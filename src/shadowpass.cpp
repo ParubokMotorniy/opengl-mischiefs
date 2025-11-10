@@ -16,14 +16,6 @@ ShadowPass::ShadowPass(InstancedShader *ins, LightVisualizationShader *lightVis)
 
 void ShadowPass::runPass()
 {
-    // TODO:
-    // for each light,
-    //  1. bind its frame buffer, along with texture
-    //  2. uniformly bind the matrices
-    //  3. run all shaders (TODO: THIS IS HORRIBLY HEAVY. THE SHADERS MUST BE SIMPLIFIED TO ONLY
-    //  OUTPUT THE DEPTH)
-    //  4. unbind the frame buffer
-
     for (const DirectionalLight &l :
          LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->getLights())
     {
@@ -57,5 +49,6 @@ void ShadowPass::runPass()
         _lightVisualizationShader->removeShaderProgramOverride();
 
         FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
+        // TODO: reset the viewport after the pass so that the following passes don't have to
     }
 }

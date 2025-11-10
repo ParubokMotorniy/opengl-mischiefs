@@ -2,9 +2,9 @@
 
 #include "glm/glm.hpp"
 
-#include "types.h"
 #include "camera.h"
 #include "shaderprogram.h"
+#include "types.h"
 
 #include <vector>
 
@@ -21,13 +21,13 @@ protected:
 
 private:
     const Camera *_currentCamera = nullptr;
-    glm::vec3 _previousCameraPosition;
+    glm::vec3 _previousCameraPosition = glm::vec3(0.0f, 0.0f, 0.0f);
     float _minimalPreviousDistance = 0.0f;
 
     std::vector<GameObjectIdentifier> _sortedObjects;
 
-    const char *_vertexPath = nullptr;
-    const char *_fragmentPath = nullptr;
+    std::string _vertexPath;
+    std::string _fragmentPath;
 
     uint32_t _vertexShaderId = 0;
     uint32_t _fragmentShaderId = 0;

@@ -5,12 +5,13 @@
 #include "materialmanager.h"
 #include "objectmanager.h"
 
-#include <ranges>
 #include <array>
+#include <ranges>
 
 namespace
 {
-    const std::array<std::string, 2> textureUniformNames = {"diffuseTextureHandle","specularTextureHandle"};
+const std::array<std::string, 2> textureUniformNames = { "diffuseTextureHandle",
+                                                         "specularTextureHandle" };
 }
 
 TransparentShader::TransparentShader(const char *vertexPath, const char *fragmentPath)
@@ -64,21 +65,27 @@ void TransparentShader::runShader()
         _minimalPreviousDistance = glm::dot(minDelta, minDelta);
     }
 
+    use();
+
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
 
+    setVec3("viewPos", currentCameraPosition);
+    setMatrix4("view", _currentCamera->getViewMatrix());
+    setMatrix4("projection", _currentCamera->projectionMatrix());
+
     for (const GameObjectIdentifier gId : std::ranges::reverse_view(_sortedObjects))
     {
-        const MeshIdentifier sharedMesh = ObjectManager::instance()
-                                              ->getObject(gId)
-                                              .getIdentifierForComponent(ComponentType::MESH);
-        if (sharedMesh != InvalidIdentifier)
+        const MeshIdentifier objectMeshId = ObjectManager::instance()
+                                                ->getObject(gId)
+                                                .getIdentifierForComponent(ComponentType::MESH);
+        if (objectMeshId != InvalidIdentifier)
         {
             // painfully draw objects one by one with no instancing or batching whatsoever
             // TODO: fix this inefficiency
-            const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
-            MeshManager::instance()->allocateMesh(mesh.standardArrayId());
-            MeshManager::instance()->bindMesh(mesh.standardArrayId());
+            MeshManager::instance()->allocateMesh(objectMeshId);
+            MeshManager::instance()->bindMesh(objectMeshId);
+            const Mesh &mesh = *MeshManager::instance()->getMesh(objectMeshId);
 
             const MaterialIdentifier mId
                 = ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
@@ -95,18 +102,33 @@ void TransparentShader::runShader()
 
             for (int t = 0; t < 2; ++t)
             {
-                const TextureIdentifier tId = textureIdentifiers[t];
-                TextureManager::instance()->allocateTexture(tId);
 #if ENGINE_DISABLE_BINDLESS_TEXTURES
                 setUvec2(textureUniformNames[t], 0);
 #else
-                const auto texHandle = glGetTextureHandleARB(
-                    *TextureManager::instance()->getTexture(tId));
-                assert(texHandle != 0);
-                glMakeTextureHandleResidentARB(texHandle);
-                setUvec2(textureUniformNames[t], texHandle);
+                const TextureIdentifier tId = textureIdentifiers[t];
+                if (tId == InvalidIdentifier)
+                {
+                    setUvec2(textureUniformNames[t], 0);
+                }
+                else
+                {
+                    TextureManager::instance()->allocateTexture(tId);
+                    const auto texHandle = glGetTextureHandleARB(
+                        *TextureManager::instance()->getTexture(tId));
+                    assert(texHandle != 0);
+                    if (!glIsTextureHandleResidentARB(texHandle))
+                        glMakeTextureHandleResidentARB(texHandle);
+                    setUvec2(textureUniformNames[t], texHandle);
+                }
 #endif
             }
+
+            setMatrix4("model",
+                       TransformManager::instance()
+                           ->getTransform(
+                               ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
+                                   ComponentType::TRANSFORM))
+                           ->computeModelMatrix());
 
             glDrawElements(GL_TRIANGLES, mesh.numIndices(), GL_UNSIGNED_INT, 0);
 
@@ -160,7 +182,7 @@ void TransparentShader::compileAndAttachNecessaryShaders(uint32_t id)
 {
     if (_vertexShaderId == 0)
     {
-        const std::string &vShaderCode = readShaderSource(_vertexPath);
+        const std::string &vShaderCode = readShaderSource(_vertexPath.c_str());
 
         const char *vPtr = vShaderCode.c_str();
 
@@ -173,7 +195,7 @@ void TransparentShader::compileAndAttachNecessaryShaders(uint32_t id)
 
     if (_fragmentShaderId == 0)
     {
-        const std::string &fShaderCode = readShaderSource(_fragmentPath);
+        const std::string &fShaderCode = readShaderSource(_fragmentPath.c_str());
 
         const char *fPtr = fShaderCode.c_str();
 
