@@ -232,7 +232,7 @@ int main(int argc, const char *argv[])
                                            ->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg",
                                                              "big_floppa_emission");
 
-    const TextureIdentifier3D simpleSkybox = TextureManager3D::instance()->registerTexture(
+    const TextureIdentifier3D simpleSkybox = CubemapManager::instance()->registerTexture(
         { ENGINE_TEXTURES "/blue_skybox/right1.png", ENGINE_TEXTURES "/blue_skybox/left2.png",
           ENGINE_TEXTURES "/blue_skybox/top3.png", ENGINE_TEXTURES "/blue_skybox/bottom4.png",
           ENGINE_TEXTURES "/blue_skybox/front5.png", ENGINE_TEXTURES "/blue_skybox/back6.png" },
@@ -865,7 +865,7 @@ int main(int argc, const char *argv[])
     //// Cleanup
     MeshManager::instance()->cleanUpGracefully();
     TextureManager::instance()->cleanUpGracefully();
-    TextureManager3D::instance()->cleanUpGracefully();
+    CubemapManager::instance()->cleanUpGracefully();
 
     {
         ImGui_ImplOpenGL3_Shutdown();

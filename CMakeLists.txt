@@ -151,6 +151,6 @@ if(ENGINE_ENABLE_HW_PCF)
 endif()
 
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-    COMMAND git lfs pull #to make sure the models and textures are intact
+    COMMAND git lfs pull || true #to make sure the models and textures are intact
 )
 

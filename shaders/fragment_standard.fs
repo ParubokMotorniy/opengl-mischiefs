@@ -89,15 +89,19 @@ layout(binding = 1, std140) uniform DirectionalLights
 {
     DirectionalLight dirLights[NUM_DIRECTIONAL];
 };
+uniform int numDirectionalLightsBound;
 
 #define NUM_POINT 8
 layout(binding = 2, std140) uniform PointLights { PointLight pointLights[NUM_POINT]; };
+uniform int numPointLightsBound;
 
 #define NUM_SPOT 8
 layout(binding = 3, std140) uniform SpotLights { SpotLight spotLights[NUM_SPOT]; };
+uniform int numSpotLightsBound;
 
 #define NUM_TEXTURED_SPOT 4
 layout(binding = 4, std140) uniform TexturedSpotLights { TexturedSpotLight texturedSpotLights[NUM_TEXTURED_SPOT]; };
+uniform int numTexturedLightsBound;
 
 uniform sampler2DShadow directionalShadowMaps[NUM_DIRECTIONAL];
 uniform float directionalShadowBias;
@@ -268,24 +272,24 @@ void main()
 
     //TODO: find a reliable way of telling shader how many lights are currently bound
 
-    for (int d = 0; d < 2; ++d)
+    for (int d = 0; d < numDirectionalLightsBound; ++d)
     {
         effectiveColor += CalculateDirectionalLight(dirLights[d], d, normalize(vNorm), viewDir, diffuseColor, ambientColor, specularColor);
     }
 
-    for (int p = 0; p < 2; ++p)
+    for (int p = 0; p < numPointLightsBound; ++p)
     {
         effectiveColor += CalculatePointLight(pointLights[p], normalize(vNorm), vPos, viewDir,
                                               diffuseColor, ambientColor, specularColor);
     }
 
-    for (int s = 0; s < 2; ++s)
+    for (int s = 0; s < numSpotLightsBound; ++s)
     {
         effectiveColor += CalculateSpotLight(spotLights[s], normalize(vNorm), vPos, viewDir,
                                             diffuseColor, ambientColor, specularColor);
     }
 
-    for (int s = 0; s < 1; ++s)
+    for (int s = 0; s < numTexturedLightsBound; ++s)
     {
         effectiveColor += CalculateTexturedSpotLight(texturedSpotLights[s], normalize(vNorm), vPos, viewDir,
                                             diffuseColor, ambientColor, specularColor);

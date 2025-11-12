@@ -17,10 +17,10 @@ struct Texture3DParameters
     uint32_t filteringMag = 0;
 };
 
-class TextureManager3D;
-class Texture3D
+class CubemapManager;
+class Cubemap
 {
-    friend class TextureManager3D;
+    friend class CubemapManager;
 
 public:
     void setUseAnisotropic(bool useAniso, size_t level);
@@ -29,7 +29,7 @@ public:
     operator int() const { return _textureId; }
 
 private:
-    Texture3D(const std::array<const char *, 6> &cubemapPaths,
+    Cubemap(const std::array<const char *, 6> &cubemapPaths,
               bool enableAnisotropicFiltering = false,
               Texture3DParameters params = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
                                              GL_LINEAR, GL_LINEAR });

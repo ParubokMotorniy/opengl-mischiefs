@@ -64,7 +64,19 @@ void StandardPass::runPass()
         _shaderProgramMain->setMatrix4("projection", projection);
         _shaderProgramMain->setVec3("viewPos", _currentViewCamera->position());
         _shaderProgramMain->setFloat("directionalShadowBias", directionalShadowBias);
+        _shaderProgramMain->setInt("numDirectionalLightsBound",
+                                   LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                                       ->getNumberOfBoundLights());
+        _shaderProgramMain->setInt("numPointLightsBound",
+                                   LightManager<ComponentType::LIGHT_POINT>::instance()
+                                       ->getNumberOfBoundLights());
         _shaderProgramMain->runShader();
+        _shaderProgramMain
+            ->setInt("numSpotLightsBound",
+                     LightManager<ComponentType::LIGHT_SPOT>::instance()->getNumberOfBoundLights());
+        _shaderProgramMain->setInt("numTexturedLightsBound",
+                                   LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
+                                       ->getNumberOfBoundLights());
         TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();
     }
@@ -76,7 +88,9 @@ void StandardPass::runPass()
         _worldPlaneShader->setMatrix4("projection", projection);
         _worldPlaneShader->setVec3("viewPos", _currentViewCamera->position());
         _worldPlaneShader->setFloat("directionalShadowBias", directionalShadowBias);
-
+        _worldPlaneShader->setInt("numDirectionalLightsBound",
+                                  LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                                      ->getNumberOfBoundLights());
         _worldPlaneShader->runShader();
         TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();

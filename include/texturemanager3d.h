@@ -10,11 +10,11 @@
 #include <tuple>
 #include <unordered_map>
 
-class TextureManager3D : public SystemSingleton<TextureManager3D> // crtp
+class CubemapManager : public SystemSingleton<CubemapManager> // crtp
 {
 public:
     friend class SystemSingleton; // so that the singleton can access the private constructor
-    using NamedTexture = NamedComponent<Texture3D>;
+    using NamedTexture = NamedComponent<Cubemap>;
 
     TextureIdentifier3D registerTexture(const std::array<const char *, 6> &cubemapSources, const std::string &texName);
     std::pair<std::string, TextureIdentifier3D> registerTexture(const std::array<const char *, 6> &cubemapSources);
@@ -31,13 +31,13 @@ public:
 
     void cleanUpGracefully();
 
-    Texture3D *getTexture(TextureIdentifier3D tId);
+    Cubemap *getTexture(TextureIdentifier3D tId);
 
 private:
-    TextureManager3D();
+    CubemapManager();
 
     // returns -1 if is not bound and the binding index otherwise
-    int isTextureBound(const Texture3D &texture);
+    int isTextureBound(const Cubemap &texture);
 
 private:
     TextureIdentifier3D _identifiers = 0; // TODO: add some defragmentation logic

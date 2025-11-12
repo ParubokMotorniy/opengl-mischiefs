@@ -34,6 +34,7 @@ layout(binding = 1, std140) uniform DirectionalLights
 {
     DirectionalLight dirLights[NUM_DIRECTIONAL];
 };
+uniform int numDirectionalLightsBound;
 
 uniform sampler2DShadow directionalShadowMaps[NUM_DIRECTIONAL];
 uniform float directionalShadowBias;
@@ -96,14 +97,11 @@ void main()
     float texXCoord = mod(fragmentPos.x, checkerUnitWidth) / checkerUnitWidth;
     float texZCoord = mod(fragmentPos.z, checkerUnitHeight) / checkerUnitHeight;
     vec4 texDiffuseColor = texture(planeTexture, vec2(texXCoord, texZCoord));
-    
-    // fragColor = vec4(texture(directionalShadowMaps[0], vec3(texXCoord, texZCoord, 0.9)).rrr, 1.0);
-    // fragColor = texture(planeTexture, vec2(texXCoord, texZCoord));
 
     vec3 effectiveColor = vec3(0.0f, 0.0f, 0.0f);
     vec3 viewDir = normalize(viewPos - fragmentPos);
 
-    for (int d = 0; d < NUM_DIRECTIONAL; ++d)
+    for (int d = 0; d < numDirectionalLightsBound; ++d)
     {
         effectiveColor += CalculateDirectionalLight(dirLights[d], d, texDiffuseColor.xyz, normalize(vNorm), viewDir);
     }

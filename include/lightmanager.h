@@ -16,7 +16,7 @@
 #include <map>
 #include <vector>
 
-// TODO: consider adding buffer defragmentation
+// TODO: consider adding buffer defragmentation instead of relying on upper bound
 template <ComponentType LightType>
 class LightManager : public SystemSingleton<LightManager<LightType>>
 {
@@ -27,10 +27,7 @@ public:
     using LightComponent = std::pair<NamedComponent<LightStruct>, TransformIdentifier>;
 
 public:
-    size_t getMaxLights()
-    {
-        return MaxLights;
-    }
+    size_t getMaxLights() { return MaxLights; }
 
     void setLightSourceValidator(std::function<bool(LightStruct)> &&newSourceValidator)
     {
@@ -80,9 +77,15 @@ public:
         FrameBufferManager::instance()->bindDepthTexture(GL_FRAMEBUFFER, GL_TEXTURE_2D, depthMap);
         FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
 
-        const TextureIdentifier shadowIdentifier = TextureManager::instance()->registerTexture(depthMap);
+        const TextureIdentifier shadowIdentifier = TextureManager::instance()->registerTexture(
+            depthMap);
 
         return { depthMapFBO, shadowIdentifier };
+    }
+
+    size_t getNumberOfBoundLights()
+    {
+        return _lastActiveLightIdx + 1;
     }
 
     void updateManager() // both boundBuffer and uniform buffer can be left fragmented after this
@@ -105,8 +108,14 @@ public:
             {
                 updateLightSource(*boundPtr, LightStruct());
                 *boundPtr = InvalidIdentifier;
+                if ((boundPtr - _boundSources.cbegin())
+                    == _lastActiveLightIdx) // we can only remove lights from the end.
+                {
+                    --_lastActiveLightIdx;
+                }
             }
 
+            // the buffer slot is free (!idValid) + there could be lights left that can be allocated
             while (sourcesPtr != _lightComponents.cend())
             {
                 if (_sourceValidator(sourcesPtr->second.first.componentData)
@@ -116,6 +125,7 @@ public:
                     // add a new light source to the uniform buffer
                     *boundPtr = lId;
                     updateLightSource(lId, sourcesPtr->second.first.componentData);
+                    _lastActiveLightIdx = boundPtr - _boundSources.cbegin();
                     break;
                 }
                 ++sourcesPtr;
@@ -231,7 +241,12 @@ private:
 
     std::array<LightSourceIdentifier, MaxLights> _boundSources;
 
-    std::function<bool(LightStruct)> _sourceValidator;
+    std::function<bool(LightStruct)>
+        _sourceValidator; // since we could have many light sources, not all will fit into the fixed
+                          // uniform buffers. This thing tells whether a light source can be evicted
+                          // from the buffer
 
-    GLuint _lBufferId;
+    int _lastActiveLightIdx = -1; // tells where in the buffer the last active light is
+
+    GLuint _lBufferId = 0;
 };
