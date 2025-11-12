@@ -148,8 +148,8 @@ vec3 CalculateDirectionalLight(DirectionalLight light, int lightIdx, vec3 normal
     // diffuse bit
     float diff = max(dot(normal, lightDir), 0.0);
     // specular bit
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 halfVector = normalize(viewDir+lightDir);
+    float spec = pow(max(dot(halfVector, normal), 0.0), 32);
 
     float shadowEffect = 1.0 - fragmentInDirectionalShadow(light, lightIdx, vPos, normal);
     // // combination
@@ -166,8 +166,8 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewD
     // diffuse bit
     float diff = max(dot(normal, fragToLight), 0.0);
     // specular bit
-    vec3 reflectDir = reflect(-fragToLight, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 halfVector = normalize(viewDir+fragToLight);
+    float spec = pow(max(dot(halfVector, normal), 0.0), 32);
     // attenuation computation
     float distance = length(light.position - fragPos);
     float attenuation = clamp(1.0
@@ -190,8 +190,8 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir
     // diffuse bit
     float diff = max(dot(normal, fragToLight), 0.0);
     // specular bit
-    vec3 reflectDir = reflect(-fragToLight, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 halfVector = normalize(viewDir+fragToLight);
+    float spec = pow(max(dot(halfVector, normal), 0.0), 32);
     // attenuation computation
     float distance = length(light.position - fragPos);
     float attenuation = clamp(1.0
@@ -224,8 +224,8 @@ vec3 CalculateTexturedSpotLight(TexturedSpotLight light, vec3 normal, vec3 fragP
     // diffuse bit
     float diff = max(dot(normal, fragToLight), 0.0);
     // specular bit
-    vec3 reflectDir = reflect(-fragToLight, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 halfVector = normalize(viewDir+fragToLight);
+    float spec = pow(max(dot(halfVector, normal), 0.0), 32);
     // attenuation computation
     float distance = length(fragToLight);
     float attenuation = clamp(1.0

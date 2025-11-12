@@ -80,8 +80,8 @@ vec3 CalculateDirectionalLight(DirectionalLight light, int lightIdx, vec3 planeD
     // diffuse bit
     float diff = max(dot(normal, lightDir), 0.0);
     // specular bit
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 halfVector = normalize(viewDir+lightDir);
+    float spec = pow(max(dot(lightDir, halfVector), 0.0), 32);
 
     float shadowEffect = 1.0 - fragmentInDirectionalShadow(light, lightIdx, fragmentPos, normal);
     // return vec3(shadowEffect,shadowEffect,shadowEffect) * diff;

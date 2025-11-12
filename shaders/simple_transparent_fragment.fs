@@ -35,8 +35,8 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewD
     // diffuse bit
     float diff = max(dot(normal, fragToLight), 0.0);
     // specular bit
-    vec3 reflectDir = reflect(-fragToLight, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64);
+    vec3 halfVector = normalize(viewDir+fragToLight);
+    float spec = pow(max(dot(halfVector, normal), 0.0), 64);
     // attenuation computation
     float distance = length(light.position - fragPos);
     float attenuation = clamp(1.0
