@@ -48,7 +48,7 @@ void ShadowPass::runPass()
         _shaderProgramMain->removeShaderProgramOverride();
         _lightVisualizationShader->removeShaderProgramOverride();
 
-        FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
+        // FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
         // TODO: reset the viewport after the pass so that the following passes don't have to
     }
 }

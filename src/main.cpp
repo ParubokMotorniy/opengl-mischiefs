@@ -631,7 +631,7 @@ int main(int argc, const char *argv[])
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 10; k < 40; ++k)
+        for (int k = 15; k < 45; ++k)
         {
             const float fK = static_cast<float>(k);
             // add cubes and pyramids
@@ -652,7 +652,7 @@ int main(int argc, const char *argv[])
                 glm::vec3(std::sin(k) * 10.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
-            t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
+            t->setScale(glm::vec3(std::max((k % 10) / 1.5f, 0.2f)));
 
             shaderProgramMain.addObject(standardObject);
             movingObjects.emplace_back(standardObject);
@@ -664,20 +664,22 @@ int main(int argc, const char *argv[])
             standardAxes.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             worldAxesShader.addObject(standardAxes);
-
+        }
+        for(int k = 10; k < 20; ++k)
+        {
             /// add bills
-            // auto billCopy = ObjectManager::instance()->copyObject(billModel);
-            // auto billTransform = TransformManager::instance()->getTransform(
-            //     ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
-            //         ComponentType::TRANSFORM));
-            // billTransform->setPosition(
-            //     glm::vec3(-k * std::sin(k), k * std::sin(k), k * std::cos(k)));
-            // billTransform->setRotation(
-            //     glm::rotate(billTransform->rotation(), glm::radians((float)k),
-            //                 glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-            // billTransform->setScale(glm::vec3(20.0f));
+            auto billCopy = ObjectManager::instance()->copyObject(billModel);
+            auto billTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
+                    ComponentType::TRANSFORM));
+            billTransform->setPosition(
+                glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
+            billTransform->setRotation(
+                glm::rotate(billTransform->rotation(), glm::radians((float)k),
+                            glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
+            billTransform->setScale(glm::vec3(20.0f));
 
-            // shaderProgramMain.addObjectWithChildren(billCopy);
+            shaderProgramMain.addObjectWithChildren(billCopy);
         }
         {
             GameObject &worldAxes = ObjectManager::instance()->getObject(
@@ -692,13 +694,13 @@ int main(int argc, const char *argv[])
             for (const auto &[materialId, rotationAxis, position] :
                  std::initializer_list<std::tuple<MaterialIdentifier, glm::vec3, glm::vec3>>{
                      { greenGlassMaterial, glm::vec3(0.0f, 0.0f, 1.0f),
-                       glm::vec3(-20.0f, 0.0f, 0.0f) },
+                       glm::vec3(-25.0f, 0.0f, 0.0f) },
                      { yellowGlassMaterial, glm::vec3(1.0f, 0.0f, 0.0f),
-                       glm::vec3(0.0f, 0.0f, -20.0f) },
+                       glm::vec3(0.0f, 0.0f, -25.0f) },
                      { blueGlassMaterial, glm::vec3(0.0f, 0.0f, 1.0f),
-                       glm::vec3(20.0f, 0.0f, 0.0f) },
+                       glm::vec3(25.0f, 0.0f, 0.0f) },
                      { purpleGlassMaterial, glm::vec3(1.0f, 0.0f, 0.0f),
-                       glm::vec3(0.0f, 0.0f, 20.0f) } })
+                       glm::vec3(0.0f, 0.0f, 25.0f) } })
             {
                 GameObject &glassObject = ObjectManager::instance()->getObject(
                     ObjectManager::instance()->addObject());
@@ -713,7 +715,7 @@ int main(int argc, const char *argv[])
                 Transform *t = TransformManager::instance()->getTransform(tId);
                 t->setPosition(position);
                 t->setRotation(glm::rotate(t->rotation(), glm::radians(90.0f), rotationAxis));
-                t->setScale(glm::vec3(7.0f));
+                t->setScale(glm::vec3(15.0f));
 
                 simpleTransparentShader.addObject(glassObject);
             }

@@ -51,8 +51,7 @@ public:
     static std::pair<GLuint, TextureIdentifier> createShadowMapPremises(size_t shadowResolutionX,
                                                                         size_t shadowResolutionY)
     {
-        // TODO: wrap this thing through the texture manager. somehow. Once in place -> add support
-        // for cubemaps
+        // TODO: add support for cubemaps
         unsigned int depthMap;
         glGenTextures(1, &depthMap);
         glBindTexture(GL_TEXTURE_2D, depthMap);
