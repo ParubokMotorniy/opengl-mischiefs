@@ -7,6 +7,7 @@ WorldPlaneShader::WorldPlaneShader(MeshIdentifier planeMesh, TextureIdentifier p
     : _planeMesh(planeMesh), _planeTexture(planeTexture)
 {
 }
+
 void WorldPlaneShader::runShader()
 {
     if (_planeMesh != InvalidIdentifier && _planeTexture != InvalidIdentifier)
@@ -22,16 +23,30 @@ void WorldPlaneShader::runShader()
             const Mesh *planeMesh = MeshManager::instance()->getMesh(_planeMesh);
 
             setInt("planeTexture", bindPoint);
-            setMatrix4("model",
-                       glm::scale(glm::identity<glm::mat4>(), glm::vec3(500.0f, 0.0f, 500.0f)));
+            glm::mat4 squashedCubeMatrix = glm::scale(glm::identity<glm::mat4>(),
+                                                      glm::vec3(500.0f, 0.05f, 500.0f));
+            squashedCubeMatrix = glm::translate(squashedCubeMatrix, glm::vec3(0.0f, -50.0f, 0.0f));
+            setMatrix4("model", squashedCubeMatrix);
+            setFloat("checkerUnitWidth", 5.0f);
+            setFloat("checkerUnitHeight", 5.0f);
+
+            if (!_planeEnabled)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
             glDrawElements(GL_TRIANGLES, planeMesh->numIndices(), GL_UNSIGNED_INT, 0);
             TextureManager::instance()->unbindTexture(_planeTexture);
+
+            if (!_planeEnabled)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
 
         MeshManager::instance()->unbindMesh();
     }
 }
+void WorldPlaneShader::setPlaneEnabled(bool ifEnabled) noexcept { _planeEnabled = ifEnabled; }
+
+bool WorldPlaneShader::isPlaneEnabled() const noexcept { return _planeEnabled; }
+
 void WorldPlaneShader::compileAndAttachNecessaryShaders(uint32_t id)
 {
     if (_vertexShaderId == 0)

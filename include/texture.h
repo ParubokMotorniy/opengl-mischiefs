@@ -27,12 +27,12 @@ public:
 
     operator int() const { return _textureId; }
 
-    ~Texture2D();
-
 private:
-    Texture2D(const char *textureSourcePath, bool enableAnisotropicFiltering = false,
+    explicit Texture2D(const char *textureSourcePath, bool enableAnisotropicFiltering = false,
               Texture2DParameters params = { GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT,
                                              GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR });
+    explicit Texture2D(uint32_t textureId);
+
     void allocateTexture();
 
     void deallocateTexture();

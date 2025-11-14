@@ -112,6 +112,9 @@ void GeometryShaderProgram::runShader()
         MeshManager::instance()->allocateMesh(_dummyMesh);
         MeshManager::instance()->bindMeshInstanced(_dummyMesh);
 
+        setFloat("axisLength", 0.25l);
+        setFloat("thickness", 0.002l);
+
         glDrawArraysInstanced(GL_POINTS, 0, 3, shaderObjects.size());
 
         glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated

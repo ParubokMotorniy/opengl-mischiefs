@@ -13,19 +13,22 @@ void SkyboxShader::runShader()
         use();
 
         MeshManager::instance()->allocateMesh(_skyboxMesh);
-        TextureManager3D::instance()->allocateTexture(_skyboxTexture);
+        CubemapManager::instance()->allocateTexture(_skyboxTexture);
         
         MeshManager::instance()->bindMesh(_skyboxMesh);
-        const int bindPoint = TextureManager3D::instance()->bindTexture(_skyboxTexture);
+        const int bindPoint = CubemapManager::instance()->bindTexture(_skyboxTexture);
 
         if (bindPoint != -1)
         {
             const Mesh *skyMesh = MeshManager::instance()->getMesh(_skyboxMesh);
 
+            const glm::mat4 skyboxModel = glm::scale(glm::identity<glm::mat4>(),
+                                                      glm::vec3(-1.0f, -1.0f, -1.0f));
             setInt("skyboxSampler", bindPoint);
+            setMatrix4("model", skyboxModel);
 
             glDrawElements(GL_TRIANGLES, skyMesh->numIndices(), GL_UNSIGNED_INT, 0);
-            TextureManager3D::instance()->unbindTexture(_skyboxTexture);
+            CubemapManager::instance()->unbindTexture(_skyboxTexture);
         }
 
         MeshManager::instance()->unbindMesh();

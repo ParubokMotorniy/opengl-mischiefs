@@ -3,8 +3,11 @@ project(engine VERSION 1.0.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# set(CMAKE_GENERATOR Ninja)
 
 option(ENGINE_DISABLE_BINDLESS_TEXTURES "Determines whether the bindless textures are used. Note: calls to the corresponding API are merely disabled in OFF mode." OFF)
+
+option(ENGINE_ENABLE_HW_PCF "Whether to use hardware PCF for shadow mapping" ON)
 
 include(FetchContent)
 
@@ -58,6 +61,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
+message(STATUS "Fetching imgui")
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(imgui)
+
 message(STATUS "Fetching Assimp...")
 FetchContent_Declare(
     assimp
@@ -74,6 +85,17 @@ set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(assimp)
 
 file(GLOB SRC_FILES src/*)
+file(GLOB imgui_FILES 
+    ${imgui_SOURCE_DIR}/*.cpp 
+    ${imgui_SOURCE_DIR}/*.h 
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3*
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw*
+    ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.*
+)
+
+list(APPEND SRC_FILES 
+    ${imgui_FILES}
+)
 
 add_executable(${PROJECT_NAME}
     ${SRC_FILES}
@@ -83,6 +105,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_SOURCE_DIR}/include
     ${stb_SOURCE_DIR}
     ${khr_SOURCE_DIR}/api
+    ${imgui_SOURCE_DIR}/
+    ${imgui_SOURCE_DIR}/backends
+    ${imgui_SOURCE_DIR}/misc/cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
@@ -121,7 +146,11 @@ if(ENGINE_DISABLE_BINDLESS_TEXTURES)
     target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_DISABLE_BINDLESS_TEXTURES)
 endif()
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND git lfs pull #to make sure the models and textures are intact
+if(ENGINE_ENABLE_HW_PCF)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ENABLE_HW_PCF)
+endif()
+
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+    COMMAND git lfs pull || true #to make sure the models and textures are intact
 )
 

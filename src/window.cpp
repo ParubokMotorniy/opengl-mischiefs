@@ -1,6 +1,12 @@
 #include "window.h"
 
 #include <iostream>
+#include <cstdio>
+
+static void glfwErrorCallback(int error, const char* description)
+{
+    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+}
 
 void framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
@@ -51,6 +57,7 @@ struct overloaded : Ts...
 
 void Window::processInput()
 {
+    glfwPollEvents();
     if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(_window, true);
 
@@ -87,30 +94,31 @@ void Window::processInput()
 bool Window::shouldClose() const { return glfwWindowShouldClose(_window); }
 GLFWwindow *Window::getRawWindow() const { return _window; }
 
-void Window::update(float deltaTime)
+void Window::update()
 {
     processInput();
 
     // TODO: remove repeated flag checking. It's slow.
     const auto visitor = overloaded{
-        [this, deltaTime](const KeyboardEventsListener &listener) -> void
-        { listener(_lastInput, _releasedKeys, deltaTime); },
-        [this, deltaTime](const FrameBufferResizeEventsListener &listener) -> void
-        { 
-            if(!_dirtyViewportDelta)
+        [this](const KeyboardEventsListener &listener) -> void {
+            listener(_lastInput, _releasedKeys);
+        },
+        [this](const FrameBufferResizeEventsListener &listener) -> void {
+            if (!_dirtyViewportDelta)
                 return;
-            listener(_lastViewportWidth, _lastViewportHeight); },
-        [this, deltaTime](const MouseMotionEventsListener &listener) -> void
-        { 
-            if(!_dirtyMouseDelta)
+            listener(_lastViewportWidth, _lastViewportHeight);
+        },
+        [this](const MouseMotionEventsListener &listener) -> void {
+            if (!_dirtyMouseDelta)
                 return;
-            listener(_lastInput, {_lastMouseDeltaX, _lastMouseDeltaY}); },
-        [this, deltaTime](const ScrollEventsListener &listener)
-        {
+            listener(_lastInput, { _lastMouseDeltaX, _lastMouseDeltaY });
+        },
+        [this](const ScrollEventsListener &listener) {
             if (!_dirtyScrollDelta)
                 return;
-            listener(_lastInput, {_lastScrollDeltaX, _lastScrollDeltaY});
-        }};
+            listener(_lastInput, { _lastScrollDeltaX, _lastScrollDeltaY });
+        }
+    };
 
     for (auto &listener : _eventListeners)
     {
@@ -136,12 +144,30 @@ void Window::setMouseAccuracy(bool accurate) const
     glfwSetInputMode(_window, GLFW_RAW_MOUSE_MOTION, accurate ? GLFW_TRUE : GLFW_FALSE);
 }
 
+std::pair<size_t, size_t> Window::currentWindowDimensions() const noexcept
+{
+    int width, height;
+    glfwGetWindowSize(_window, &width, &height);
+
+    return { width, height };
+}
+
+void Window::resetViewport() const
+{
+    const auto [w, h] = currentWindowDimensions();
+    glViewport(0, 0, w, h);
+}
+
 Window::Window(size_t widthX, size_t heightY, const char *windowName)
     : _lastViewportWidth(widthX), _lastViewportHeight(heightY)
 {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifndef NDEBUG
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+#endif
 
     _window = glfwCreateWindow(widthX, heightY, windowName, NULL, NULL);
     if (_window == NULL)
@@ -151,11 +177,12 @@ Window::Window(size_t widthX, size_t heightY, const char *windowName)
         glfwTerminate();
         return;
     }
-
     glfwMakeContextCurrent(_window);
+
     glfwSetFramebufferSizeCallback(_window, framebufferResizeCallback);
     glfwSetCursorPosCallback(_window, mouseCallback);
     glfwSetScrollCallback(_window, scrollCallback);
+    glfwSetErrorCallback(glfwErrorCallback);
 
     glfwSetWindowUserPointer(_window, this);
 }

@@ -34,6 +34,14 @@ TextureIdentifier TextureManager::registerTexture(const char *textureSource,
     return _identifiers;
 }
 
+TextureIdentifier TextureManager::registerTexture(uint32_t textureId)
+{
+    const auto rName = RandomNamer::instance()->getRandomName(10);
+    _textures.emplace(++_identifiers, NamedTexture{ RandomNamer::instance()->getRandomName(10),
+                                                    Texture2D(textureId) });
+    return _identifiers;
+}
+
 TextureIdentifier TextureManager::textureRegistered(const std::string &texName) const
 {
     const auto texPtr = std::ranges::find_if(_textures, [&texName](const auto &pair) {
@@ -151,7 +159,10 @@ void TextureManager::cleanUpGracefully()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    _textures.clear();
+    std::for_each(_textures.begin(), _textures.end(),
+                  [](auto &pair) { pair.second.componentData.deallocateTexture(); });
+
+    _textures.clear(); // just for future me
 }
 
 Texture2D *TextureManager::getTexture(TextureIdentifier tId)

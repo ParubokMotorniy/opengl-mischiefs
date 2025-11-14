@@ -12,6 +12,8 @@ Texture2D::Texture2D(const char *textureSourcePath, bool enableAnisotropicFilter
 {
 }
 
+Texture2D::Texture2D(uint32_t textureId) : _textureId(textureId) {}
+
 void Texture2D::allocateTexture()
 {
     if (_textureId != 0)
@@ -59,7 +61,7 @@ void Texture2D::deallocateTexture()
     if (_textureId == 0)
         return;
 #if !ENGINE_DISABLE_BINDLESS_TEXTURES
-    if (glIsTextureHandleResidentARB(_textureId))
+    if (glIsTextureHandleResidentARB(glGetTextureHandleARB(_textureId)))
     {
         glMakeTextureHandleNonResidentARB(glGetTextureHandleARB(_textureId));
     }
@@ -77,5 +79,3 @@ void Texture2D::setUseAnisotropic(bool useAniso, size_t level)
 }
 
 void Texture2D::setParameters(Texture2DParameters params) { _params = params; }
-
-Texture2D::~Texture2D() { deallocateTexture(); }

@@ -7,6 +7,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include "basicshader.h"
 #include "camera.h"
 #include "geometryshaderprogram.h"
@@ -20,11 +24,16 @@
 #include "object.h"
 #include "objectmanager.h"
 #include "quaternioncamera.h"
+#include "shadowpass.h"
 #include "skyboxshader.h"
+#include "standardpass.h"
 #include "texture.h"
 #include "texturemanager.h"
 #include "texturemanager3d.h"
+#include "timemanager.h"
 #include "transformmanager.h"
+#include "transparentpass.h"
+#include "transparentshader.h"
 #include "window.h"
 #include "worldplaneshader.h"
 
@@ -47,13 +56,114 @@ const char *axesVertexShaderSource = ENGINE_SHADERS "/axis_vertex.vs";
 const char *axesFragmentShaderSource = ENGINE_SHADERS "/axis_fragment.fs";
 const char *axesGeometryShaderSource = ENGINE_SHADERS "/axis_geometry.gs";
 
+const char *simpleTransparentVertexShaderSource = ENGINE_SHADERS "/simple_transparent_vertex.vs";
+const char *simpleTransparentFragmentShaderSource = ENGINE_SHADERS
+    "/simple_transparent_fragment.fs";
+
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
-float deltaTime{ 0.0f };
-float previousTime{ 0.0f };
-const float lightRotationRadius = 50.0f;
+const float lightRotationRadius = 40.0f;
 
 bool renderAxes = true;
-bool renderOnlyGrid = false;
+
+#ifndef NDEBUG
+void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                            const GLchar *message, const void *userParam)
+{
+    // if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
+    //     return;
+
+    std::cerr << "---------------\n";
+    std::cerr << "OpenGL Debug Message (" << id << "): " << message << "\n";
+
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API:
+        std::cerr << "Source: API";
+        break;
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        std::cerr << "Source: Window System";
+        break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        std::cerr << "Source: Shader Compiler";
+        break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        std::cerr << "Source: Third Party";
+        break;
+    case GL_DEBUG_SOURCE_APPLICATION:
+        std::cerr << "Source: Application";
+        break;
+    case GL_DEBUG_SOURCE_OTHER:
+        std::cerr << "Source: Other";
+        break;
+    }
+    std::cerr << "\n";
+
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR:
+        std::cerr << "Type: Error";
+        break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        std::cerr << "Type: Deprecated Behaviour";
+        break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        std::cerr << "Type: Undefined Behaviour";
+        break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+        std::cerr << "Type: Portability";
+        break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        std::cerr << "Type: Performance";
+        break;
+    case GL_DEBUG_TYPE_MARKER:
+        std::cerr << "Type: Marker";
+        break;
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+        std::cerr << "Type: Push Group";
+        break;
+    case GL_DEBUG_TYPE_POP_GROUP:
+        std::cerr << "Type: Pop Group";
+        break;
+    case GL_DEBUG_TYPE_OTHER:
+        std::cerr << "Type: Other";
+        break;
+    }
+    std::cerr << "\n";
+
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH:
+        std::cerr << "Severity: high";
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        std::cerr << "Severity: medium";
+        break;
+    case GL_DEBUG_SEVERITY_LOW:
+        std::cerr << "Severity: low";
+        break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        std::cerr << "Severity: notification";
+        break;
+    }
+    std::cerr << "\n\n";
+}
+#endif
+
+void imGuiInitialization(Window *windowToBindTo)
+{
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(windowToBindTo->getRawWindow(), true);
+
+    ImGui_ImplOpenGL3_Init();
+}
+
 } // namespace
 
 int main(int argc, const char *argv[])
@@ -73,6 +183,23 @@ int main(int argc, const char *argv[])
         return -1;
     }
 
+    imGuiInitialization(&mainWindow);
+
+    camera->setProjectionMatrix(glm::perspective(glm::radians(camera->zoom()),
+                                                 (float)windowWidth / windowHeight, 0.1f, 1000.0f));
+
+#ifndef NDEBUG
+    int flags;
+    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+    {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(glDebugOutput, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    }
+#endif
+
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -81,84 +208,6 @@ int main(int argc, const char *argv[])
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     //// Meshes
-    // TODO: make sure the cubes reuse the same mesh but index vertices in their cutsom way
-
-    const MeshIdentifier simpleCubeMesh = MeshManager::instance()->registerMesh(
-        Mesh{ { { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
-                { -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
-                { -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
-                { -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
-
-                { 0.5f, -0.5f, -0.5f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
-                { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
-                { 0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
-                { 0.5f, 0.5f, -0.5f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
-
-              { 0, 1, 2, 2, 3, 0,
-
-                0, 4, 5, 5, 1, 0,
-
-                6, 5, 4, 4, 7, 6,
-
-                7, 3, 2, 2, 6, 7,
-
-                6, 2, 1, 1, 5, 6,
-
-                0, 3, 7, 7, 4, 0 } },
-        "simple_cube");
-
-    const MeshIdentifier skyboxMesh = MeshManager::instance()->registerMesh(
-        Mesh{ { { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -5.0f, -5.0f, -5.0f },
-                { -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, -5.0f, -5.0f, 5.0f },
-                { -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, -5.0f, 5.0f, 5.0f },
-                { -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -5.0f, 5.0f, -5.0f },
-
-                { 0.5f, -0.5f, -0.5f, 1.0, 1.0f, 5.0f, -5.0f, -5.0f },
-                { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 5.0f, -5.0f, 5.0f },
-                { 0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f },
-                { 0.5f, 0.5f, -0.5f, 1.00f, 0.0f, 5.0f, 5.0f, -5.0f } },
-
-              { 2, 1, 0, 0, 3, 2,
-
-                5, 4, 0, 0, 1, 5,
-
-                4, 5, 6, 6, 7, 4,
-
-                2, 3, 7, 7, 6, 2,
-
-                1, 2, 6, 6, 5, 1,
-
-                7, 3, 0, 0, 4, 7 } },
-        "skybox_cube");
-
-    //   0  4
-    // 1 3 5 7
-    // 2   6
-
-    const MeshIdentifier simplePyramidMesh = MeshManager::instance()->registerMesh(
-        Mesh{
-            { { static_cast<float>(std::cos(0)), 0.0f, static_cast<float>(std::sin(0)), 0.0f, 1.0f,
-                static_cast<float>(std::cos(0)) - static_cast<float>(std::numbers::sqrt2) / 2, 0.0f,
-                static_cast<float>(std::sin(0)) - static_cast<float>(std::numbers::sqrt2) / 2 },
-              { static_cast<float>(std::cos(2 * std::numbers::pi / 3)), 0.0f,
-                static_cast<float>(std::sin(2 * std::numbers::pi / 3)), 1.0f, 1.0f,
-                static_cast<float>(std::cos(2 * std::numbers::pi / 3))
-                    - static_cast<float>(std::numbers::sqrt2) / 2,
-                0.0f,
-                static_cast<float>(std::sin(2 * std::numbers::pi / 3))
-                    - static_cast<float>(std::numbers::sqrt2) / 2 },
-              { static_cast<float>(std::cos(4 * std::numbers::pi / 3)), 0.0f,
-                static_cast<float>(std::sin(4 * std::numbers::pi / 3)), 1.0f, 0.0f,
-                static_cast<float>(std::cos(4 * std::numbers::pi / 3))
-                    - static_cast<float>(std::numbers::sqrt2) / 2,
-                0.0f,
-                static_cast<float>(std::sin(4 * std::numbers::pi / 3))
-                    - static_cast<float>(std::numbers::sqrt2) / 2 },
-              { 0.0f, static_cast<float>(std::numbers::sqrt2), 0.0f, 0.0f, 0.0f, 0.0f,
-                static_cast<float>(std::numbers::sqrt2), 0.0f } },
-
-            { 0, 1, 2, 1, 3, 2, 2, 3, 0, 0, 3, 1 } },
-        "simple_pyramid");
 
     const MeshIdentifier dummyAxesMesh = MeshManager::instance()->registerMesh(Mesh(),
                                                                                "dummy_mesh");
@@ -176,14 +225,14 @@ int main(int argc, const char *argv[])
                                                                                 "/black.jpg",
                                                                                 "black");
 
-    const TextureIdentifier specular = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
-                                                                                   "/specular.png",
-                                                                                   "tex_specular");
+    const TextureIdentifier specular
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/specular_squiggle.png",
+                                                      "tex_specular");
     const TextureIdentifier floppaEm = TextureManager::instance()
                                            ->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg",
                                                              "big_floppa_emission");
 
-    const TextureIdentifier3D simpleSkybox = TextureManager3D::instance()->registerTexture(
+    const TextureIdentifier3D simpleSkybox = CubemapManager::instance()->registerTexture(
         { ENGINE_TEXTURES "/blue_skybox/right1.png", ENGINE_TEXTURES "/blue_skybox/left2.png",
           ENGINE_TEXTURES "/blue_skybox/top3.png", ENGINE_TEXTURES "/blue_skybox/bottom4.png",
           ENGINE_TEXTURES "/blue_skybox/front5.png", ENGINE_TEXTURES "/blue_skybox/back6.png" },
@@ -204,6 +253,22 @@ int main(int argc, const char *argv[])
     const TextureIdentifier spotLightTexture
         = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/bill.jpg", "bill");
 
+    const TextureIdentifier greenGlassTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/green_glass.png",
+                                                      "green_glass_diffuse");
+    const TextureIdentifier yellowGlassTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/yellow_glass.png",
+                                                      "yellow_glass_diffuse");
+    const TextureIdentifier purpleGlassTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/purple_glass.png",
+                                                      "purple_glass_diffuse");
+    const TextureIdentifier blueGlassTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/blue_glass.png",
+                                                      "blue_glass_diffuse");
+    const TextureIdentifier glassSpecularTexture
+        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/glass_specular.png",
+                                                      "glass_specular");
+
     // Materials
     const MaterialIdentifier floppaMaterial
         = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
@@ -219,6 +284,30 @@ int main(int argc, const char *argv[])
                                                 InvalidIdentifier },
                                  "checker_material");
 
+    const MaterialIdentifier greenGlassMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ greenGlassTexture, glassSpecularTexture,
+                                                InvalidIdentifier },
+                                 "green_glass_material");
+
+    const MaterialIdentifier yellowGlassMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ yellowGlassTexture, glassSpecularTexture,
+                                                InvalidIdentifier },
+                                 "yellow_glass_material");
+
+    const MaterialIdentifier purpleGlassMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ purpleGlassTexture, glassSpecularTexture,
+                                                InvalidIdentifier },
+                                 "purple_glass_material");
+
+    const MaterialIdentifier blueGlassMaterial
+        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+              ->registerMaterial(BasicMaterial{ blueGlassTexture, glassSpecularTexture,
+                                                InvalidIdentifier },
+                                 "blue_glass_material");
+
     // Models
 
     // Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
@@ -231,40 +320,17 @@ int main(int argc, const char *argv[])
         ENGINE_MODELS "/sphere/sphere.obj");
     const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
 
-    // Events
-    {
-        mainWindow.subscribeEventListener(
-            [&](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
-                if (releasedKeys.CtrlLeft)
-                    renderAxes = !renderAxes;
-                if (releasedKeys.CtrlRight)
-                    renderOnlyGrid = !renderOnlyGrid;
-            });
-        mainWindow.subscribeEventListener(
-            [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys, float deltaTime) {
-                camPtr->processKeyboard(input, deltaTime);
-            });
-        mainWindow.subscribeEventListener(
-            [camPtr = camera, &mainWindow](KeyboardInput input,
-                                           Window::MouseMotionDescriptor descriptor) {
-                if (input.MouseRight == 1)
-                {
-                    camPtr->processMouseMovement(descriptor.deltaPosX, descriptor.deltaPosY);
-                    mainWindow.hideCursor(true);
-                    mainWindow.setMouseAccuracy(true);
-                }
-                else
-                {
-                    mainWindow.hideCursor(false);
-                    mainWindow.setMouseAccuracy(false);
-                }
-            });
-        mainWindow.subscribeEventListener(
-            [camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor) {
-                camPtr->processMouseScroll(descriptor.deltaScrollY);
-            });
-        mainWindow.subscribeEventListener([](int w, int h) { glViewport(0, 0, w, h); });
-    }
+    const GameObjectIdentifier planeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
+                                                                               "/plane/plane.obj");
+    const MeshIdentifier planeMesh = MeshManager::instance()->meshRegistered("Plane");
+
+    const GameObjectIdentifier cubeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
+                                                                              "/cube/cube.obj");
+    const MeshIdentifier cubeMesh = MeshManager::instance()->meshRegistered("Cube");
+
+    const GameObjectIdentifier pyramidModel = ModelLoader::instance()->loadModel(
+        ENGINE_MODELS "/pyramid/pyramid.obj");
+    const MeshIdentifier pyramidMesh = MeshManager::instance()->meshRegistered("Pyramid");
 
     {
         //// Shaders
@@ -272,18 +338,71 @@ int main(int argc, const char *argv[])
         InstancedShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
         shaderProgramMain.initializeShaderProgram();
 
-        GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
-                                               axesGeometryShaderSource, dummyAxesMesh };
-        worldAxesShader.initializeShaderProgram();
-
-        WorldPlaneShader worldPlaneShader{ simpleCubeMesh, checkerboardTexture };
+        WorldPlaneShader worldPlaneShader{ cubeMesh, checkerboardTexture };
         worldPlaneShader.initializeShaderProgram();
 
         LightVisualizationShader lightVisualizationShader{ sphereMesh };
         lightVisualizationShader.initializeShaderProgram();
 
-        SkyboxShader mainSkybox{ skyboxMesh, simpleSkybox };
+        SkyboxShader mainSkybox{ cubeMesh, simpleSkybox };
         mainSkybox.initializeShaderProgram();
+
+        GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
+                                               axesGeometryShaderSource, dummyAxesMesh };
+        worldAxesShader.initializeShaderProgram();
+
+        TransparentShader simpleTransparentShader{ simpleTransparentVertexShaderSource,
+                                                   simpleTransparentFragmentShaderSource };
+        simpleTransparentShader.initializeShaderProgram();
+
+        // passes
+        StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
+                                             &lightVisualizationShader, &mainSkybox };
+        _standardRenderingPass.setCamera(camera);
+        _standardRenderingPass.setWindow(&mainWindow);
+
+        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader };
+
+        SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader };
+        _sortingTransparentPass.setCamera(camera);
+
+        // Events
+        {
+            mainWindow.subscribeEventListener([&](KeyboardInput input, KeyboardInput releasedKeys) {
+                if (releasedKeys.CtrlLeft)
+                    renderAxes = !renderAxes;
+                if (releasedKeys.CtrlRight)
+                    worldPlaneShader.setPlaneEnabled(!worldPlaneShader.isPlaneEnabled());
+            });
+            mainWindow.subscribeEventListener(
+                [camPtr = camera](KeyboardInput input, KeyboardInput releasedKeys) {
+                    camPtr->processKeyboard(input, TimeManager::instance()->getDeltaTime());
+                });
+            mainWindow.subscribeEventListener(
+                [camPtr = camera, &mainWindow](KeyboardInput input,
+                                               Window::MouseMotionDescriptor descriptor) {
+                    if (input.MouseRight == 1)
+                    {
+                        camPtr->processMouseMovement(descriptor.deltaPosX, descriptor.deltaPosY);
+                        mainWindow.hideCursor(true);
+                        mainWindow.setMouseAccuracy(true);
+                    }
+                    else
+                    {
+                        mainWindow.hideCursor(false);
+                        mainWindow.setMouseAccuracy(false);
+                    }
+                });
+            mainWindow.subscribeEventListener(
+                [camPtr = camera](KeyboardInput input, Window::ScrollDescriptor descriptor) {
+                    camPtr->processMouseScroll(descriptor.deltaScrollY);
+                });
+            mainWindow.subscribeEventListener([camPtr = camera](int w, int h) {
+                glViewport(0, 0, w, h);
+                camPtr->setProjectionMatrix(
+                    glm::perspective(glm::radians(camPtr->zoom()), (float)w / h, 0.1f, 1000.0f));
+            });
+        }
 
         // lights
 
@@ -299,9 +418,9 @@ int main(int argc, const char *argv[])
             pointLight1.addComponent(Component(ComponentType::TRANSFORM, pointLight1Transform));
             auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
                 pointLight1Light);
-            lightStruct->ambient = glm::vec3(0.929f, 0.878f, 0.675f);
-            lightStruct->diffuse = glm::vec3(0.922f, 0.835f, 0.498f);
-            lightStruct->specular = glm::vec3(0.91f, 0.878f, 0.757f);
+            lightStruct->ambient = glm::vec3(0.229f, 0.378f, 0.275f);
+            lightStruct->diffuse = glm::vec3(0.622f, 0.535f, 0.198f);
+            lightStruct->specular = glm::vec3(0.791f, 0.478f, 0.757f);
             lightStruct->attenuationConstantTerm = 1.0e-2;
             lightStruct->attenuationLinearTerm = 1.0e-2;
             lightStruct->attenuationQuadraticTerm = 1.0e-3;
@@ -326,9 +445,9 @@ int main(int argc, const char *argv[])
 
             auto lightStruct = LightManager<ComponentType::LIGHT_POINT>::instance()->getLight(
                 pointLight2Light);
-            lightStruct->ambient = glm::vec3(0.89f, 0.439f, 0.369f);
-            lightStruct->diffuse = glm::vec3(0.969f, 0.545f, 0.71f);
-            lightStruct->specular = glm::vec3(0.98f, 0.702f, 0.808f);
+            lightStruct->ambient = glm::vec3(0.189f, 0.239f, 0.269f);
+            lightStruct->diffuse = glm::vec3(0.469f, 0.345f, 0.271f);
+            lightStruct->specular = glm::vec3(0.398f, 0.902f, 0.608f);
             lightStruct->attenuationConstantTerm = 1.0e-2;
             lightStruct->attenuationLinearTerm = 1.0e-2;
             lightStruct->attenuationQuadraticTerm = 1.0e-3;
@@ -352,16 +471,25 @@ int main(int argc, const char *argv[])
                 dirLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.012f, 0.151f, 0.039f);
-                lightStruct->diffuse = glm::vec3(0.029f, 0.158f, 0.086f);
-                lightStruct->specular = glm::vec3(0.075f, 0.012f, 0.02f);
+                lightStruct->ambient = glm::vec3(0.029f, 0.078f, 0.075f);
+                lightStruct->diffuse = glm::vec3(0.122f, 0.135f, 0.298f);
+                lightStruct->specular = glm::vec3(0.091f, 0.078f, 0.057f);
+
+                const auto [bufId, textureIdentifier]
+                    = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                          ->createShadowMapPremises(2048, 2048);
+                lightStruct->frameBufferId = bufId;
+                lightStruct->shadowMapIdentifier = textureIdentifier;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
                 transformStruct->setPosition(glm::vec3(0.0f, 30.0f, 0.0f));
                 transformStruct->setRotation(glm::rotate(glm::identity<glm::mat4>(),
-                                                         glm::radians(55.0f),
-                                                         glm::vec3(1.0f, -1.0f, 0.0f)));
+                                                         glm::radians(90.0f),
+                                                         glm::vec3(1.0f, 0.0f, 0.0f)));
+
+                lightStruct->setProjectionMatrix(
+                    glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, 0.01f, 300.0f));
 
                 lightVisualizationShader.addObject(dirLight1);
             }
@@ -378,16 +506,24 @@ int main(int argc, const char *argv[])
                 dirLight2.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.148f, 0.033f, 0.081f);
-                lightStruct->diffuse = glm::vec3(0.148f, 0.037f, 0.081f);
-                lightStruct->specular = glm::vec3(0.035f, 0.055f, 0.012f);
+                lightStruct->ambient = glm::vec3(0.089f, 0.039f, 0.069f);
+                lightStruct->diffuse = glm::vec3(0.169f, 0.245f, 0.171f);
+                lightStruct->specular = glm::vec3(0.098f, 0.002f, 0.008f);
+                const auto [bufId, textureIdentifier]
+                    = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                          ->createShadowMapPremises(2048, 2048);
+                lightStruct->frameBufferId = bufId;
+                lightStruct->shadowMapIdentifier = textureIdentifier;
 
                 auto transformStruct = TransformManager::instance()->getTransform(lightTransform);
                 transformStruct->setScale(glm::vec3(2.0f, 2.0f, 2.0f));
                 transformStruct->setPosition(glm::vec3(0.0f, -30.0f, 0.0f));
                 transformStruct->setRotation(glm::rotate(glm::identity<glm::mat4>(),
-                                                         glm::radians(55.0f),
-                                                         glm::vec3(-1.0f, 1.0f, 0.0f)));
+                                                         glm::radians(90.0f),
+                                                         glm::vec3(-1.0f, 0.0f, 0.0f)));
+
+                lightStruct->setProjectionMatrix(
+                    glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, 0.01f, 300.0f));
 
                 lightVisualizationShader.addObject(dirLight2);
             }
@@ -405,10 +541,10 @@ int main(int argc, const char *argv[])
                 spotLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_SPOT>::instance()->getLight(
                     lId);
-                lightStruct->ambient = glm::vec3(0.251f, 0.251f, 0.012f);
-                lightStruct->diffuse = glm::vec3(0.871f, 0.871f, 0.063f);
-                lightStruct->specular = glm::vec3(0.6f, 0.6f, 0.055f);
-                lightStruct->attenuationConstantTerm = 1.0e-3;
+                lightStruct->ambient = glm::vec3(0.151f, 0.151f, 0.012f);
+                lightStruct->diffuse = glm::vec3(0.671f, 0.871f, 0.063f);
+                lightStruct->specular = glm::vec3(0.6f, 0.6f, 0.655f);
+                lightStruct->attenuationConstantTerm = 1.0e-4;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
                 lightStruct->attenuationQuadraticTerm = 1.0e-4;
                 lightStruct->computeIntrinsics(45, 60);
@@ -439,7 +575,7 @@ int main(int argc, const char *argv[])
                 lightStruct->ambient = glm::vec3(0.016f, 0.012f, 0.188f);
                 lightStruct->diffuse = glm::vec3(0.075f, 0.059f, 0.91f);
                 lightStruct->specular = glm::vec3(0.102f, 0.098f, 0.329f);
-                lightStruct->attenuationConstantTerm = 1.0e-3;
+                lightStruct->attenuationConstantTerm = 1.0e-4;
                 lightStruct->attenuationLinearTerm = 1.0e-4;
                 lightStruct->attenuationQuadraticTerm = 1.0e-4;
                 lightStruct->computeIntrinsics(45, 60);
@@ -495,7 +631,7 @@ int main(int argc, const char *argv[])
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 5; k < 35; ++k)
+        for (int k = 15; k < 45; ++k)
         {
             const float fK = static_cast<float>(k);
             // add cubes and pyramids
@@ -503,7 +639,7 @@ int main(int argc, const char *argv[])
                 ObjectManager::instance()->addObject());
 
             standardObject.addComponent(
-                Component(ComponentType::MESH, (k % 20 < 10) ? simpleCubeMesh : simplePyramidMesh));
+                Component(ComponentType::MESH, (k % 20 < 10) ? cubeMesh : pyramidMesh));
             standardObject.addComponent(Component(ComponentType::BASIC_MATERIAL,
                                                   (k % 20 < 10) ? floppaMaterial : catMaterial));
 
@@ -512,10 +648,11 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
-            t->setPosition(glm::vec3(std::sin(k) * 5.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
+            t->setPosition(
+                glm::vec3(std::sin(k) * 10.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
-            t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
+            t->setScale(glm::vec3(std::max((k % 10) / 1.5f, 0.2f)));
 
             shaderProgramMain.addObject(standardObject);
             movingObjects.emplace_back(standardObject);
@@ -527,14 +664,16 @@ int main(int argc, const char *argv[])
             standardAxes.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             worldAxesShader.addObject(standardAxes);
-
+        }
+        for(int k = 10; k < 20; ++k)
+        {
             /// add bills
             auto billCopy = ObjectManager::instance()->copyObject(billModel);
             auto billTransform = TransformManager::instance()->getTransform(
                 ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
                     ComponentType::TRANSFORM));
             billTransform->setPosition(
-                glm::vec3(-k * std::sin(k), k * std::sin(k), k * std::cos(k)));
+                glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
             billTransform->setRotation(
                 glm::rotate(billTransform->rotation(), glm::radians((float)k),
                             glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
@@ -550,6 +689,36 @@ int main(int argc, const char *argv[])
                 Component(ComponentType::TRANSFORM,
                           TransformManager::instance()->registerNewTransform(worldAxes)));
             worldAxesShader.addObject(worldAxes);
+        }
+        {
+            for (const auto &[materialId, rotationAxis, position] :
+                 std::initializer_list<std::tuple<MaterialIdentifier, glm::vec3, glm::vec3>>{
+                     { greenGlassMaterial, glm::vec3(0.0f, 0.0f, 1.0f),
+                       glm::vec3(-25.0f, 0.0f, 0.0f) },
+                     { yellowGlassMaterial, glm::vec3(1.0f, 0.0f, 0.0f),
+                       glm::vec3(0.0f, 0.0f, -25.0f) },
+                     { blueGlassMaterial, glm::vec3(0.0f, 0.0f, 1.0f),
+                       glm::vec3(25.0f, 0.0f, 0.0f) },
+                     { purpleGlassMaterial, glm::vec3(1.0f, 0.0f, 0.0f),
+                       glm::vec3(0.0f, 0.0f, 25.0f) } })
+            {
+                GameObject &glassObject = ObjectManager::instance()->getObject(
+                    ObjectManager::instance()->addObject());
+
+                glassObject.addComponent(Component(ComponentType::MESH, planeMesh));
+                glassObject.addComponent(Component(ComponentType::BASIC_MATERIAL, materialId));
+
+                const TransformIdentifier tId = TransformManager::instance()->registerNewTransform(
+                    glassObject);
+                glassObject.addComponent(Component(ComponentType::TRANSFORM, tId));
+
+                Transform *t = TransformManager::instance()->getTransform(tId);
+                t->setPosition(position);
+                t->setRotation(glm::rotate(t->rotation(), glm::radians(90.0f), rotationAxis));
+                t->setScale(glm::vec3(15.0f));
+
+                simpleTransparentShader.addObject(glassObject);
+            }
         }
         {
             TransformManager::instance()->flushUpdates();
@@ -577,84 +746,50 @@ int main(int argc, const char *argv[])
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->initializeLightBuffer();
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->bindLightBuffer(4);
 
-            //// Render loop
             camera->moveTo(glm::vec3(20.0f, 7.0f, 0.0f));
             camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
         }
+        //// Render loop
         while (!mainWindow.shouldClose())
         {
-            // TODO: move time management to a separate class
-            const float time = glfwGetTime();
-            deltaTime = time - previousTime;
-            previousTime = time;
+            TimeManager::instance()->update();
 
-            mainWindow.update(deltaTime);
+            const float time = TimeManager::instance()->getTime();
+            const float deltaTime = TimeManager::instance()->getDeltaTime();
 
-            const glm::mat4 projection = glm::perspective(glm::radians(camera->zoom()),
-                                                          (float)windowWidth / windowHeight, 0.1f,
-                                                          1000.0f);
-            const glm::mat4 view = camera->getViewMatrix();
+            mainWindow.update();
+
+            {
+                ImGui_ImplOpenGL3_NewFrame();
+                ImGui_ImplGlfw_NewFrame();
+                ImGui::NewFrame();
+            }
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            {
-                shaderProgramMain.use();
+            _shadowPass.runPass();
+            _standardRenderingPass.runPass();
+            _sortingTransparentPass.runPass();
 
-                shaderProgramMain.setMatrix4("view", view);
-                shaderProgramMain.setMatrix4("projection", projection);
-
-                shaderProgramMain.setVec3("viewPos", camera->position());
-
-                shaderProgramMain.runShader();
-            }
-
-            {
-                worldPlaneShader.use();
-
-                if (renderOnlyGrid)
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-                worldPlaneShader.setMatrix4("view", view);
-                worldPlaneShader.setMatrix4("projection", projection);
-
-                worldPlaneShader.setFloat("checkerUnitWidth", 5.0f);
-                worldPlaneShader.setFloat("checkerUnitHeight", 5.0f);
-
-                worldPlaneShader.runShader();
-
-                if (renderOnlyGrid)
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }
-            {
-                lightVisualizationShader.use();
-                lightVisualizationShader.setMatrix4("view", view);
-                lightVisualizationShader.setMatrix4("projection", projection);
-
-                lightVisualizationShader.runShader();
-            }
-
+            // TODO: move this into some gizmos pass
             if (renderAxes)
             {
                 glDisable(GL_DEPTH_TEST);
                 worldAxesShader.use();
 
-                worldAxesShader.setFloat("axisLength", 0.25l);
-                worldAxesShader.setFloat("thickness", 0.002l);
-                worldAxesShader.setMatrix4("viewMat", view);
-                worldAxesShader.setMatrix4("projectionMat", projection);
+                worldAxesShader.setMatrix4("viewMat", camera->getViewMatrix());
+                worldAxesShader.setMatrix4("projectionMat", camera->projectionMatrix());
 
                 worldAxesShader.runShader();
 
                 glEnable(GL_DEPTH_TEST);
             }
-
             {
-                glDepthFunc(GL_LEQUAL);
-                mainSkybox.use();
-                mainSkybox.setMatrix4("view", glm::mat4(glm::mat3(view)));
-                mainSkybox.setMatrix4("projection", projection);
-                mainSkybox.runShader();
-                glDepthFunc(GL_LESS);
+                ImGui::Begin("Gizmos", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+                ImGui::Text("Transform");
+                ImGui::Separator();
+                ImGui::Checkbox("Toggle axes", &renderAxes);
+                ImGui::End();
             }
 
             {
@@ -704,6 +839,12 @@ int main(int argc, const char *argv[])
             }
 
             {
+                // Rendering
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            }
+
+            {
                 const std::unordered_set<GameObjectIdentifier> objectsWithUpdatedTransforms
                     = TransformManager::instance()->flushUpdates();
 
@@ -716,15 +857,21 @@ int main(int argc, const char *argv[])
 
                 shaderProgramMain.updateInstancedBuffer(objectsWithUpdatedTransforms);
 
+                assert(glGetError() == GL_NO_ERROR);
                 glfwSwapBuffers(mainWindow.getRawWindow());
-                glfwPollEvents();
             }
         }
     }
     //// Cleanup
     MeshManager::instance()->cleanUpGracefully();
     TextureManager::instance()->cleanUpGracefully();
-    TextureManager3D::instance()->cleanUpGracefully();
+    CubemapManager::instance()->cleanUpGracefully();
+
+    {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
 
     glfwTerminate();
 

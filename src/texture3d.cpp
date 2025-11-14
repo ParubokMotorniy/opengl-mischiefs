@@ -1,6 +1,6 @@
 #include "texture3d.h"
 
-Texture3D::Texture3D(const std::array<const char *, 6> &cubemapPaths,
+Cubemap::Cubemap(const std::array<const char *, 6> &cubemapPaths,
                      bool enableAnisotropicFiltering, Texture3DParameters params)
     : _params(params), _useAnisotropic(enableAnisotropicFiltering)
 {
@@ -10,7 +10,7 @@ Texture3D::Texture3D(const std::array<const char *, 6> &cubemapPaths,
     }
 }
 
-void Texture3D::allocateTexture()
+void Cubemap::allocateTexture()
 {
     if (_textureId != 0)
         return;
@@ -57,12 +57,12 @@ void Texture3D::allocateTexture()
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
-void Texture3D::deallocateTexture()
+void Cubemap::deallocateTexture()
 {
     if (_textureId == 0)
         return;
 #if !ENGINE_DISABLE_BINDLESS_TEXTURES
-    if (glIsTextureHandleResidentARB(_textureId))
+    if (glIsTextureHandleResidentARB(glGetTextureHandleARB(_textureId)))
     {
         glMakeTextureHandleNonResidentARB(glGetTextureHandleARB(_textureId));
     }
@@ -71,14 +71,12 @@ void Texture3D::deallocateTexture()
     _textureId = 0;
 }
 
-bool Texture3D::isAllocated() const noexcept { return _textureId != 0; }
+bool Cubemap::isAllocated() const noexcept { return _textureId != 0; }
 
-void Texture3D::setUseAnisotropic(bool useAniso, size_t level)
+void Cubemap::setUseAnisotropic(bool useAniso, size_t level)
 {
     _useAnisotropic = useAniso;
     _anisoLevel = level;
 }
 
-void Texture3D::setParameters(Texture3DParameters params) { _params = params; }
-
-Texture3D::~Texture3D() { deallocateTexture(); }
+void Cubemap::setParameters(Texture3DParameters params) { _params = params; }

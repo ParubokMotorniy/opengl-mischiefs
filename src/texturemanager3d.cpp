@@ -7,7 +7,7 @@
 #include <cassert>
 #include <cstring>
 
-std::pair<std::string, TextureIdentifier3D> TextureManager3D::registerTexture(
+std::pair<std::string, TextureIdentifier3D> CubemapManager::registerTexture(
     const std::array<const char *, 6> &cubemapSources)
 {
     const auto rName = RandomNamer::instance()->getRandomName(10);
@@ -15,19 +15,19 @@ std::pair<std::string, TextureIdentifier3D> TextureManager3D::registerTexture(
     return std::make_pair(rName, id);
 }
 
-TextureManager3D::TextureManager3D() { std::memset(_boundTextures, 0, MAX_TEXTURES); }
+CubemapManager::CubemapManager() { std::memset(_boundTextures, 0, MAX_TEXTURES); }
 
-TextureIdentifier3D TextureManager3D::registerTexture(
+TextureIdentifier3D CubemapManager::registerTexture(
     const std::array<const char *, 6> &cubemapSources, const std::string &texName)
 {
     if (const TextureIdentifier3D ti = textureRegistered(texName); ti != InvalidIdentifier)
         return ti;
 
-    _textures.emplace(++_identifiers, NamedTexture{ texName, Texture3D(cubemapSources) });
+    _textures.emplace(++_identifiers, NamedTexture{ texName, Cubemap(cubemapSources) });
     return _identifiers;
 }
 
-TextureIdentifier3D TextureManager3D::textureRegistered(const std::string &texName) const
+TextureIdentifier3D CubemapManager::textureRegistered(const std::string &texName) const
 {
     const auto texPtr = std::ranges::find_if(_textures, [&texName](const auto &pair) {
         return pair.second.componentName == texName;
@@ -35,7 +35,7 @@ TextureIdentifier3D TextureManager3D::textureRegistered(const std::string &texNa
     return texPtr == _textures.end() ? InvalidIdentifier : texPtr->first;
 }
 
-void TextureManager3D::allocateTexture(TextureIdentifier3D id)
+void CubemapManager::allocateTexture(TextureIdentifier3D id)
 {
     const auto texture = _textures.find(id);
     if (texture == _textures.end())
@@ -44,7 +44,7 @@ void TextureManager3D::allocateTexture(TextureIdentifier3D id)
     texture->second.componentData.allocateTexture();
 }
 
-int TextureManager3D::bindTexture(TextureIdentifier3D id)
+int CubemapManager::bindTexture(TextureIdentifier3D id)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -74,7 +74,7 @@ int TextureManager3D::bindTexture(TextureIdentifier3D id)
     return -1;
 }
 
-void TextureManager3D::unbindTexture(TextureIdentifier3D id)
+void CubemapManager::unbindTexture(TextureIdentifier3D id)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -94,7 +94,7 @@ void TextureManager3D::unbindTexture(TextureIdentifier3D id)
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
-void TextureManager3D::unbindAllTextures()
+void CubemapManager::unbindAllTextures()
 {
     for (int v = 0; v < MAX_TEXTURES; ++v)
     {
@@ -106,7 +106,7 @@ void TextureManager3D::unbindAllTextures()
     _numBoundTextures = 0;
 }
 
-void TextureManager3D::deallocateTexture(TextureIdentifier3D id)
+void CubemapManager::deallocateTexture(TextureIdentifier3D id)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -120,7 +120,7 @@ void TextureManager3D::deallocateTexture(TextureIdentifier3D id)
     texture.deallocateTexture();
 }
 
-void TextureManager3D::unregisterTexture(TextureIdentifier3D id)
+void CubemapManager::unregisterTexture(TextureIdentifier3D id)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -134,7 +134,7 @@ void TextureManager3D::unregisterTexture(TextureIdentifier3D id)
     _textures.erase(id);
 }
 
-void TextureManager3D::cleanUpGracefully()
+void CubemapManager::cleanUpGracefully()
 {
     for (int f = 0; f < MAX_TEXTURES; ++f)
     {
@@ -144,10 +144,13 @@ void TextureManager3D::cleanUpGracefully()
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }
 
-    _textures.clear();
+    std::for_each(_textures.begin(), _textures.end(),
+                  [](auto &pair) { pair.second.componentData.deallocateTexture(); });
+
+    _textures.clear(); // just for future me
 }
 
-Texture3D *TextureManager3D::getTexture(TextureIdentifier3D tId)
+Cubemap *CubemapManager::getTexture(TextureIdentifier3D tId)
 {
     const auto tPtr = _textures.find(tId);
     if (tPtr == _textures.end())
@@ -156,7 +159,7 @@ Texture3D *TextureManager3D::getTexture(TextureIdentifier3D tId)
     return &tPtr->second.componentData;
 }
 
-int TextureManager3D::isTextureBound(const Texture3D &texture)
+int CubemapManager::isTextureBound(const Cubemap &texture)
 {
     if (!texture.isAllocated())
         return -1;

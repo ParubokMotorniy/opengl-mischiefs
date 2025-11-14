@@ -2,9 +2,11 @@
 
 #include "glad/glad.h"
 
+#include "framebuffermanager.h"
 #include "lightdefs.h"
 #include "randomnamer.h"
 #include "singleton.h"
+#include "texturemanager.h"
 #include "transformmanager.h"
 #include "types.h"
 
@@ -14,7 +16,7 @@
 #include <map>
 #include <vector>
 
-// TODO: consider adding buffer defragmentation
+// TODO: consider adding buffer defragmentation instead of relying on upper bound
 template <ComponentType LightType>
 class LightManager : public SystemSingleton<LightManager<LightType>>
 {
@@ -25,6 +27,8 @@ public:
     using LightComponent = std::pair<NamedComponent<LightStruct>, TransformIdentifier>;
 
 public:
+    size_t getMaxLights() { return MaxLights; }
+
     void setLightSourceValidator(std::function<bool(LightStruct)> &&newSourceValidator)
     {
         _sourceValidator = std::move(newSourceValidator);
@@ -38,6 +42,50 @@ public:
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         updateManager();
+    }
+
+    // returns frame_buffer_id + depth_texture_id
+    static std::pair<GLuint, TextureIdentifier> createShadowMapPremises(size_t shadowResolutionX,
+                                                                        size_t shadowResolutionY)
+    {
+        // TODO: add support for cubemaps
+        unsigned int depthMap;
+        glGenTextures(1, &depthMap);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowResolutionX, shadowResolutionY, 0,
+                     GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+#ifdef ENGINE_ENABLE_HW_PCF
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#else
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+#endif
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        const float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+        unsigned int depthMapFBO;
+        glGenFramebuffers(1, &depthMapFBO);
+
+        FrameBufferManager::instance()->bindFrameBuffer(GL_FRAMEBUFFER, depthMapFBO);
+        FrameBufferManager::instance()->bindDepthTexture(GL_FRAMEBUFFER, GL_TEXTURE_2D, depthMap);
+        FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
+
+        const TextureIdentifier shadowIdentifier = TextureManager::instance()->registerTexture(
+            depthMap);
+
+        return { depthMapFBO, shadowIdentifier };
+    }
+
+    size_t getNumberOfBoundLights()
+    {
+        return _lastActiveLightIdx + 1;
     }
 
     void updateManager() // both boundBuffer and uniform buffer can be left fragmented after this
@@ -60,8 +108,14 @@ public:
             {
                 updateLightSource(*boundPtr, LightStruct());
                 *boundPtr = InvalidIdentifier;
+                if ((boundPtr - _boundSources.cbegin())
+                    == _lastActiveLightIdx) // we can only remove lights from the end.
+                {
+                    --_lastActiveLightIdx;
+                }
             }
 
+            // the buffer slot is free (!idValid) + there could be lights left that can be allocated
             while (sourcesPtr != _lightComponents.cend())
             {
                 if (_sourceValidator(sourcesPtr->second.first.componentData)
@@ -71,6 +125,7 @@ public:
                     // add a new light source to the uniform buffer
                     *boundPtr = lId;
                     updateLightSource(lId, sourcesPtr->second.first.componentData);
+                    _lastActiveLightIdx = boundPtr - _boundSources.cbegin();
                     break;
                 }
                 ++sourcesPtr;
@@ -91,6 +146,8 @@ public:
 
         const size_t lightIdx = lightPtr - _boundSources.cbegin();
         newLight.setTransform(_lightComponents.at(*lightPtr).second);
+
+        _lightComponents.at(*lightPtr).first.componentData = newLight;
 
         glBindBuffer(GL_UNIFORM_BUFFER, _lBufferId);
         glBufferSubData(GL_UNIFORM_BUFFER, lightIdx * sizeof(LightStruct), sizeof(LightStruct),
@@ -137,6 +194,7 @@ public:
                          lightTId })
             .first->first;
     }
+
     std::string nameForLightSource(LightSourceIdentifier lId) const
     {
         auto lightPtr = _lightComponents.find(lId);
@@ -161,6 +219,17 @@ public:
         _lightComponents.erase(lId);
     }
 
+    std::vector<LightStruct> getLights()
+    {
+        std::vector<LightStruct> target;
+        target.reserve(_lightComponents.size());
+
+        std::transform(_lightComponents.cbegin(), _lightComponents.cend(),
+                       std::back_inserter(target),
+                       [](const auto &lightPair) { return lightPair.second.first.componentData; });
+        return target;
+    }
+
 protected:
     LightManager() { _boundSources.fill(InvalidIdentifier); }
 
@@ -172,7 +241,12 @@ private:
 
     std::array<LightSourceIdentifier, MaxLights> _boundSources;
 
-    std::function<bool(LightStruct)> _sourceValidator;
+    std::function<bool(LightStruct)>
+        _sourceValidator; // since we could have many light sources, not all will fit into the fixed
+                          // uniform buffers. This thing tells whether a light source can be evicted
+                          // from the buffer
 
-    GLuint _lBufferId;
+    int _lastActiveLightIdx = -1; // tells where in the buffer the last active light is
+
+    GLuint _lBufferId = 0;
 };
