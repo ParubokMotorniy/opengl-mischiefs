@@ -3,7 +3,7 @@ project(engine VERSION 1.0.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_GENERATOR Ninja)
+# set(CMAKE_GENERATOR Ninja)
 
 option(ENGINE_DISABLE_BINDLESS_TEXTURES "Determines whether the bindless textures are used. Note: calls to the corresponding API are merely disabled in OFF mode." OFF)
 
