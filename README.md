@@ -12,7 +12,7 @@ Oles Yarish
 ```
 mkdir build && cd build
 cmake ..
-cmake --build . 
+cmake --build . #muttering prayer to the gods of compilation and c++ (whoever those are) is highly advised at this stage
 ```
 
 # In-engine How-to:
