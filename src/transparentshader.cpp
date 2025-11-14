@@ -6,6 +6,7 @@
 #include "objectmanager.h"
 
 #include <array>
+#include <iostream>
 #include <ranges>
 
 namespace
@@ -36,7 +37,9 @@ void TransparentShader::runShader()
     const auto currentDelta = currentCameraPosition - _previousCameraPosition;
     bool objectsNeedResorting
         = glm::dot(currentDelta, currentDelta)
-          > _minimalPreviousDistance; // if camera has moved further than the closest object
+          > _minimalPreviousDistance; // if camera has moved further than the closest object -> only
+                                      // then do we need to resort objects (well, it can further be
+                                      // optimized)
 
     if (objectsNeedResorting)
     {
@@ -45,7 +48,7 @@ void TransparentShader::runShader()
             [currentCameraPosition](Transform *t1, Transform *t2) -> bool {
                 const auto delta1 = currentCameraPosition - t1->position();
                 const auto delta2 = currentCameraPosition - t2->position();
-                return glm::dot(delta1, delta1) > glm::dot(delta2, delta2);
+                return glm::dot(delta1, delta1) < glm::dot(delta2, delta2);
             },
             [](GameObjectIdentifier id) -> Transform * {
                 const auto tId = ObjectManager::instance()->getObject(id).getIdentifierForComponent(
@@ -63,6 +66,7 @@ void TransparentShader::runShader()
                                             .getIdentifierForComponent(ComponentType::TRANSFORM))
                                     ->position();
         _minimalPreviousDistance = glm::dot(minDelta, minDelta);
+        _previousCameraPosition = currentCameraPosition;
     }
 
     use();
@@ -135,45 +139,6 @@ void TransparentShader::runShader()
             MeshManager::instance()->unbindMesh();
         }
     }
-
-    _previousCameraPosition = currentCameraPosition;
-
-    // auto meshStart = _sortedObjects.cbegin();
-    // auto meshEnd = _sortedObjects.cbegin();
-    // while (meshEnd <= _sortedObjects.cend())
-    // {
-    //     // submits ranges of objects that share the same mesh
-    //     if (meshEnd == _sortedObjects.cend()
-    //         || (ObjectManager::instance()
-    //                 ->getObject(*meshStart)
-    //                 .getIdentifierForComponent(ComponentType::MESH)
-    //             != ObjectManager::instance()->getObject(*meshEnd).getIdentifierForComponent(
-    //                 ComponentType::MESH)))
-    //     {
-    //         const MeshIdentifier sharedMesh = ObjectManager::instance()
-    //                                               ->getObject(*meshStart)
-    //                                               .getIdentifierForComponent(ComponentType::MESH);
-    //         if (sharedMesh != InvalidIdentifier)
-    //         {
-    //             MeshManager::instance()->enableMeshInstancing(sharedMesh);
-    //             const Mesh &mesh = *MeshManager::instance()->getMesh(sharedMesh);
-
-    //             const GLuint vertexBufferid = Instancer::instance()
-    //                                               ->instanceData(std::span(meshStart, meshEnd),
-    //                                                              getDataGenerators(),
-    //                                                              mesh.instancedArrayId());
-
-    //             _instancedMeshes.emplace(sharedMesh, meshEnd - meshStart);
-    //             _instancedBufferIds.emplace_back(vertexBufferid);
-    //         }
-    //         meshStart = meshEnd;
-    //     }
-
-    //     if (meshEnd == _sortedObjects.cend())
-    //         break;
-
-    //     ++meshEnd;
-    // }
 }
 
 void TransparentShader::setCamera(const Camera *newCamera) { _currentCamera = newCamera; }

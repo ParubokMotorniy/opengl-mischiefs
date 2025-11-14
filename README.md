@@ -18,8 +18,38 @@ cmake --build .
 # In-engine How-to:
 + Navigation: W-A-S-D=planar motion. Space=Up. LShift=Down. Q=Peek left. E=Peek right.
 + Zoom: mouse scroll.
-+ Hit LeftCtrl to toggle axes
++ Hit LeftCtrl to toggle axes (or use UI)
 + Hit RightCtrl to toggle world plane
+
+## Homework 4 report:
+
+*Important*: for proper out-of-the-box compilation `ENGINE_ENABLE_HW_PCF` must be `ON`, while `ENGINE_DISABLE_BINDLESS_TEXTURES` must be `OFF`.
+*Note*: the engine demo can be found in the `data` folder. 
+
+### Tasks [1]
+Shadow biasing is achieved by slightly shifting fragments along their normals prior to shadow testing.   
+
+### Tasks [2]
+
+|||
+|---|---|
+|No PCF, No Comparison sampler|PCF, No Comparison sampler |
+|![no-pcf](./data/no_pcf_shadow.png)|![sw-pcf](./data/sf_pcf_shadow.png)|
+|No PCF, Comparison sampler|PCF, Comparison Sampler|
+|![hw-pcf](./data/hw_pcf_shadow.png)|![double-pcf](./data/double_pcf_shadow.png)|
+
+### Tasks [3]      
+The current UI allows to fine-tune the shadow bias and adjust the gizmos.
+
+
+### Tasks [4]       
+The transparent objects are rendered in a separate pass, similar to standard objects and shadow maps.  
+
+### Corrections of Homework 3
+* Previously the engine would not compile outside of a git repository -> fixed
+* The scene rendering was screwed, since the texture+models could not be loaded from FLS (recall the git problem) -> fixed by archiving the resources
+* Fragment shaders iterated over the maximum number of lights of each type (slow and error-prone) -> now the shaders receive the number of lights bound currently through uniforms.
+* I tested the engine on both Windows and Linux.
 
 ## Homework 3 report:
 
