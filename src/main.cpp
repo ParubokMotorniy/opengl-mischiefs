@@ -37,6 +37,7 @@
 #include "transparentshader.h"
 #include "window.h"
 #include "worldplaneshader.h"
+#include "gizmospass.h"
 
 #include <cmath>
 #include <cstdint>
@@ -63,8 +64,6 @@ const char *simpleTransparentFragmentShaderSource = ENGINE_SHADERS
 
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 const float lightRotationRadius = 40.0f;
-
-bool renderAxes = true;
 
 #ifndef NDEBUG
 void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -152,14 +151,12 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severi
 
 void imGuiInitialization(Window *windowToBindTo)
 {
-    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(windowToBindTo->getRawWindow(), true);
 
     ImGui_ImplOpenGL3_Init();
@@ -371,11 +368,12 @@ int main(int argc, const char *argv[])
         _hdrPass.initializeShaderProgram();
         _hdrPass.setWindow(&mainWindow);
 
+        GizmosPass _gizmosPass(&worldAxesShader);
+        _gizmosPass.setCamera(camera);
+
         // Events
         {
             mainWindow.subscribeEventListener([&](KeyboardInput input, KeyboardInput releasedKeys) {
-                if (releasedKeys.CtrlLeft)
-                    renderAxes = !renderAxes;
                 if (releasedKeys.CtrlRight)
                     worldPlaneShader.setPlaneEnabled(!worldPlaneShader.isPlaneEnabled());
             });
@@ -775,28 +773,7 @@ int main(int argc, const char *argv[])
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
             _sortingTransparentPass.runPass();
-
-            // TODO: move this into some gizmos pass
-            if (renderAxes)
-            {
-                glDisable(GL_DEPTH_TEST);
-                worldAxesShader.use();
-
-                worldAxesShader.setMatrix4("viewMat", camera->getViewMatrix());
-                worldAxesShader.setMatrix4("projectionMat", camera->projectionMatrix());
-
-                worldAxesShader.runShader();
-
-                glEnable(GL_DEPTH_TEST);
-            }
-            {
-                ImGui::Begin("Gizmos", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-                ImGui::Text("Transform");
-                ImGui::Separator();
-                ImGui::Checkbox("Toggle axes", &renderAxes);
-                ImGui::End();
-            }
-
+            _gizmosPass.runPass();
             _hdrPass.runPass();
 
             {

@@ -1,9 +1,7 @@
 #pragma once
 
 #include "types.h"
-#include "camera.h"
 #include "framepass.h"
-#include "window.h"
 
 class InstancedShader;
 class WorldPlaneShader;
@@ -16,13 +14,8 @@ public:
     StandardPass(InstancedShader *ins, WorldPlaneShader *wrld, LightVisualizationShader *lightVis,
                  SkyboxShader *skybox);
     void runPass() override;
-    void setCamera(const Camera *newCamera);
-    void setWindow(const Window *newWindow);
 
 private:
-    const Camera *_currentViewCamera = nullptr;
-    const Window *_currentTargetWindow = nullptr;
-
     // TODO: ideally, these shouldn't be set by name from constructor
     InstancedShader *_shaderProgramMain = nullptr;
 
@@ -32,5 +25,5 @@ private:
 
     SkyboxShader *_mainSkybox = nullptr;
 
-    GLuint _hdrFrameBuffer = 0;
+    uint32_t _hdrFrameBuffer = 0;
 };

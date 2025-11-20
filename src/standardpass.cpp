@@ -11,6 +11,8 @@
 #include "skyboxshader.h"
 #include "texturemanager.h"
 #include "worldplaneshader.h"
+#include "camera.h"
+#include "window.h"
 
 namespace
 {
@@ -40,10 +42,10 @@ StandardPass::StandardPass(InstancedShader *ins, WorldPlaneShader *wrld,
 
 void StandardPass::runPass()
 {
-    _currentTargetWindow->resetViewport();
+    _currentWindow->resetViewport();
 
-    const glm::mat4 projection = _currentViewCamera->projectionMatrix();
-    const glm::mat4 view = _currentViewCamera->getViewMatrix();
+    const glm::mat4 projection = _currentCamera->projectionMatrix();
+    const glm::mat4 view = _currentCamera->getViewMatrix();
 
     static float directionalShadowBias = 0.0f;
     {
@@ -59,7 +61,7 @@ void StandardPass::runPass()
         bindDirectionalShadowMaps(_shaderProgramMain);
         _shaderProgramMain->setMatrix4("view", view);
         _shaderProgramMain->setMatrix4("projection", projection);
-        _shaderProgramMain->setVec3("viewPos", _currentViewCamera->position());
+        _shaderProgramMain->setVec3("viewPos", _currentCamera->position());
         _shaderProgramMain->setFloat("directionalShadowBias", directionalShadowBias);
         _shaderProgramMain->setInt("numDirectionalLightsBound",
                                    LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
@@ -83,7 +85,7 @@ void StandardPass::runPass()
         bindDirectionalShadowMaps(_worldPlaneShader);
         _worldPlaneShader->setMatrix4("view", view);
         _worldPlaneShader->setMatrix4("projection", projection);
-        _worldPlaneShader->setVec3("viewPos", _currentViewCamera->position());
+        _worldPlaneShader->setVec3("viewPos", _currentCamera->position());
         _worldPlaneShader->setFloat("directionalShadowBias", directionalShadowBias);
         _worldPlaneShader->setInt("numDirectionalLightsBound",
                                   LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
@@ -112,7 +114,3 @@ void StandardPass::runPass()
         MeshManager::instance()->unbindMesh();
     }
 }
-
-void StandardPass::setCamera(const Camera *newCamera) { _currentViewCamera = newCamera; }
-
-void StandardPass::setWindow(const Window *newWindow) { _currentTargetWindow = newWindow; }
