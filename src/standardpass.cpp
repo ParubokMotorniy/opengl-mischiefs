@@ -40,10 +40,7 @@ StandardPass::StandardPass(InstancedShader *ins, WorldPlaneShader *wrld,
 
 void StandardPass::runPass()
 {
-    FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
     _currentTargetWindow->resetViewport();
-
-    const auto [windowWidth, windowHeight] = _currentTargetWindow->currentWindowDimensions();
 
     const glm::mat4 projection = _currentViewCamera->projectionMatrix();
     const glm::mat4 view = _currentViewCamera->getViewMatrix();

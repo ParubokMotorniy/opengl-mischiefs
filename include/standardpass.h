@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types.h"
 #include "camera.h"
 #include "framepass.h"
 #include "window.h"
@@ -30,4 +31,6 @@ private:
     LightVisualizationShader *_lightVisualizationShader = nullptr;
 
     SkyboxShader *_mainSkybox = nullptr;
+
+    GLuint _hdrFrameBuffer = 0;
 };

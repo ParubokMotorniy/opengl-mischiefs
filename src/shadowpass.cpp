@@ -21,6 +21,8 @@ void ShadowPass::runPass()
     {
         FrameBufferManager::instance()->bindFrameBuffer(GL_FRAMEBUFFER, l.frameBufferId, 2048,
                                                         2048);
+        glViewport(0, 0, 2048, 2048);
+
         glClear(GL_DEPTH_BUFFER_BIT);
 
         const glm::mat4 &projection = l.dummyProjectionMatrix;
@@ -47,8 +49,6 @@ void ShadowPass::runPass()
 
         _shaderProgramMain->removeShaderProgramOverride();
         _lightVisualizationShader->removeShaderProgramOverride();
-
-        // FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
-        // TODO: reset the viewport after the pass so that the following passes don't have to
     }
+    FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
 }

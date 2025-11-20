@@ -75,6 +75,8 @@ public:
 
         FrameBufferManager::instance()->bindFrameBuffer(GL_FRAMEBUFFER, depthMapFBO);
         FrameBufferManager::instance()->bindDepthTexture(GL_FRAMEBUFFER, GL_TEXTURE_2D, depthMap);
+        FrameBufferManager::instance()->setColorMode(GL_NONE);
+        FrameBufferManager::instance()->setReadMode(GL_NONE);
         FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
 
         const TextureIdentifier shadowIdentifier = TextureManager::instance()->registerTexture(
