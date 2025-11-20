@@ -17,8 +17,8 @@ void FrameBufferManager::pushFrameBuffer(GLuint frameBufferId)
 
 void FrameBufferManager::popFrameBuffer()
 {
-    _frameBuffersStack.pop();
-    assert(!_frameBuffersStack.empty());
+    if (_frameBuffersStack.size() > 1)
+        _frameBuffersStack.pop();
     glBindFramebuffer(GL_FRAMEBUFFER, _frameBuffersStack.top());
 }
 
@@ -44,6 +44,13 @@ void FrameBufferManager::bindDepthBuffer(GLenum target, GLuint depthBuffer) cons
 void FrameBufferManager::unbindFrameBuffer(GLenum target) const noexcept
 {
     glBindFramebuffer(target, _frameBuffersStack.top());
+}
+
+GLuint FrameBufferManager::getCurrentFramebuffer()
+{
+    GLint drawFboId = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFboId);
+    return drawFboId;
 }
 
 FrameBufferManager::FrameBufferManager()

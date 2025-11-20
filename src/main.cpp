@@ -14,6 +14,7 @@
 #include "basicshader.h"
 #include "camera.h"
 #include "geometryshaderprogram.h"
+#include "hdrpass.h"
 #include "instancedshader.h"
 #include "instancer.h"
 #include "lightmanager.h"
@@ -366,6 +367,10 @@ int main(int argc, const char *argv[])
         SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader };
         _sortingTransparentPass.setCamera(camera);
 
+        HdrPass _hdrPass(planeMesh);
+        _hdrPass.initializeShaderProgram();
+        _hdrPass.setWindow(&mainWindow);
+
         // Events
         {
             mainWindow.subscribeEventListener([&](KeyboardInput input, KeyboardInput releasedKeys) {
@@ -665,22 +670,22 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
         }
-        for(int k = 10; k < 20; ++k)
-        {
-            /// add bills
-            auto billCopy = ObjectManager::instance()->copyObject(billModel);
-            auto billTransform = TransformManager::instance()->getTransform(
-                ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
-                    ComponentType::TRANSFORM));
-            billTransform->setPosition(
-                glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
-            billTransform->setRotation(
-                glm::rotate(billTransform->rotation(), glm::radians((float)k),
-                            glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-            billTransform->setScale(glm::vec3(20.0f));
+        // for (int k = 10; k < 20; ++k)
+        // {
+        //     /// add bills
+        //     auto billCopy = ObjectManager::instance()->copyObject(billModel);
+        //     auto billTransform = TransformManager::instance()->getTransform(
+        //         ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
+        //             ComponentType::TRANSFORM));
+        //     billTransform->setPosition(
+        //         glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
+        //     billTransform->setRotation(
+        //         glm::rotate(billTransform->rotation(), glm::radians((float)k),
+        //                     glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
+        //     billTransform->setScale(glm::vec3(20.0f));
 
-            shaderProgramMain.addObjectWithChildren(billCopy);
-        }
+        //     shaderProgramMain.addObjectWithChildren(billCopy);
+        // }
         {
             GameObject &worldAxes = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
@@ -793,6 +798,13 @@ int main(int argc, const char *argv[])
             }
 
             {
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            }
+
+            _hdrPass.runPass();
+
+            {
                 const float lightPosX = std::cos(time * 0.75f);
                 const float lightPosZ = std::sin(time * 0.75f);
                 const float lightPosY = std::sin(time * 1.25f);
@@ -836,12 +848,6 @@ int main(int argc, const char *argv[])
                                     (float)(glm::radians(std::cos(m) * 10.0f) * deltaTime),
                                     glm::vec3((float)(m % 2), 0.0f, (float)((m + 1) % 2))));
                 }
-            }
-
-            {
-                // Rendering
-                ImGui::Render();
-                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             }
 
             {

@@ -21,6 +21,8 @@ public:
     void bindDepthBuffer(GLenum target, GLuint depthBuffer) const;
     void unbindFrameBuffer(GLenum target) const noexcept;
 
+    GLuint getCurrentFramebuffer();
+
     void bindDepthTexture(GLenum target, GLenum textureType, GLuint texIdx) const;
     void bindColorTexture(GLenum target, GLenum textureType, GLuint texIdx) const;
     void setColorMode(GLuint mode) const;
