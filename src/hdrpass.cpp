@@ -3,9 +3,11 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 
+#include "imgui.h"
+
 #include "framebuffermanager.h"
-#include "texturemanager.h"
 #include "meshmanager.h"
+#include "texturemanager.h"
 #include "window.h"
 
 #include <iostream>
@@ -14,11 +16,13 @@ namespace
 {
 const glm::mat4 planeModelToNdc = glm::rotate(glm::identity<glm::mat4>(), glm::radians(90.0f),
                                               glm::vec3(1.0f, 0.0f, 0.0f));
-}
+bool useHdr = false;
+bool useGamma = false;
+float exposure = 0.3f;
+} // namespace
 
 HdrPass::HdrPass(MeshIdentifier planeId) : _planeMeshId(planeId)
 {
-    // TODO: manage through texture manager
     glGenFramebuffers(1, &_hdrFb);
     // create floating point color buffer
     glGenTextures(1, &_colorBuf);
@@ -47,21 +51,35 @@ HdrPass::HdrPass(MeshIdentifier planeId) : _planeMeshId(planeId)
 
 void HdrPass::runPass()
 {
-    FrameBufferManager::instance()->popFrameBuffer();
+    {
+        ImGui::Begin("HDR pass parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+        ImGui::Text("HDR");
+        ImGui::Separator();
+        ImGui::Checkbox("Use HDR", &useHdr);
+        ImGui::SliderFloat("Exposure", &exposure, 0.001f, 5.0f);
+
+        ImGui::Separator();
+
+        ImGui::Text("Gamma correction");
+        ImGui::Separator();
+        ImGui::Checkbox("Use gamma correction", &useGamma);
+
+        ImGui::End();
+    }
+
+    FrameBufferManager::instance()->popFrameBuffer(); // remove hdr buffer from stack
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     _currentWindow->resetViewport();
 
-    runShader();
+    runShader(); // render into the standard framebuffer
 
-    FrameBufferManager::instance()->pushFrameBuffer(_hdrFb);
+    FrameBufferManager::instance()->pushFrameBuffer(
+        _hdrFb); // push the hdr buffer back onto the stack for later passes to render into
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void HdrPass::setWindow(const Window *currentWindow)
-{
-    _currentWindow = currentWindow;
-}
+void HdrPass::setWindow(const Window *currentWindow) { _currentWindow = currentWindow; }
 
 void HdrPass::runShader()
 {
@@ -73,11 +91,14 @@ void HdrPass::runShader()
     MeshManager::instance()->allocateMesh(_planeMeshId);
     MeshManager::instance()->bindMesh(_planeMeshId);
 
-    setFloat("exposure", 0.35f); // TODO: make exposure tunable through imgui
-    setInt("hdrColorTexture", bindingLocation);
     setMatrix4("modelToNdc", planeModelToNdc);
-    setFloat("viewportXScale", (float)viewportX/1920.0f);
-    setFloat("viewportYScale", (float)viewportY/1080.0f);
+
+    setFloat("exposure", exposure);
+    setFloat("gamma", useGamma ? 2.2f : 1.0f); //just to avoid branching in the shader
+    setBool("useHdr", useHdr);
+    setInt("hdrColorTexture", bindingLocation);
+    setFloat("viewportXScale", (float)viewportX / 1920.0f);
+    setFloat("viewportYScale", (float)viewportY / 1080.0f);
 
     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(_planeMeshId)->numIndices(),
                    GL_UNSIGNED_INT, 0);

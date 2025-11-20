@@ -670,22 +670,22 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
         }
-        // for (int k = 10; k < 20; ++k)
-        // {
-        //     /// add bills
-        //     auto billCopy = ObjectManager::instance()->copyObject(billModel);
-        //     auto billTransform = TransformManager::instance()->getTransform(
-        //         ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
-        //             ComponentType::TRANSFORM));
-        //     billTransform->setPosition(
-        //         glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
-        //     billTransform->setRotation(
-        //         glm::rotate(billTransform->rotation(), glm::radians((float)k),
-        //                     glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-        //     billTransform->setScale(glm::vec3(20.0f));
+        for (int k = 10; k < 20; ++k)
+        {
+            /// add bills
+            auto billCopy = ObjectManager::instance()->copyObject(billModel);
+            auto billTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
+                    ComponentType::TRANSFORM));
+            billTransform->setPosition(
+                glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
+            billTransform->setRotation(
+                glm::rotate(billTransform->rotation(), glm::radians((float)k),
+                            glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
+            billTransform->setScale(glm::vec3(20.0f));
 
-        //     shaderProgramMain.addObjectWithChildren(billCopy);
-        // }
+            shaderProgramMain.addObjectWithChildren(billCopy);
+        }
         {
             GameObject &worldAxes = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
@@ -797,12 +797,14 @@ int main(int argc, const char *argv[])
                 ImGui::End();
             }
 
+            _hdrPass.runPass();
+
             {
+                FrameBufferManager::instance()->pushFrameBuffer(0);
                 ImGui::Render();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                FrameBufferManager::instance()->popFrameBuffer();
             }
-
-            _hdrPass.runPass();
 
             {
                 const float lightPosX = std::cos(time * 0.75f);
