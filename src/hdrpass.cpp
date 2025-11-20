@@ -24,24 +24,22 @@ float exposure = 0.3f;
 HdrPass::HdrPass(MeshIdentifier planeId) : _planeMeshId(planeId)
 {
     glGenFramebuffers(1, &_hdrFb);
-    // create floating point color buffer
+
     glGenTextures(1, &_colorBuf);
     glBindTexture(GL_TEXTURE_2D, _colorBuf);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1920, 1080, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     _colorTextureId = TextureManager::instance()->registerTexture(_colorBuf);
-    // create depth buffer (renderbuffer)
+
     unsigned int rboDepth;
     glGenRenderbuffers(1, &rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1920, 1080);
-    // attach buffers
+
     FrameBufferManager::instance()->bindFrameBuffer(GL_FRAMEBUFFER, _hdrFb);
     FrameBufferManager::instance()->bindColorTexture(GL_FRAMEBUFFER, GL_TEXTURE_2D, _colorBuf);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _colorBuf, 0);
     FrameBufferManager::instance()->bindDepthBuffer(GL_FRAMEBUFFER, rboDepth);
-    // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
         std::cout << "Framebuffer not complete!" << std::endl;

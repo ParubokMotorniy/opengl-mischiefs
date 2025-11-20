@@ -23,12 +23,22 @@ void Texture2D::allocateTexture()
     auto *imageData = stbi_load(_textureSourcePath.c_str(), &width, &height, &numChannels, 0);
 
     GLenum format;
+    GLenum internalFormat;
     if (numChannels == 1)
+    {
         format = GL_RED;
+        internalFormat = GL_RED;
+    }
     else if (numChannels == 3)
+    {
         format = GL_RGB;
+        internalFormat = GL_SRGB;
+    }
     else if (numChannels == 4)
+    {
         format = GL_RGBA;
+        internalFormat = GL_SRGB_ALPHA;
+    }
 
     glGenTextures(1, &_textureId);
     glBindTexture(GL_TEXTURE_2D, _textureId);
@@ -48,7 +58,7 @@ void Texture2D::allocateTexture()
                         std::min(_anisoLevel, maxAnisoLevel));
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, imageData);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, imageData);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     stbi_image_free(imageData);

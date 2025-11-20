@@ -475,7 +475,7 @@ int main(int argc, const char *argv[])
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
                 lightStruct->ambient = glm::vec3(0.029f, 0.078f, 0.075f);
-                lightStruct->diffuse = glm::vec3(0.122f, 0.135f, 0.298f);
+                lightStruct->diffuse = glm::vec3(0.322f, 0.335f, 0.498f);
                 lightStruct->specular = glm::vec3(0.091f, 0.078f, 0.057f);
 
                 const auto [bufId, textureIdentifier]
@@ -510,7 +510,7 @@ int main(int argc, const char *argv[])
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
                 lightStruct->ambient = glm::vec3(0.089f, 0.039f, 0.069f);
-                lightStruct->diffuse = glm::vec3(0.169f, 0.245f, 0.171f);
+                lightStruct->diffuse = glm::vec3(0.369f, 0.445f, 0.371f);
                 lightStruct->specular = glm::vec3(0.098f, 0.002f, 0.008f);
                 const auto [bufId, textureIdentifier]
                     = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()

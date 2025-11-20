@@ -1,7 +1,7 @@
 #include "texture3d.h"
 
-Cubemap::Cubemap(const std::array<const char *, 6> &cubemapPaths,
-                     bool enableAnisotropicFiltering, Texture3DParameters params)
+Cubemap::Cubemap(const std::array<const char *, 6> &cubemapPaths, bool enableAnisotropicFiltering,
+                 Texture3DParameters params)
     : _params(params), _useAnisotropic(enableAnisotropicFiltering)
 {
     for (int t = 0; t < 6; ++t)
@@ -25,15 +25,25 @@ void Cubemap::allocateTexture()
         if (data)
         {
             GLenum format = GL_RGBA;
+            GLenum internalFormat;
             if (numChannels == 1)
+            {
+                internalFormat = GL_RED;
                 format = GL_RED;
+            }
             else if (numChannels == 3)
+            {
+                internalFormat = GL_SRGB;
                 format = GL_RGB;
+            }
             else if (numChannels == 4)
+            {
+                internalFormat = GL_SRGB_ALPHA;
                 format = GL_RGBA;
+            }
 
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height, 0, format,
-                         GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internalFormat, width, height, 0,
+                         format, GL_UNSIGNED_BYTE, data);
         }
 
         stbi_image_free(data);
