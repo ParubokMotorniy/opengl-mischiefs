@@ -47,7 +47,7 @@ private:
     constexpr static uint32_t MAX_TEXTURES = 16;
     uint32_t _boundTextures[MAX_TEXTURES];
     int _numBoundTextures = 0;
-
+    
 #ifndef NDEBUG
     // the screaming magenta texture shall be used for debugging purposes
     TextureIdentifier _debugMagenta = InvalidIdentifier;

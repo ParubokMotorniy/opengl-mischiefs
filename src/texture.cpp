@@ -40,6 +40,9 @@ void Texture2D::allocateTexture()
         internalFormat = GL_SRGB_ALPHA;
     }
 
+    if (!_useSrgb)
+        internalFormat = format;
+
     glGenTextures(1, &_textureId);
     glBindTexture(GL_TEXTURE_2D, _textureId);
 
@@ -58,7 +61,8 @@ void Texture2D::allocateTexture()
                         std::min(_anisoLevel, maxAnisoLevel));
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, imageData);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE,
+                 imageData);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     stbi_image_free(imageData);
@@ -87,5 +91,7 @@ void Texture2D::setUseAnisotropic(bool useAniso, size_t level)
     _useAnisotropic = useAniso;
     _anisoLevel = level;
 }
+
+void Texture2D::setUseSrgb(bool ifUseSrgb) { _useSrgb = ifUseSrgb; }
 
 void Texture2D::setParameters(Texture2DParameters params) { _params = params; }

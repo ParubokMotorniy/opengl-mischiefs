@@ -18,6 +18,12 @@ TextureManager::TextureManager()
 {
     std::memset(_boundTextures, 0, MAX_TEXTURES);
 
+    const auto whiteTex = registerTexture(ENGINE_TEXTURES "/white.jpg", "white");
+    allocateTexture(whiteTex);
+
+    const auto blackTex = registerTexture(ENGINE_TEXTURES "/black.jpg", "white");
+    allocateTexture(blackTex);
+
 #ifndef NDEBUG
     _debugMagenta = registerTexture(ENGINE_TEXTURES "/debug_magenta.jpg", "debug_magenta_tex");
     allocateTexture(_debugMagenta);

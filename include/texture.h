@@ -23,14 +23,15 @@ class Texture2D
 
 public:
     void setUseAnisotropic(bool useAniso, size_t level);
+    void setUseSrgb(bool ifUseSrgb);
     void setParameters(Texture2DParameters params);
 
     operator int() const { return _textureId; }
 
 private:
     explicit Texture2D(const char *textureSourcePath, bool enableAnisotropicFiltering = false,
-              Texture2DParameters params = { GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT,
-                                             GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR });
+                       Texture2DParameters params = { GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT,
+                                                      GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR });
     explicit Texture2D(uint32_t textureId);
 
     void allocateTexture();
@@ -45,5 +46,6 @@ private:
     Texture2DParameters _params;
 
     bool _useAnisotropic = false;
+    bool _useSrgb = false;
     float _anisoLevel = 8.0f;
 };

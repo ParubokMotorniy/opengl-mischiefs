@@ -14,6 +14,7 @@
 #include "basicshader.h"
 #include "camera.h"
 #include "geometryshaderprogram.h"
+#include "gizmospass.h"
 #include "hdrpass.h"
 #include "instancedshader.h"
 #include "instancer.h"
@@ -24,6 +25,7 @@
 #include "modelloader.h"
 #include "object.h"
 #include "objectmanager.h"
+#include "pbrshader.h"
 #include "quaternioncamera.h"
 #include "shadowpass.h"
 #include "skyboxshader.h"
@@ -37,7 +39,6 @@
 #include "transparentshader.h"
 #include "window.h"
 #include "worldplaneshader.h"
-#include "gizmospass.h"
 
 #include <cmath>
 #include <cstdint>
@@ -61,6 +62,9 @@ const char *axesGeometryShaderSource = ENGINE_SHADERS "/axis_geometry.gs";
 const char *simpleTransparentVertexShaderSource = ENGINE_SHADERS "/simple_transparent_vertex.vs";
 const char *simpleTransparentFragmentShaderSource = ENGINE_SHADERS
     "/simple_transparent_fragment.fs";
+
+const char *pbrVertexShaderSource = ENGINE_SHADERS "/pbr_vertex.vs";
+const char *pbrFragmentShaderSource = ENGINE_SHADERS "/pbr_fragment.fs";
 
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 const float lightRotationRadius = 40.0f;
@@ -353,9 +357,13 @@ int main(int argc, const char *argv[])
                                                    simpleTransparentFragmentShaderSource };
         simpleTransparentShader.initializeShaderProgram();
 
+        PbrShader mainPbrShader{ pbrVertexShaderSource, pbrFragmentShaderSource };
+        mainPbrShader.initializeShaderProgram();
+
         // passes
         StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
-                                             &lightVisualizationShader, &mainSkybox };
+                                             &lightVisualizationShader, &mainSkybox,
+                                             &mainPbrShader };
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
 
@@ -770,10 +778,10 @@ int main(int argc, const char *argv[])
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            _shadowPass.runPass();
+            // _shadowPass.runPass();
             _standardRenderingPass.runPass();
-            _sortingTransparentPass.runPass();
-            _gizmosPass.runPass();
+            // _sortingTransparentPass.runPass();
+            // _gizmosPass.runPass();
             _hdrPass.runPass();
 
             {
