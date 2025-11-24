@@ -11,7 +11,7 @@ out VertexParamPack
 {
     vec2 texCoord;
     vec3 vPos;
-    mat4 tbnMatrix;
+    mat3 tbnMatrix;
 } vs_out;
 
 // uniforms
@@ -25,15 +25,15 @@ void main()
     vec4 vWorldPos = (model * vec4(aPos, 1.0f));
     gl_Position = projection * view * vWorldPos;
 
-    mat3 normalTransofrmationMat = mat3(transpose(inverse(model)));
+    mat3 normalTransformationMat = mat3(transpose(inverse(model)));
 
     //transformation of normals
-    vec3 tBitangent = normalize(normalTransofrmationMat * cross(tangent, normal));
-    vec3 tNormal = normalize(normalTransofrmationMat * normal);
-    vec3 tTangent = normalize(normalTransofrmationMat * tangent);
+    vec3 tBitangent = normalize(normalTransformationMat * cross(normal, tangent));
+    vec3 tNormal = normalize(normalTransformationMat * normal);
+    vec3 tTangent = normalize(normalTransformationMat * tangent);
 
     // forwarding to fragment
     vs_out.vPos = vWorldPos.xyz;
-    vs_out.tbnMatrix = transpose(mat4(vec4(tTangent, 0.0),vec4(tBitangent, 0.0),vec4(tNormal, 0.0), vec4(0.0,0.0,0.0,1.0)));
+    vs_out.tbnMatrix = mat3(tTangent, tBitangent, tNormal);
     vs_out.texCoord = aTexCoord;
 }

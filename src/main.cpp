@@ -482,7 +482,7 @@ int main(int argc, const char *argv[])
                 dirLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.029f, 0.078f, 0.075f);
+                lightStruct->ambient = glm::vec3(0.029f, 0.058f, 0.055f);
                 lightStruct->diffuse = glm::vec3(0.322f, 0.335f, 0.498f);
                 lightStruct->specular = glm::vec3(0.091f, 0.078f, 0.057f);
 
@@ -778,7 +778,7 @@ int main(int argc, const char *argv[])
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // _shadowPass.runPass();
+            _shadowPass.runPass();
             _standardRenderingPass.runPass();
             // _sortingTransparentPass.runPass();
             // _gizmosPass.runPass();

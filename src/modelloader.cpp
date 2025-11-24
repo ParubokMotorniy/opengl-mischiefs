@@ -150,7 +150,8 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
                                                         modelRoot);
         TextureIdentifier normal = loadMaterialTextures(material,
                                                         { aiTextureType_NORMAL_CAMERA,
-                                                          aiTextureType_NORMALS },
+                                                          aiTextureType_NORMALS,
+                                                          aiTextureType_HEIGHT },
                                                         modelRoot, false);
         TextureIdentifier roughness = loadMaterialTextures(material,
                                                            { aiTextureType_DIFFUSE_ROUGHNESS },

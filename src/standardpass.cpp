@@ -60,27 +60,27 @@ void StandardPass::runPass()
     }
 
     {
-        // _shaderProgramMain->use();
-        // bindDirectionalShadowMaps(_shaderProgramMain);
-        // _shaderProgramMain->setMatrix4("view", view);
-        // _shaderProgramMain->setMatrix4("projection", projection);
-        // _shaderProgramMain->setVec3("viewPos", _currentCamera->position());
-        // _shaderProgramMain->setFloat("directionalShadowBias", directionalShadowBias);
-        // _shaderProgramMain->setInt("numDirectionalLightsBound",
-        //                            LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
-        //                                ->getNumberOfBoundLights());
-        // _shaderProgramMain->setInt("numPointLightsBound",
-        //                            LightManager<ComponentType::LIGHT_POINT>::instance()
-        //                                ->getNumberOfBoundLights());
-        // _shaderProgramMain
-        //     ->setInt("numSpotLightsBound",
-        //              LightManager<ComponentType::LIGHT_SPOT>::instance()->getNumberOfBoundLights());
-        // _shaderProgramMain->setInt("numTexturedLightsBound",
-        //                            LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
-        //                                ->getNumberOfBoundLights());
-        // _shaderProgramMain->runShader();
-        // TextureManager::instance()->unbindAllTextures();
-        // MeshManager::instance()->unbindMesh();
+        _shaderProgramMain->use();
+        bindDirectionalShadowMaps(_shaderProgramMain);
+        _shaderProgramMain->setMatrix4("view", view);
+        _shaderProgramMain->setMatrix4("projection", projection);
+        _shaderProgramMain->setVec3("viewPos", _currentCamera->position());
+        _shaderProgramMain->setFloat("directionalShadowBias", directionalShadowBias);
+        _shaderProgramMain->setInt("numDirectionalLightsBound",
+                                   LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                                       ->getNumberOfBoundLights());
+        _shaderProgramMain->setInt("numPointLightsBound",
+                                   LightManager<ComponentType::LIGHT_POINT>::instance()
+                                       ->getNumberOfBoundLights());
+        _shaderProgramMain
+            ->setInt("numSpotLightsBound",
+                     LightManager<ComponentType::LIGHT_SPOT>::instance()->getNumberOfBoundLights());
+        _shaderProgramMain->setInt("numTexturedLightsBound",
+                                   LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
+                                       ->getNumberOfBoundLights());
+        _shaderProgramMain->runShader();
+        TextureManager::instance()->unbindAllTextures();
+        MeshManager::instance()->unbindMesh();
     }
 
     {

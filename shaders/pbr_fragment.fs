@@ -1,4 +1,5 @@
 #version 460 core
+#extension GL_ARB_bindless_texture : require
 
 out vec4 FragColor;
 
@@ -108,14 +109,14 @@ in VertexParamPack
 {
     vec2 texCoord;
     vec3 vPos;
-    mat4 tbnMatrix;
+    mat3 tbnMatrix;
 } fs_in;
   
-float DistributionGGX(vec3 N, vec3 H, float roughness)
+float DistributionGGX(vec3 fNormal, vec3 H, float roughness)
 {
     float a      = roughness*roughness;
     float a2     = a*a;
-    float NdotH  = max(dot(N, H), 0.0);
+    float NdotH  = max(dot(fNormal, H), 0.0);
     float NdotH2 = NdotH*NdotH;
 	
     float num   = a2;
@@ -135,10 +136,10 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 	
     return num / denom;
 }
-float GeometrySmith(vec3 N, vec3 viewDir, vec3 L, float roughness)
+float GeometrySmith(vec3 fNormal, vec3 viewDir, vec3 L, float roughness)
 {
-    float NdotV = max(dot(N, viewDir), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(fNormal, viewDir), 0.0);
+    float NdotL = max(dot(fNormal, L), 0.0);
     float ggx2  = GeometrySchlickGGX(NdotV, roughness);
     float ggx1  = GeometrySchlickGGX(NdotL, roughness);
 	
@@ -205,8 +206,8 @@ vec3 CalculateDirectionalLightRadianceContribution(DirectionalLight light, int l
     // calculate per-light radiance
     vec3 L = normalize(-light.direction);
     vec3 H = normalize(viewDir + L);
-    // float shadowEffect = 1.0 - fragmentInDirectionalShadow(light, lightIdx, fPos, normal);
-    vec3 radiance     = light.diffuse; //*shadowEffect        
+    float shadowEffect = 1.0 - fragmentInDirectionalShadow(light, lightIdx, fPos, normal);
+    vec3 radiance     = light.diffuse * shadowEffect;  
     
     // cook-torrance brdf
     float NDF = DistributionGGX(normal, H, roughness);        
@@ -254,15 +255,85 @@ vec3 CalculatePointLightRadianceContribution(PointLight light, vec3 normal, vec3
     return (kD * albedo / PI + specular) * radiance * NdotL; 
 }
 
-//TODO: add contributions from spot and textured lights
+vec3 CalculateSpotLightRadianceContribution(SpotLight light, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, float metallic, float roughness, vec3 fPos)
+{
+    vec3 L = normalize(light.position - fPos);
+    vec3 H = normalize(viewDir + L);
+    float distance = length(light.position - fPos);
+    float attenuation = clamp(1.0
+                                  / (light.attenuationConstantTerm
+                                     + light.attenuationLinearTerm * distance
+                                     + light.attenuationQuadraticTerm * (distance * distance)),
+                              0.0, 1.0);
+    float theta = dot(L, normalize(-light.direction));
+    float epsilon = (light.innerCutOff - light.outerCutOff);
+    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+    vec3 radiance     = light.diffuse * attenuation * intensity;      
+    
+    // cook-torrance
+    float NDF = DistributionGGX(normal, H, roughness);        
+    float G   = GeometrySmith(normal, viewDir, L, roughness);      
+    vec3 F    = fresnelSchlick(max(dot(H, viewDir), 0.0), F0);       
+    
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - metallic;	  
+    
+    vec3 numerator    = NDF * G * F;
+    float denominator = 4.0 * max(dot(normal, viewDir), 0.0) * max(dot(normal, L), 0.0) + 0.0001;
+    vec3 specular     = numerator / denominator;  
+        
+    float NdotL = max(dot(normal, L), 0.0);                
+    return (kD * albedo / PI + specular) * radiance * NdotL; 
+}
+
+vec3 CalculateTexturedSpotLightRadianceContribution(TexturedSpotLight light, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, float metallic, float roughness, vec3 fPos)
+{
+    vec3 L = normalize(light.position - fPos);
+    vec3 H = normalize(viewDir + L);
+    float distance = length(light.position - fPos);
+
+    //projected texture sampling
+    vec4 mappedFrag = light.lightProj * light.lightView * vec4(fPos, 1.0f);
+    mappedFrag /= mappedFrag.w;
+    float tCoordX = (mappedFrag.x + 1.0) / 2.0f;
+    float tCoordY = (-mappedFrag.y + 1.0) / 2.0f;
+    vec3 lightDiffuse = texture(sampler2D(light.textureIdx), vec2(tCoordX, tCoordY)).xyz;
+
+    float attenuation = clamp(1.0
+                                  / (light.attenuationConstantTerm
+                                     + light.attenuationLinearTerm * distance
+                                     + light.attenuationQuadraticTerm * (distance * distance)),
+                              0.0, 1.0);
+    float theta = dot(L, normalize(-light.direction));
+    float epsilon = (light.innerCutOff - light.outerCutOff);
+    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+    vec3 radiance     = lightDiffuse * attenuation * intensity;      
+    
+    // cook-torrance
+    float NDF = DistributionGGX(normal, H, roughness);        
+    float G   = GeometrySmith(normal, viewDir, L, roughness);      
+    vec3 F    = fresnelSchlick(max(dot(H, viewDir), 0.0), F0);       
+    
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - metallic;	  
+    
+    vec3 numerator    = NDF * G * F;
+    float denominator = 4.0 * max(dot(normal, viewDir), 0.0) * max(dot(normal, L), 0.0) + 0.0001;
+    vec3 specular     = numerator / denominator;  
+        
+    float NdotL = max(dot(normal, L), 0.0);                
+    return (kD * albedo / PI + specular) * radiance * NdotL; 
+}
 
 void main()
 {		
-    vec3 N = normalize(fs_in.tbnMatrix * vec4((texture(normalMap, fs_in.texCoord).rgb * 2.0) - 1.0, 1.0)).rgb;
+    vec3 fNormal = normalize(fs_in.tbnMatrix * ((texture(normalMap, fs_in.texCoord).rgb * 2.0) - 1.0)).rgb;
     vec3 viewDir = normalize(viewPos - fs_in.vPos);
 
     vec3 albedo = texture(albedoMap, fs_in.texCoord).rgb;
-    vec3 ao = texture(aoMap, fs_in.texCoord).rgb;
+    float ao = texture(aoMap, fs_in.texCoord).r;
     float metallic = texture(metallicMap, fs_in.texCoord).r;
     float roughness = texture(roughnessMap, fs_in.texCoord).r;
 
@@ -271,47 +342,28 @@ void main()
 	           
     // reflectance equation
     vec3 Lo = vec3(0.0);
-    // for(int i = 0; i < 4; ++i) 
-    // {
-    //     // calculate per-light radiance
-    //     vec3 L = normalize(lightPositions[i] - fs_in.vPos);
-    //     vec3 H = normalize(viewDir + L);
-    //     float distance    = length(lightPositions[i] - fs_in.vPos);
-    //     float attenuation = 1.0 / (distance * distance);
-    //     vec3 radiance     = lightColors[i] * attenuation;        
-        
-    //     // cook-torrance brdf
-    //     float NDF = DistributionGGX(N, H, roughness);        
-    //     float G   = GeometrySmith(N, viewDir, L, roughness);      
-    //     vec3 F    = fresnelSchlick(max(dot(H, viewDir), 0.0), F0);       
-        
-    //     vec3 kS = F;
-    //     vec3 kD = vec3(1.0) - kS;
-    //     kD *= 1.0 - metallic;	  
-        
-    //     vec3 numerator    = NDF * G * F;
-    //     float denominator = 4.0 * max(dot(N, viewDir), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-    //     vec3 specular     = numerator / denominator;  
-            
-    //     // add to outgoing radiance Lo
-    //     float NdotL = max(dot(N, L), 0.0);                
-    //     Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
-    // }   
-
-    // PointLight light, int lightIdx, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, float metallic, float roughness, vec3 fPos
-
     for (int d = 0; d < numDirectionalLightsBound; ++d)
     {
-        Lo += CalculateDirectionalLightRadianceContribution(dirLights[d], d, N, viewDir, albedo, F0, metallic, roughness, fs_in.vPos);
+        Lo += CalculateDirectionalLightRadianceContribution(dirLights[d], d, fNormal, viewDir, albedo, F0, metallic, roughness, fs_in.vPos);
     }
 
     for (int p = 0; p < numPointLightsBound; ++p)
     {
-        Lo += CalculatePointLightRadianceContribution(pointLights[p], N, viewDir, albedo, F0, metallic, roughness, fs_in.vPos);
+        Lo += CalculatePointLightRadianceContribution(pointLights[p], fNormal, viewDir, albedo, F0, metallic, roughness, fs_in.vPos);
+    }
+
+    for (int p = 0; p < numSpotLightsBound; ++p)
+    {
+        Lo += CalculateSpotLightRadianceContribution(spotLights[p], fNormal, viewDir, albedo, F0, metallic, roughness, fs_in.vPos);
+    }
+
+    for (int p = 0; p < numTexturedLightsBound; ++p)
+    {
+        Lo += CalculateTexturedSpotLightRadianceContribution(texturedSpotLights[p], fNormal, viewDir, albedo, F0, metallic, roughness, fs_in.vPos);
     }
   
-    vec3 ambient = vec3(0.03) * albedo * ao;
-    vec3 color = ambient + Lo;  
+    vec3 ambient = vec3(0.05) * albedo * ao;
+    vec3 color = Lo + ambient;  
    
     FragColor = vec4(color, 1.0);
 }

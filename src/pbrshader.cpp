@@ -39,7 +39,9 @@ void PbrShader::runShader()
     TextureManager::instance()->allocateTexture(pbrMaterial.normalIdentifier);
     TextureManager::instance()->allocateTexture(pbrMaterial.aoIdentifier);
 
-    setMatrix4("model", glm::scale(glm::identity<glm::mat4>(), glm::vec3(10.0f, 10.0f, 10.0f)));
+    glm::mat4 modelMat = glm::rotate(glm::identity<glm::mat4>(), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    modelMat = glm::scale(modelMat, glm::vec3(50.0f, 50.0f, 50.0f));
+    setMatrix4("model", modelMat);
     setInt("albedoMap", TextureManager::instance()->bindTexture(pbrMaterial.albedoIdentifier));
     setInt("roughnessMap",
            TextureManager::instance()->bindTexture(pbrMaterial.roughnessIdentifier));
