@@ -12,9 +12,12 @@ ShadowPass::ShadowPass(InstancedBlinnPhongShader *ins, LightVisualizationShader 
       _lightVisualizationShader(lightVis),
       _pbrShader(pbrShader),
       _passThroughOverride(ENGINE_SHADERS "/depth_pass_through.vs",
+                           ENGINE_SHADERS "/depth_pass_through.fs"),
+      _passThroughOverridePbr(ENGINE_SHADERS "/depth_pass_through_pbr.vs",
                            ENGINE_SHADERS "/depth_pass_through.fs")
 {
     _passThroughOverride.initializeShaderProgram();
+    _passThroughOverridePbr.initializeShaderProgram();
 }
 
 void ShadowPass::runPass()
@@ -30,11 +33,10 @@ void ShadowPass::runPass()
 
         const glm::mat4 &projection = l.dummyProjectionMatrix;
         const glm::mat4 &view = l.dummyViewMatrix;
-        const glm::vec3 &pos = l.dummyPosition;
 
         _shaderProgramMain->setShaderProgramOverride(_passThroughOverride);
         _lightVisualizationShader->setShaderProgramOverride(_passThroughOverride);
-        _pbrShader->setShaderProgramOverride(_passThroughOverride);
+        _pbrShader->setShaderProgramOverride(_passThroughOverridePbr);
 
         {
             _shaderProgramMain->use();
@@ -50,17 +52,16 @@ void ShadowPass::runPass()
             _lightVisualizationShader->runShader();
         }
 
-        // {
-        //     _pbrShader->use();
-        //     _pbrShader->setMatrix4("view", view);
-        //     _pbrShader->setMatrix4("projection", projection);
-        //     _pbrShader->runShader();
-        // }
+        {
+            _pbrShader->use();
+            _pbrShader->setMatrix4("view", view);
+            _pbrShader->setMatrix4("projection", projection);
+            _pbrShader->runShader();
+        }
 
         _shaderProgramMain->removeShaderProgramOverride();
         _lightVisualizationShader->removeShaderProgramOverride();
         _pbrShader->removeShaderProgramOverride();
-
     }
     FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
 }

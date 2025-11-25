@@ -1,8 +1,8 @@
 #pragma once
 
 #include "framepass.h"
-#include "passthroughshader.h"
 #include "instancedshader.h"
+#include "passthroughshader.h"
 
 class WorldPlaneShader;
 class LightVisualizationShader;
@@ -12,7 +12,8 @@ class PbrShader;
 class ShadowPass : public FramePass
 {
 public:
-    ShadowPass(InstancedBlinnPhongShader *ins, LightVisualizationShader *lightVis, PbrShader *pbrShader);
+    ShadowPass(InstancedBlinnPhongShader *ins, LightVisualizationShader *lightVis,
+               PbrShader *pbrShader);
     void runPass() override;
 
 private:
@@ -21,4 +22,5 @@ private:
     LightVisualizationShader *_lightVisualizationShader = nullptr;
     PbrShader *_pbrShader = nullptr;
     PassThroughShader _passThroughOverride{ nullptr, nullptr };
+    PassThroughShader _passThroughOverridePbr{ nullptr, nullptr };
 };
