@@ -3,13 +3,6 @@
 
 out vec4 FragColor;
 
-// material parameters
-uniform sampler2D albedoMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D metallicMap;
-uniform sampler2D normalMap;
-uniform sampler2D aoMap;
-
 uniform vec3 viewPos;
 
 struct DirectionalLight
@@ -80,6 +73,8 @@ struct TexturedSpotLight
     uvec2 textureIdx;
 };
 
+layout(binding = 1, std430) readonly buffer TextureHandles { uvec2 pbrTextures[]; };
+
 #define NUM_DIRECTIONAL 8
 layout(binding = 1, std140) uniform DirectionalLights
 {
@@ -110,6 +105,8 @@ in VertexParamPack
     vec2 texCoord;
     vec3 vPos;
     mat3 tbnMatrix;
+    flat ivec4 instanceMaterialIndicesPart1;
+    flat ivec4 instanceMaterialIndicesPart2;
 } fs_in;
   
 float DistributionGGX(vec3 fNormal, vec3 H, float roughness)
@@ -328,19 +325,24 @@ vec3 CalculateTexturedSpotLightRadianceContribution(TexturedSpotLight light, vec
 }
 
 void main()
-{		
-    vec3 fNormal = normalize(fs_in.tbnMatrix * ((texture(normalMap, fs_in.texCoord).rgb * 2.0) - 1.0)).rgb;
+{		 
+    int albedoHandle = fs_in.instanceMaterialIndicesPart1.x;
+    int normalHandle = fs_in.instanceMaterialIndicesPart1.y;
+    int roughnessHandle = fs_in.instanceMaterialIndicesPart1.z;
+    int metallicHandle = fs_in.instanceMaterialIndicesPart1.w;
+    int aoHandle = fs_in.instanceMaterialIndicesPart2.x;
+
     vec3 viewDir = normalize(viewPos - fs_in.vPos);
 
-    vec3 albedo = texture(albedoMap, fs_in.texCoord).rgb;
-    float ao = texture(aoMap, fs_in.texCoord).r;
-    float metallic = texture(metallicMap, fs_in.texCoord).r;
-    float roughness = texture(roughnessMap, fs_in.texCoord).r;
+    vec3 fNormal = normalize(fs_in.tbnMatrix * ((texture(sampler2D(pbrTextures[normalHandle]), fs_in.texCoord).rgb * 2.0) - 1.0)).rgb;
+    vec3 albedo = texture(sampler2D(pbrTextures[albedoHandle]), fs_in.texCoord).rgb;
+    float metallic = texture(sampler2D(pbrTextures[metallicHandle]), fs_in.texCoord).r;
+    float roughness = texture(sampler2D(pbrTextures[roughnessHandle]), fs_in.texCoord).r;
+    float ao = aoHandle == -1 ? 1.0 : texture(sampler2D(pbrTextures[aoHandle]), fs_in.texCoord).r;
 
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metallic);
 	           
-    // reflectance equation
     vec3 Lo = vec3(0.0);
     for (int d = 0; d < numDirectionalLightsBound; ++d)
     {
@@ -366,4 +368,5 @@ void main()
     vec3 color = Lo + ambient;  
    
     FragColor = vec4(color, 1.0);
+    // FragColor = vec4(ao,ao,ao, 1.0);
 }

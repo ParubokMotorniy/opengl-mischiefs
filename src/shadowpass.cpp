@@ -4,10 +4,13 @@
 #include "instancedshader.h"
 #include "lightmanager.h"
 #include "lightvisualizationshader.h"
+#include "pbrshader.h"
 
-ShadowPass::ShadowPass(InstancedShader *ins, LightVisualizationShader *lightVis)
+ShadowPass::ShadowPass(InstancedBlinnPhongShader *ins, LightVisualizationShader *lightVis,
+                       PbrShader *pbrShader)
     : _shaderProgramMain(ins),
       _lightVisualizationShader(lightVis),
+      _pbrShader(pbrShader),
       _passThroughOverride(ENGINE_SHADERS "/depth_pass_through.vs",
                            ENGINE_SHADERS "/depth_pass_through.fs")
 {
@@ -31,12 +34,12 @@ void ShadowPass::runPass()
 
         _shaderProgramMain->setShaderProgramOverride(_passThroughOverride);
         _lightVisualizationShader->setShaderProgramOverride(_passThroughOverride);
+        _pbrShader->setShaderProgramOverride(_passThroughOverride);
 
         {
             _shaderProgramMain->use();
             _shaderProgramMain->setMatrix4("view", view);
             _shaderProgramMain->setMatrix4("projection", projection);
-            _shaderProgramMain->setVec3("viewPos", pos);
             _shaderProgramMain->runShader();
         }
 
@@ -47,8 +50,17 @@ void ShadowPass::runPass()
             _lightVisualizationShader->runShader();
         }
 
+        // {
+        //     _pbrShader->use();
+        //     _pbrShader->setMatrix4("view", view);
+        //     _pbrShader->setMatrix4("projection", projection);
+        //     _pbrShader->runShader();
+        // }
+
         _shaderProgramMain->removeShaderProgramOverride();
         _lightVisualizationShader->removeShaderProgramOverride();
+        _pbrShader->removeShaderProgramOverride();
+
     }
     FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
 }

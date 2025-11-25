@@ -318,6 +318,9 @@ int main(int argc, const char *argv[])
         "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
                                   // Surprisingly, it seems to be better optimized than bill
 
+    const GameObjectIdentifier gameboyModelId
+        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/gameboy/gameboy.obj", false, true);
+
     const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
         ENGINE_MODELS "/sphere/sphere.obj");
     const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
@@ -337,7 +340,7 @@ int main(int argc, const char *argv[])
     {
         //// Shaders
 
-        InstancedShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
+        InstancedBlinnPhongShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
         shaderProgramMain.initializeShaderProgram();
 
         WorldPlaneShader worldPlaneShader{ cubeMesh, checkerboardTexture };
@@ -367,7 +370,7 @@ int main(int argc, const char *argv[])
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
 
-        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader };
+        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader, &mainPbrShader };
 
         SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader };
         _sortingTransparentPass.setCamera(camera);
@@ -679,18 +682,31 @@ int main(int argc, const char *argv[])
         for (int k = 10; k < 20; ++k)
         {
             /// add bills
-            auto billCopy = ObjectManager::instance()->copyObject(billModel);
-            auto billTransform = TransformManager::instance()->getTransform(
-                ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
-                    ComponentType::TRANSFORM));
-            billTransform->setPosition(
-                glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
-            billTransform->setRotation(
-                glm::rotate(billTransform->rotation(), glm::radians((float)k),
-                            glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-            billTransform->setScale(glm::vec3(20.0f));
+            // const auto billCopy = ObjectManager::instance()->copyObject(billModel);
+            // auto billTransform = TransformManager::instance()->getTransform(
+            //     ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
+            //         ComponentType::TRANSFORM));
+            // billTransform->setPosition(
+            //     glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
+            // billTransform->setRotation(
+            //     glm::rotate(billTransform->rotation(), glm::radians((float)k),
+            //                 glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
+            // billTransform->setScale(glm::vec3(20.0f));
 
-            shaderProgramMain.addObjectWithChildren(billCopy);
+            // shaderProgramMain.addObjectWithChildren(billCopy);
+
+            const auto gameBoyCopy = ObjectManager::instance()->copyObject(gameboyModelId);
+            auto gameboyTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()->getObject(gameBoyCopy).getIdentifierForComponent(
+                    ComponentType::TRANSFORM));
+            gameboyTransform->setPosition(
+                glm::vec3(- k * std::sin(k), - k * std::sin(k), k * std::cos(k)));
+            gameboyTransform->setRotation(
+                glm::rotate(gameboyTransform->rotation(), glm::radians((float)k),
+                            glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
+            gameboyTransform->setScale(glm::vec3(20.0f)); 
+
+            mainPbrShader.addObjectWithChildren(gameBoyCopy);
         }
         {
             GameObject &worldAxes = ObjectManager::instance()->getObject(
@@ -737,6 +753,9 @@ int main(int argc, const char *argv[])
             shaderProgramMain.runTextureMapping();
             shaderProgramMain.runInstancing();
 
+            mainPbrShader.runTextureMapping();
+            mainPbrShader.runInstancing();
+
             LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->setLightSourceValidator(
                 [](DirectionalLight) -> bool { return true; });
             LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->initializeLightBuffer();
@@ -780,8 +799,8 @@ int main(int argc, const char *argv[])
 
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
-            // _sortingTransparentPass.runPass();
-            // _gizmosPass.runPass();
+            _sortingTransparentPass.runPass();
+            _gizmosPass.runPass();
             _hdrPass.runPass();
 
             {

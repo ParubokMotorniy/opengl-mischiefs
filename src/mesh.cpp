@@ -110,8 +110,8 @@ void Mesh::enableInstancing()
         {
             uint32_t TBO;
             glGenBuffers(1, &TBO);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TBO);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, tangentsSize(), tangents.data(), GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, TBO);
+            glBufferData(GL_ARRAY_BUFFER, tangentsSize(), tangents.data(), GL_STATIC_DRAW);
 
             glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
             glEnableVertexAttribArray(3); // tangent vectors

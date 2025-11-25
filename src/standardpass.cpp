@@ -32,7 +32,7 @@ void bindDirectionalShadowMaps(ShaderProgram *target)
 }
 } // namespace
 
-StandardPass::StandardPass(InstancedShader *ins, WorldPlaneShader *wrld,
+StandardPass::StandardPass(InstancedBlinnPhongShader *ins, WorldPlaneShader *wrld,
                            LightVisualizationShader *lightVis, SkyboxShader *skybox,
                            PbrShader *pbrShader)
     : _shaderProgramMain(ins),

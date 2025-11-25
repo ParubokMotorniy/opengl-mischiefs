@@ -3,6 +3,10 @@
 #include "types.h"
 
 #include <array>
+#include <stddef.h>
+#include <tuple>
+#include <type_traits>
+#include <cassert>
 
 struct BasicMaterial
 {
@@ -30,3 +34,20 @@ struct PbrMaterial
                  aoIdentifier };
     }
 };
+
+template <typename MaterialStruct, size_t textureCount = std::tuple_size_v<
+                                       decltype(std::declval<MaterialStruct>().textures())>>
+constexpr size_t getNumTexturesInMaterial()
+{
+    return textureCount;
+};
+
+template <typename MaterialStruct>
+constexpr ComponentType getComponentTypeForStruct()
+{
+    if constexpr (std::is_same_v<MaterialStruct, BasicMaterial>)
+        return ComponentType::BASIC_MATERIAL;
+    if constexpr (std::is_same_v<MaterialStruct, PbrMaterial>)
+        return ComponentType::PBR_MATERIAL;
+    assert(false);
+}

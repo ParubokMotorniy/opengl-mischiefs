@@ -2,8 +2,8 @@
 
 #include "types.h"
 #include "framepass.h"
+#include "instancedshader.h"
 
-class InstancedShader;
 class WorldPlaneShader;
 class LightVisualizationShader;
 class SkyboxShader;
@@ -12,13 +12,13 @@ class PbrShader;
 class StandardPass : public FramePass
 {
 public:
-    StandardPass(InstancedShader *ins, WorldPlaneShader *wrld, LightVisualizationShader *lightVis,
+    StandardPass(InstancedBlinnPhongShader *ins, WorldPlaneShader *wrld, LightVisualizationShader *lightVis,
                  SkyboxShader *skybox, PbrShader *pbrShader);
     void runPass() override;
 
 private:
     // TODO: ideally, these shouldn't be set by name from constructor
-    InstancedShader *_shaderProgramMain = nullptr;
+    InstancedBlinnPhongShader *_shaderProgramMain = nullptr;
 
     WorldPlaneShader *_worldPlaneShader = nullptr;
 

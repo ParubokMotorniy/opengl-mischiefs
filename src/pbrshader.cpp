@@ -6,88 +6,142 @@
 #include "modelloader.h"
 #include "types.h"
 
-namespace
-{
-GameObjectIdentifier gameboyModelId = InvalidIdentifier;
-MeshIdentifier gameboyMeshId = 25;
-MaterialIdentifier pbrMaterialId = 1;
-} // namespace
-
 PbrShader::PbrShader(const char *vertexPath, const char *fragmentPath)
-    : _vertexPath(vertexPath), _fragmentPath(fragmentPath)
+    : InstancedShader<PbrMaterial>(vertexPath, fragmentPath)
 {
-    gameboyModelId = ModelLoader::instance()->loadModel(ENGINE_MODELS "/gameboy/gameboy.obj", false,
-                                                        true);
-    // gameboyMeshId = MeshManager::instance()->meshRegistered("Gameboy");
-    // pbrMaterialId = ObjectManager::instance()
-    //                     ->getObject(gameboyModelId)
-    //                     .getIdentifierForComponent(ComponentType::PBR_MATERIAL);
+    _textureHandlesbindingPoint = 1;
 }
 
 void PbrShader::runShader()
 {
     use();
-    const auto pbrMaterial = MaterialManager<PbrMaterial, ComponentType::PBR_MATERIAL>::instance()
-                                 ->getMaterial(pbrMaterialId);
-    const auto testMesh = MeshManager::instance()->getMesh(gameboyMeshId);
-    MeshManager::instance()->allocateMesh(gameboyMeshId);
-    MeshManager::instance()->bindMesh(gameboyMeshId);
 
-    TextureManager::instance()->allocateTexture(pbrMaterial.albedoIdentifier);
-    TextureManager::instance()->allocateTexture(pbrMaterial.roughnessIdentifier);
-    TextureManager::instance()->allocateTexture(pbrMaterial.metallicIdentifier);
-    TextureManager::instance()->allocateTexture(pbrMaterial.normalIdentifier);
-    TextureManager::instance()->allocateTexture(pbrMaterial.aoIdentifier);
+    for (auto &[meshId, count] : _instancedMeshes)
+    {
+        MeshManager::instance()->enableMeshInstancing(meshId);
+        const Mesh &mesh = *MeshManager::instance()->getMesh(meshId);
 
-    glm::mat4 modelMat = glm::rotate(glm::identity<glm::mat4>(), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    modelMat = glm::scale(modelMat, glm::vec3(50.0f, 50.0f, 50.0f));
-    setMatrix4("model", modelMat);
-    setInt("albedoMap", TextureManager::instance()->bindTexture(pbrMaterial.albedoIdentifier));
-    setInt("roughnessMap",
-           TextureManager::instance()->bindTexture(pbrMaterial.roughnessIdentifier));
-    setInt("metallicMap", TextureManager::instance()->bindTexture(pbrMaterial.metallicIdentifier));
-    setInt("normalMap", TextureManager::instance()->bindTexture(pbrMaterial.normalIdentifier));
-    setInt("aoMap", TextureManager::instance()->bindTexture(pbrMaterial.aoIdentifier));
+        MeshManager::instance()->bindMeshInstanced(meshId);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _texturesSSBO);
 
-    glDrawElements(GL_TRIANGLES, testMesh->numIndices(), GL_UNSIGNED_INT, 0);
+        glDrawElementsInstanced(GL_TRIANGLES, mesh.indicesSize(), GL_UNSIGNED_INT, 0, count);
 
-    MeshManager::instance()->unbindMesh();
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+
+        MeshManager::instance()->unbindMesh();
+    }
 }
 
-void PbrShader::compileAndAttachNecessaryShaders(uint32_t id)
+std::vector<InstancedDataGenerator> PbrShader::getDataGenerators()
 {
-    if (_vertexShaderId == 0)
-    {
-        const std::string &vShaderCode = readShaderSource(_vertexPath.c_str());
+    // TODO: these generators are quite inefficient -> rework
+    const InstancedDataGenerator modelMatrixCol0 = InstancedDataGenerator{
+        sizeof(glm::vec4),
+        4,
+        4,
+        GL_FLOAT,
+        false,
+        [](void *destination, GameObjectIdentifier gId) {
+            const glm::mat4 modelMat
+                = TransformManager::instance()
+                      ->getTransform(
+                          ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
+                              ComponentType::TRANSFORM))
+                      ->computeModelMatrix();
 
-        const char *vPtr = vShaderCode.c_str();
+            std::memcpy(destination,
+                        reinterpret_cast<const int8_t *>(&modelMat) + (0 * sizeof(glm::vec4)),
+                        sizeof(glm::vec4));
+        }
+    };
+    const InstancedDataGenerator modelMatrixCol1 = InstancedDataGenerator{
+        sizeof(glm::vec4),
+        4,
+        5,
+        GL_FLOAT,
+        false,
+        [](void *destination, GameObjectIdentifier gId) {
+            const glm::mat4 modelMat
+                = TransformManager::instance()
+                      ->getTransform(
+                          ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
+                              ComponentType::TRANSFORM))
+                      ->computeModelMatrix();
 
-        _vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(_vertexShaderId, 1, &vPtr, 0);
-        compileShader(_vertexShaderId);
-    }
+            std::memcpy(destination,
+                        reinterpret_cast<const int8_t *>(&modelMat) + (1 * sizeof(glm::vec4)),
+                        sizeof(glm::vec4));
+        }
+    };
 
-    glAttachShader(id, _vertexShaderId);
+    const InstancedDataGenerator modelMatrixCol2 = InstancedDataGenerator{
+        sizeof(glm::vec4),
+        4,
+        6,
+        GL_FLOAT,
+        false,
+        [](void *destination, GameObjectIdentifier gId) {
+            const glm::mat4 modelMat
+                = TransformManager::instance()
+                      ->getTransform(
+                          ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
+                              ComponentType::TRANSFORM))
+                      ->computeModelMatrix();
 
-    if (_fragmentShaderId == 0)
-    {
-        const std::string &fShaderCode = readShaderSource(_fragmentPath.c_str());
+            std::memcpy(destination,
+                        reinterpret_cast<const int8_t *>(&modelMat) + (2 * sizeof(glm::vec4)),
+                        sizeof(glm::vec4));
+        }
+    };
 
-        const char *fPtr = fShaderCode.c_str();
+    const InstancedDataGenerator modelMatrixCol3 = InstancedDataGenerator{
+        sizeof(glm::vec4),
+        4,
+        7,
+        GL_FLOAT,
+        false,
+        [](void *destination, GameObjectIdentifier gId) {
+            const glm::mat4 modelMat
+                = TransformManager::instance()
+                      ->getTransform(
+                          ObjectManager::instance()->getObject(gId).getIdentifierForComponent(
+                              ComponentType::TRANSFORM))
+                      ->computeModelMatrix();
 
-        _fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(_fragmentShaderId, 1, &fPtr, 0);
-        compileShader(_fragmentShaderId);
-    }
+            std::memcpy(destination,
+                        reinterpret_cast<const int8_t *>(&modelMat) + (3 * sizeof(glm::vec4)),
+                        sizeof(glm::vec4));
+        }
+    };
 
-    glAttachShader(id, _fragmentShaderId);
-}
+    // makes the PBR texture indices instanced
+    const InstancedDataGenerator pbrMaterialIndices1 = InstancedDataGenerator{
+        sizeof(int) * 4, // 4 to preserve the 16-byte alignment
+        4,
+        8,
+        GL_INT,
+        false,
+        [this](void *destination, GameObjectIdentifier gId) {
+            const std::array<int, 5> &objectTextureIndices = _objectsTextureMappings.at(gId);
 
-void PbrShader::deleteShaders()
-{
-    glDeleteShader(_vertexShaderId);
-    _vertexShaderId = 0;
+            std::memcpy(destination, objectTextureIndices.data(), sizeof(int) * 4);
+        }
+    };
 
-    glDeleteShader(_fragmentShaderId);
-    _fragmentShaderId = 0;
+    // second component is ivec4 to reserve space for future extensions of PBR
+    const InstancedDataGenerator pbrMaterialIndices2 = InstancedDataGenerator{
+        sizeof(int) * 4, // 4 to preserve the 16-byte alignment
+        4,
+        9,
+        GL_INT,
+        false,
+        [this](void *destination, GameObjectIdentifier gId) {
+            const std::array<int, 5> &objectTextureIndices = _objectsTextureMappings.at(gId);
+
+            std::memcpy(destination, objectTextureIndices.data() + 4, sizeof(int));
+        }
+    };
+
+    return { modelMatrixCol0, modelMatrixCol1,     modelMatrixCol2,
+             modelMatrixCol3, pbrMaterialIndices1, pbrMaterialIndices2 };
 }

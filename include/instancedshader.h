@@ -1,11 +1,13 @@
 #pragma once
 
-#include "shaderprogram.h"
 #include "instancer.h"
+#include "material.h"
+#include "shaderprogram.h"
 
 #include <unordered_map>
 #include <unordered_set>
 
+template <typename MaterialStruct>
 class InstancedShader : public ShaderProgram
 {
 public:
@@ -26,14 +28,17 @@ protected:
 
 protected:
     uint32_t _texturesSSBO = 0;
-    std::unordered_map<GameObjectIdentifier, std::array<int, 3>> _objectsTextureMappings;
+    std::unordered_map<GameObjectIdentifier,
+                       std::array<int, getNumTexturesInMaterial<MaterialStruct>()>>
+        _objectsTextureMappings;
 
     std::unordered_map<MeshIdentifier, size_t> _instancedMeshes;
     std::vector<GLuint> _instancedBufferIds;
     const std::vector<GameObjectIdentifier> &getShaderObjectsAsVector();
 
-private:
-    std::vector<InstancedDataGenerator> getDataGenerators();
+    virtual std::vector<InstancedDataGenerator> getDataGenerators();
+
+    size_t _textureHandlesbindingPoint = 0;
 
 private:
     const char *_vertexPath = nullptr;
@@ -42,3 +47,8 @@ private:
     uint32_t _vertexShaderId = 0;
     uint32_t _fragmentShaderId = 0;
 };
+
+template class InstancedShader<BasicMaterial>;
+using InstancedBlinnPhongShader = InstancedShader<BasicMaterial>;
+
+template class InstancedShader<PbrMaterial>;
