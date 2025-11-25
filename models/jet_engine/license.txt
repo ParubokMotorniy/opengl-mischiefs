@@ -1,0 +1,8 @@
+Model Information:
+* title:	Jet Engine
+* source:	https://sketchfab.com/3d-models/jet-engine-75c731548e4b42ad9d376e0342b5ef9c
+* author:	vertexmonster (https://sketchfab.com/vertexmonster)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

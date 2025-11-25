@@ -313,10 +313,16 @@ int main(int argc, const char *argv[])
     // Models
 
     // Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
-    const GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
-        ENGINE_MODELS
-        "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
-                                  // Surprisingly, it seems to be better optimized than bill
+    // const GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
+    //     ENGINE_MODELS
+    //     "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
+    //                               // Surprisingly, it seems to be better optimized than bill
+    
+    const GameObjectIdentifier gunModelId
+        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/firearm/scene.gltf", false, true);
+
+    const GameObjectIdentifier engineModelId
+        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/jet_engine/scene.gltf", false, true);
 
     const GameObjectIdentifier gameboyModelId
         = ModelLoader::instance()->loadModel(ENGINE_MODELS "/gameboy/gameboy.obj", false, true);
@@ -666,7 +672,7 @@ int main(int argc, const char *argv[])
                 glm::vec3(std::sin(k) * 10.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
-            t->setScale(glm::vec3(std::max((k % 10) / 1.5f, 0.2f)));
+            t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
 
             shaderProgramMain.addObject(standardObject);
             movingObjects.emplace_back(standardObject);
@@ -679,7 +685,7 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
         }
-        for (int k = 10; k < 20; ++k)
+        for (int k = 10; k < 15; ++k)
         {
             /// add bills
             // const auto billCopy = ObjectManager::instance()->copyObject(billModel);
@@ -697,14 +703,15 @@ int main(int argc, const char *argv[])
 
             const auto gameBoyCopy = ObjectManager::instance()->copyObject(gameboyModelId);
             auto gameboyTransform = TransformManager::instance()->getTransform(
-                ObjectManager::instance()->getObject(gameBoyCopy).getIdentifierForComponent(
-                    ComponentType::TRANSFORM));
+                ObjectManager::instance()
+                    ->getObject(gameBoyCopy)
+                    .getIdentifierForComponent(ComponentType::TRANSFORM));
             gameboyTransform->setPosition(
-                glm::vec3(- k * std::sin(k), - k * std::sin(k), k * std::cos(k)));
+                glm::vec3(-k * std::sin(k), -k * std::sin(k), k * std::cos(k)));
             gameboyTransform->setRotation(
                 glm::rotate(gameboyTransform->rotation(), glm::radians((float)k),
                             glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-            gameboyTransform->setScale(glm::vec3(20.0f)); 
+            gameboyTransform->setScale(glm::vec3(20.0f));
 
             mainPbrShader.addObjectWithChildren(gameBoyCopy);
         }
@@ -716,6 +723,27 @@ int main(int argc, const char *argv[])
                 Component(ComponentType::TRANSFORM,
                           TransformManager::instance()->registerNewTransform(worldAxes)));
             worldAxesShader.addObject(worldAxes);
+        }
+        {
+            auto gunTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()
+                    ->getObject(gunModelId)
+                    .getIdentifierForComponent(ComponentType::TRANSFORM));
+            gunTransform->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
+            gunTransform->setRotation(glm::rotate(glm::identity<glm::mat4>(), glm::radians(-90.0f),
+                                                  glm::vec3(1.0f, 0.0f, 0.0f)));
+            gunTransform->setScale(glm::vec3(20.0f));
+
+            mainPbrShader.addObjectWithChildren(gunModelId);
+
+            auto engineTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()
+                    ->getObject(engineModelId)
+                    .getIdentifierForComponent(ComponentType::TRANSFORM));
+            engineTransform->setPosition(glm::vec3(15.0f, 2.0f, -15.0f));
+            engineTransform->setScale(glm::vec3(1.5f));
+
+            mainPbrShader.addObjectWithChildren(engineModelId);
         }
         {
             for (const auto &[materialId, rotationAxis, position] :
@@ -835,7 +863,7 @@ int main(int argc, const char *argv[])
                         texturedLight1Transform);
                     transformStruct->setRotation(
                         glm::rotate(transformStruct->rotation(),
-                                    (float)(glm::radians(std::sin(time) * 20.0f) * deltaTime),
+                                    (float)(glm::radians(25.0f) * deltaTime),
                                     glm::vec3(0.0f, 1.0f, 0.0f)));
                 }
             }

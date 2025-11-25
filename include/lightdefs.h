@@ -5,16 +5,6 @@
 #include "transformmanager.h"
 #include "types.h"
 
-// TODO:
-//  1. The light manager must take care of computing the shadowmaps somehow
-//  2. Add a separarate shader class for shadow mapping
-//  3. Split other shaders into shadowed and unshadowed -> run them correspondingly with the proper
-//  frame buffer bound
-//     I may need a ganeralization of framebuffer. Also some kind of manager. That does the binding
-//     -> rather a pass manager
-//  4. Extend the lightmanager to support binding of shadowmaps (cubemaps) to the lightdefs and
-//  propagation fo thsoe through the uniform buffers.
-
 // TODO: random ideas
 //  1. Recompute shadow maps only iff any objects have moved (optionally, in the effect area of the
 //  light). Or the light has moved itself.

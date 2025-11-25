@@ -14,7 +14,8 @@ GameObjectIdentifier ModelLoader::loadModel(std::string const &path, bool flipTe
     const aiScene *scene = importer.ReadFile(path,
                                              aiProcess_Triangulate | aiProcess_GenSmoothNormals
                                                  | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
-                                                 | aiProcess_OptimizeMeshes);
+                                                 | aiProcess_OptimizeMeshes
+                                                 | aiProcess_OptimizeGraph);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
         std::cerr << "Failed to load model wit assimp: " << importer.GetErrorString()
@@ -155,13 +156,13 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
                                                         modelRoot, false);
         TextureIdentifier roughness = loadMaterialTextures(material,
                                                            { aiTextureType_DIFFUSE_ROUGHNESS },
-                                                           modelRoot);
+                                                           modelRoot, false);
         TextureIdentifier ambientOcclusion
-            = loadMaterialTextures(material, { aiTextureType_AMBIENT_OCCLUSION }, modelRoot);
+            = loadMaterialTextures(material, { aiTextureType_AMBIENT_OCCLUSION }, modelRoot, false);
         TextureIdentifier metalness = loadMaterialTextures(material,
                                                            { aiTextureType_METALNESS,
                                                              aiTextureType_SPECULAR },
-                                                           modelRoot);
+                                                           modelRoot, false);
 
         if (metalness != InvalidIdentifier && roughness != InvalidIdentifier
             && normal != InvalidIdentifier)
@@ -178,7 +179,8 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
         }
         else
         {
-            std::cerr << "The requested model does not include the necessary PBR textures!";
+            std::cerr << "The requested model does not include the necessary PBR textures!"
+                      << std::endl;
         }
     }
 

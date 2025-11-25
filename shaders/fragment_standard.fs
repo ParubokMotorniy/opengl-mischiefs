@@ -286,8 +286,6 @@ void main()
 
     vec3 ambientColor = instanceMaterialIndices.x == -1 ? vec3(0.0) : texture(sampler2D(textures[instanceMaterialIndices.x]), texCoord).xyz;
 
-    //TODO: find a reliable way of telling shader how many lights are currently bound
-
     for (int d = 0; d < numDirectionalLightsBound; ++d)
     {
         effectiveColor += CalculateDirectionalLight(dirLights[d], d, normalize(vNorm), viewDir, diffuseColor, ambientColor, specularColor);
