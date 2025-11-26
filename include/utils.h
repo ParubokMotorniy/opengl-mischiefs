@@ -4,12 +4,15 @@
 
 namespace Utilities
 {
-    struct ScopeGuard
+struct ScopeGuard
+{
+    explicit ScopeGuard(std::function<void()> &&cleanupFunc)
+        : cleanupFunction(std::move(cleanupFunc))
     {
-        ScopeGuard(std::function<void()> &&cleanupFunc) : cleanupFunction(std::move(cleanupFunc)) {}
-        ~ScopeGuard() { cleanupFunction(); }
+    }
+    ~ScopeGuard() { cleanupFunction(); }
 
-    private:
-        std::function<void()> cleanupFunction;
-    };
-}
+private:
+    std::function<void()> cleanupFunction;
+};
+} // namespace Utilities

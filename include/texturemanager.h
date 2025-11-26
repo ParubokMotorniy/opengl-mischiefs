@@ -38,7 +38,7 @@ private:
     TextureManager();
 
     // returns -1 if is not bound and the binding index otherwise
-    int isTextureBound(const Texture2D &texture);
+    int isTextureBound(const Texture2D &texture) const;
 
 private:
     TextureIdentifier _identifiers = 0; // TODO: add some defragmentation logic

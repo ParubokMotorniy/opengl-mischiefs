@@ -121,7 +121,7 @@ void Mesh::enableInstancing()
     glBindVertexArray(0);
 }
 
-bool Mesh::instancingEnabled() { return instancedId != 0; }
+bool Mesh::instancingEnabled() const { return instancedId != 0; }
 
 void Mesh::bindMeshInstanced()
 {

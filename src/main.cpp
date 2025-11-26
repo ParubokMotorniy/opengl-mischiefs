@@ -40,6 +40,7 @@
 #include "window.h"
 #include "worldplaneshader.h"
 
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -168,7 +169,9 @@ void imGuiInitialization(Window *windowToBindTo)
 
 uint32_t nextRandomInt()
 {
-    static uint32_t x = 7;
+    static uint32_t x = std::chrono::duration_cast<std::chrono::seconds>(
+                            std::chrono::system_clock::now().time_since_epoch())
+                            .count();
     x ^= x << 13;
     x ^= x >> 17;
     x ^= x << 5;

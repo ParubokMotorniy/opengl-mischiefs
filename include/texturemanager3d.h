@@ -37,7 +37,7 @@ private:
     CubemapManager();
 
     // returns -1 if is not bound and the binding index otherwise
-    int isTextureBound(const Cubemap &texture);
+    int isTextureBound(const Cubemap &texture) const;
 
 private:
     TextureIdentifier3D _identifiers = 0; // TODO: add some defragmentation logic

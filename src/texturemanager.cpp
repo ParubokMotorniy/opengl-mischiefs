@@ -42,7 +42,6 @@ TextureIdentifier TextureManager::registerTexture(const char *textureSource,
 
 TextureIdentifier TextureManager::registerTexture(uint32_t textureId)
 {
-    const auto rName = RandomNamer::instance()->getRandomName(10);
     _textures.emplace(++_identifiers, NamedTexture{ RandomNamer::instance()->getRandomName(10),
                                                     Texture2D(textureId) });
     return _identifiers;
@@ -186,7 +185,7 @@ Texture2D *TextureManager::getTexture(TextureIdentifier tId)
     return &tPtr->second.componentData;
 }
 
-int TextureManager::isTextureBound(const Texture2D &texture)
+int TextureManager::isTextureBound(const Texture2D &texture) const
 {
     if (!texture.isAllocated())
         return -1;

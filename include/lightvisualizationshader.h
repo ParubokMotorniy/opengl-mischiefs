@@ -5,7 +5,7 @@
 class LightVisualizationShader : public ShaderProgram
 {
 public:
-    LightVisualizationShader(MeshIdentifier lightMesh);
+    explicit LightVisualizationShader(MeshIdentifier lightMesh);
     void runShader() override;
 
 protected:

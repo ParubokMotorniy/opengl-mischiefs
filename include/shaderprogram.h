@@ -36,13 +36,13 @@ public:
 
     void setFloat(const std::string &name, float value) const;
 
-    void setMatrix4(const std::string &name, const glm::mat4 &mat);
+    void setMatrix4(const std::string &name, const glm::mat4 &mat) const;
 
-    void setVec3(const std::string &name, const glm::vec3 &vec);
+    void setVec3(const std::string &name, const glm::vec3 &vec) const;
 
-    void setVec4(const std::string &name, const glm::vec4 &vec);
+    void setVec4(const std::string &name, const glm::vec4 &vec) const;
 
-    void setUvec2(const std::string &name, GLuint64 value);
+    void setUvec2(const std::string &name, GLuint64 value) const;
 
     virtual void addObject(GameObjectIdentifier gId);
     virtual void addObjectWithChildren(GameObjectIdentifier gId);

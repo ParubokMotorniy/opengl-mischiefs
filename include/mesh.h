@@ -28,7 +28,7 @@ struct Mesh
     void bindMesh() const;
 
     void enableInstancing();
-    bool instancingEnabled();
+    bool instancingEnabled() const;
     void bindMeshInstanced();
 
     uint32_t standardArrayId() const noexcept;

@@ -88,7 +88,7 @@ public:
         return { depthMapFBO, shadowIdentifier };
     }
 
-    size_t getNumberOfBoundLights() { return _lastActiveLightIdx + 1; }
+    size_t getNumberOfBoundLights() const { return _lastActiveLightIdx + 1; }
 
     void updateManager() // both boundBuffer and uniform buffer can be left fragmented after this
                          // operation
