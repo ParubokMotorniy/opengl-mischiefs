@@ -15,7 +15,7 @@ GameObjectIdentifier ModelLoader::loadModel(std::string const &path, bool flipTe
                                              aiProcess_Triangulate | aiProcess_GenSmoothNormals
                                                  | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
                                                  | aiProcess_OptimizeMeshes
-                                                 );
+                                                 | aiProcess_OptimizeGraph);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
         std::cerr << "Failed to load model wit assimp: " << importer.GetErrorString()
@@ -146,23 +146,22 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
     if (loadAsPbr)
     {
         const TextureIdentifier albedo = loadMaterialTextures(material,
-                                                        { aiTextureType_BASE_COLOR,
-                                                          aiTextureType_DIFFUSE },
-                                                        modelRoot);
+                                                              { aiTextureType_BASE_COLOR,
+                                                                aiTextureType_DIFFUSE },
+                                                              modelRoot);
         const TextureIdentifier normal = loadMaterialTextures(material,
-                                                        { aiTextureType_NORMAL_CAMERA,
-                                                          aiTextureType_NORMALS,
-                                                          aiTextureType_HEIGHT },
-                                                        modelRoot, false);
-        const TextureIdentifier roughness = loadMaterialTextures(material,
-                                                           { aiTextureType_DIFFUSE_ROUGHNESS },
-                                                           modelRoot, false);
+                                                              { aiTextureType_NORMAL_CAMERA,
+                                                                aiTextureType_NORMALS,
+                                                                aiTextureType_HEIGHT },
+                                                              modelRoot, false);
+        const TextureIdentifier roughness
+            = loadMaterialTextures(material, { aiTextureType_DIFFUSE_ROUGHNESS }, modelRoot, false);
         const TextureIdentifier ambientOcclusion
             = loadMaterialTextures(material, { aiTextureType_AMBIENT_OCCLUSION }, modelRoot, false);
         const TextureIdentifier metalness = loadMaterialTextures(material,
-                                                           { aiTextureType_METALNESS,
-                                                             aiTextureType_SPECULAR },
-                                                           modelRoot, false);
+                                                                 { aiTextureType_METALNESS,
+                                                                   aiTextureType_SPECULAR },
+                                                                 modelRoot, false);
 
         if (metalness != InvalidIdentifier && roughness != InvalidIdentifier
             && normal != InvalidIdentifier)

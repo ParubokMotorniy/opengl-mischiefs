@@ -33,6 +33,8 @@ public:
     friend class SystemSingleton<MaterialManager<MaterialStruct, MaterialType>>;
     using NamedMaterial = NamedComponent<MaterialStruct>;
 
+    // TODO: I may want to compute hashes of the enclosed texure identifiers to check if the
+    // porvided material exists already
     std::pair<std::string, MaterialIdentifier> registerMaterial(MaterialStruct &&newMaterial)
     {
         const auto rName = RandomNamer::instance()->getRandomName(10);
@@ -78,7 +80,7 @@ public:
                 texturesToHandles.emplace(std::make_pair(tId, tId));
 #else
                 const TextureHandle texHandle = glGetTextureHandleARB(
-                    *TextureManager::instance()->getTexture(tId));
+                    *TextureManager::instance()->getTexture(tId)); //stuff in the parentheses obtains the gl texture id
                 assert(texHandle != 0);
 
                 texturesToHandles.emplace(std::make_pair(tId, texHandle));
@@ -118,7 +120,7 @@ public:
 
             if (mId == InvalidIdentifier)
             {
-                for (int g = 0; g < textureCount; ++g)
+                for (int g = 0; g < textureCount; ++g) // object has no material bound
                 {
                     objArray[g] = -1;
                 }

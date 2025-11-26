@@ -109,36 +109,36 @@ in VertexParamPack
     flat ivec4 instanceMaterialIndicesPart2;
 } fs_in;
   
-float DistributionGGX(vec3 fNormal, vec3 H, float roughness)
+vec3 DistributionGGX(vec3 fNormal, vec3 H, vec3 roughness)
 {
-    float a      = roughness*roughness;
-    float a2     = a*a;
+    vec3 a      = roughness*roughness;
+    vec3 a2     = a*a;
     float NdotH  = max(dot(fNormal, H), 0.0);
     float NdotH2 = NdotH*NdotH;
 	
-    float num   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    vec3 num   = a2;
+    vec3 denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
 	
     return num / denom;
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness)
+vec3 GeometrySchlickGGX(float NdotV, vec3 roughness)
 {
-    float r = (roughness + 1.0);
-    float k = (r*r) / 8.0;
+    vec3 r = (roughness + 1.0);
+    vec3 k = (r*r) / 8.0;
 
     float num   = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
+    vec3 denom = NdotV * (1.0 - k) + k;
 	
     return num / denom;
 }
-float GeometrySmith(vec3 fNormal, vec3 viewDir, vec3 L, float roughness)
+vec3 GeometrySmith(vec3 fNormal, vec3 viewDir, vec3 L, vec3 roughness)
 {
     float NdotV = max(dot(fNormal, viewDir), 0.0);
     float NdotL = max(dot(fNormal, L), 0.0);
-    float ggx2  = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1  = GeometrySchlickGGX(NdotL, roughness);
+    vec3 ggx2  = GeometrySchlickGGX(NdotV, roughness);
+    vec3 ggx1  = GeometrySchlickGGX(NdotL, roughness);
 	
     return ggx1 * ggx2;
 }
@@ -198,7 +198,7 @@ float fragmentInDirectionalShadow(DirectionalLight light, int lightIdx, vec3 fra
     // return shadow;
 }
 
-vec3 CalculateDirectionalLightRadianceContribution(DirectionalLight light, int lightIdx, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, float metallic, float roughness, vec3 fPos)
+vec3 CalculateDirectionalLightRadianceContribution(DirectionalLight light, int lightIdx, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, vec3 metallic, vec3 roughness, vec3 fPos)
 {
     // calculate per-light radiance
     vec3 L = normalize(-light.direction);
@@ -207,8 +207,8 @@ vec3 CalculateDirectionalLightRadianceContribution(DirectionalLight light, int l
     vec3 radiance     = light.diffuse * shadowEffect;  
     
     // cook-torrance brdf
-    float NDF = DistributionGGX(normal, H, roughness);        
-    float G   = GeometrySmith(normal, viewDir, L, roughness);      
+    vec3 NDF = DistributionGGX(normal, H, roughness);        
+    vec3 G   = GeometrySmith(normal, viewDir, L, roughness);      
     vec3 F    = fresnelSchlick(max(dot(H, viewDir), 0.0), F0);       
     
     vec3 kS = F;
@@ -223,7 +223,7 @@ vec3 CalculateDirectionalLightRadianceContribution(DirectionalLight light, int l
     return (kD * albedo / PI + specular) * radiance * NdotL; 
 }
 
-vec3 CalculatePointLightRadianceContribution(PointLight light, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, float metallic, float roughness, vec3 fPos)
+vec3 CalculatePointLightRadianceContribution(PointLight light, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, vec3 metallic, vec3 roughness, vec3 fPos)
 {
     vec3 L = normalize(light.position - fPos);
     vec3 H = normalize(viewDir + L);
@@ -236,8 +236,8 @@ vec3 CalculatePointLightRadianceContribution(PointLight light, vec3 normal, vec3
     vec3 radiance     = light.diffuse * attenuation;      
     
     // cook-torrance
-    float NDF = DistributionGGX(normal, H, roughness);        
-    float G   = GeometrySmith(normal, viewDir, L, roughness);      
+    vec3 NDF = DistributionGGX(normal, H, roughness);        
+    vec3 G   = GeometrySmith(normal, viewDir, L, roughness);      
     vec3 F    = fresnelSchlick(max(dot(H, viewDir), 0.0), F0);       
     
     vec3 kS = F;
@@ -252,7 +252,7 @@ vec3 CalculatePointLightRadianceContribution(PointLight light, vec3 normal, vec3
     return (kD * albedo / PI + specular) * radiance * NdotL; 
 }
 
-vec3 CalculateSpotLightRadianceContribution(SpotLight light, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, float metallic, float roughness, vec3 fPos)
+vec3 CalculateSpotLightRadianceContribution(SpotLight light, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, vec3 metallic, vec3 roughness, vec3 fPos)
 {
     vec3 L = normalize(light.position - fPos);
     vec3 H = normalize(viewDir + L);
@@ -268,8 +268,8 @@ vec3 CalculateSpotLightRadianceContribution(SpotLight light, vec3 normal, vec3 v
     vec3 radiance     = light.diffuse * attenuation * intensity;      
     
     // cook-torrance
-    float NDF = DistributionGGX(normal, H, roughness);        
-    float G   = GeometrySmith(normal, viewDir, L, roughness);      
+    vec3 NDF = DistributionGGX(normal, H, roughness);        
+    vec3 G   = GeometrySmith(normal, viewDir, L, roughness);      
     vec3 F    = fresnelSchlick(max(dot(H, viewDir), 0.0), F0);       
     
     vec3 kS = F;
@@ -284,7 +284,7 @@ vec3 CalculateSpotLightRadianceContribution(SpotLight light, vec3 normal, vec3 v
     return (kD * albedo / PI + specular) * radiance * NdotL; 
 }
 
-vec3 CalculateTexturedSpotLightRadianceContribution(TexturedSpotLight light, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, float metallic, float roughness, vec3 fPos)
+vec3 CalculateTexturedSpotLightRadianceContribution(TexturedSpotLight light, vec3 normal, vec3 viewDir, vec3 albedo, vec3 F0, vec3 metallic, vec3 roughness, vec3 fPos)
 {
     vec3 L = normalize(light.position - fPos);
     vec3 H = normalize(viewDir + L);
@@ -308,8 +308,8 @@ vec3 CalculateTexturedSpotLightRadianceContribution(TexturedSpotLight light, vec
     vec3 radiance     = lightDiffuse * attenuation * intensity;      
     
     // cook-torrance
-    float NDF = DistributionGGX(normal, H, roughness);        
-    float G   = GeometrySmith(normal, viewDir, L, roughness);      
+    vec3 NDF = DistributionGGX(normal, H, roughness);        
+    vec3 G   = GeometrySmith(normal, viewDir, L, roughness);      
     vec3 F    = fresnelSchlick(max(dot(H, viewDir), 0.0), F0);       
     
     vec3 kS = F;
@@ -334,13 +334,11 @@ void main()
 
     vec3 viewDir = normalize(viewPos - fs_in.vPos);
 
-    vec3 fNormal = normalize(fs_in.tbnMatrix * ((texture(sampler2D(pbrTextures[normalHandle]), fs_in.texCoord).rgb * 2.0) - 1.0)).rgb;
-    vec3 albedo = texture(sampler2D(pbrTextures[albedoHandle]), fs_in.texCoord).rgb;
-    float metallic = texture(sampler2D(pbrTextures[metallicHandle]), fs_in.texCoord).r;
-    float roughness = texture(sampler2D(pbrTextures[roughnessHandle]), fs_in.texCoord).r;
+    vec3 fNormal = normalHandle == -1 ? normalize(vec3(1.0)) : normalize(fs_in.tbnMatrix * ((texture(sampler2D(pbrTextures[normalHandle]), fs_in.texCoord).rgb * 2.0) - 1.0)).rgb;
+    vec3 albedo = albedoHandle == -1 ? vec3(0.0) : texture(sampler2D(pbrTextures[albedoHandle]), fs_in.texCoord).rgb;
+    vec3 metallic = metallicHandle == -1 ? vec3(0.0) : texture(sampler2D(pbrTextures[metallicHandle]), fs_in.texCoord).rgb;
+    vec3 roughness = roughnessHandle == -1 ? vec3(0.0) : texture(sampler2D(pbrTextures[roughnessHandle]), fs_in.texCoord).rgb;
     float ao = aoHandle == -1 ? 1.0 : texture(sampler2D(pbrTextures[aoHandle]), fs_in.texCoord).r;
-
-    // FragColor = vec4(roughness, metallic, 0.0,1.0);
 
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metallic);
@@ -369,5 +367,6 @@ void main()
     vec3 ambient = vec3(0.05) * albedo * ao;
     vec3 color = Lo + ambient;  
    
+//    FragColor = vec4(0.0, metallic, roughness,1.0);
     FragColor = vec4(color, 1.0);
 }
