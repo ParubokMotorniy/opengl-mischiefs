@@ -17,6 +17,9 @@
 #include <vector>
 
 // TODO: consider adding buffer defragmentation instead of relying on upper bound
+// TODO: I may want to buffer all lights into a single big uniform buffer. But that will force the
+// shaders to declare all light types even when they use few (as long as I don't bind subbuffers to
+// individual points, which doesn't help much)
 template <ComponentType LightType>
 class LightManager : public SystemSingleton<LightManager<LightType>>
 {
@@ -85,10 +88,7 @@ public:
         return { depthMapFBO, shadowIdentifier };
     }
 
-    size_t getNumberOfBoundLights()
-    {
-        return _lastActiveLightIdx + 1;
-    }
+    size_t getNumberOfBoundLights() { return _lastActiveLightIdx + 1; }
 
     void updateManager() // both boundBuffer and uniform buffer can be left fragmented after this
                          // operation

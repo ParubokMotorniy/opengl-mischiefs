@@ -711,7 +711,7 @@ int main(int argc, const char *argv[])
             gameboyTransform->setRotation(
                 glm::rotate(gameboyTransform->rotation(), glm::radians((float)k),
                             glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-            gameboyTransform->setScale(glm::vec3(20.0f));
+            gameboyTransform->setScale(glm::vec3(30.0f));
 
             mainPbrShader.addObjectWithChildren(gameBoyCopy);
         }
@@ -732,7 +732,7 @@ int main(int argc, const char *argv[])
             gunTransform->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
             gunTransform->setRotation(glm::rotate(glm::identity<glm::mat4>(), glm::radians(-90.0f),
                                                   glm::vec3(1.0f, 0.0f, 0.0f)));
-            gunTransform->setScale(glm::vec3(20.0f));
+            gunTransform->setScale(glm::vec3(35.0f));
 
             mainPbrShader.addObjectWithChildren(gunModelId);
 

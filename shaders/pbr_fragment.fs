@@ -326,11 +326,11 @@ vec3 CalculateTexturedSpotLightRadianceContribution(TexturedSpotLight light, vec
 
 void main()
 {		 
-    int albedoHandle = fs_in.instanceMaterialIndicesPart1.x;
-    int normalHandle = fs_in.instanceMaterialIndicesPart1.y;
+    int albedoHandle =    fs_in.instanceMaterialIndicesPart1.x;
+    int normalHandle =    fs_in.instanceMaterialIndicesPart1.y;
     int roughnessHandle = fs_in.instanceMaterialIndicesPart1.z;
-    int metallicHandle = fs_in.instanceMaterialIndicesPart1.w;
-    int aoHandle = fs_in.instanceMaterialIndicesPart2.x;
+    int metallicHandle =  fs_in.instanceMaterialIndicesPart1.w;
+    int aoHandle =        fs_in.instanceMaterialIndicesPart2.x;
 
     vec3 viewDir = normalize(viewPos - fs_in.vPos);
 
@@ -339,6 +339,8 @@ void main()
     float metallic = texture(sampler2D(pbrTextures[metallicHandle]), fs_in.texCoord).r;
     float roughness = texture(sampler2D(pbrTextures[roughnessHandle]), fs_in.texCoord).r;
     float ao = aoHandle == -1 ? 1.0 : texture(sampler2D(pbrTextures[aoHandle]), fs_in.texCoord).r;
+
+    // FragColor = vec4(roughness, metallic, 0.0,1.0);
 
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metallic);
@@ -368,5 +370,4 @@ void main()
     vec3 color = Lo + ambient;  
    
     FragColor = vec4(color, 1.0);
-    // FragColor = vec4(ao,ao,ao, 1.0);
 }

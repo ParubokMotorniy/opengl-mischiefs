@@ -35,9 +35,9 @@ struct PbrMaterial
     }
 };
 
-template <typename MaterialStruct, size_t textureCount = std::tuple_size_v<
+template <typename MaterialStruct, uint32_t textureCount = std::tuple_size_v<
                                        decltype(std::declval<MaterialStruct>().textures())>>
-constexpr size_t getNumTexturesInMaterial()
+constexpr uint32_t getNumTexturesInMaterial()
 {
     return textureCount;
 };

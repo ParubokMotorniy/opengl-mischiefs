@@ -27,6 +27,7 @@ struct PointLight
 
 #define NUM_POINT 8
 layout(binding = 2, std140) uniform PointLights { PointLight pointLights[NUM_POINT]; };
+uniform int numPointLightsBound;
 
 vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseColor,
                                vec3 ambientColor, vec3 specularColor)
@@ -63,7 +64,7 @@ void main()
 
     vec3 ambientColor = diffuseTextureHandle == uvec2(0, 0) ? vec3(0.0) : texture(sampler2D(diffuseTextureHandle), texCoord).xyz;
 
-    for (int p = 0; p < NUM_POINT; ++p)
+    for (int p = 0; p < numPointLightsBound; ++p)
     {
         effectiveColor += CalculatePointLight(pointLights[p], normalize(vNorm), vPos, viewDir,
                                               diffuseColor.xyz, ambientColor, specularColor);

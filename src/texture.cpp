@@ -24,7 +24,7 @@ void Texture2D::allocateTexture()
     int width, height, numChannels;
     auto *imageData = stbi_load(_textureSourcePath.c_str(), &width, &height, &numChannels, 0);
 
-    assert(numChannels > 0);
+    assert(numChannels > 0 && imageData != nullptr) ;
 
     GLenum format = 0;
     GLenum internalFormat = 0;

@@ -4,6 +4,7 @@
 
 #include "materialmanager.h"
 #include "objectmanager.h"
+#include "lightmanager.h"
 
 #include <array>
 #include <iostream>
@@ -77,6 +78,8 @@ void TransparentShader::runShader()
     setVec3("viewPos", currentCameraPosition);
     setMatrix4("view", _currentCamera->getViewMatrix());
     setMatrix4("projection", _currentCamera->projectionMatrix());
+    setInt("numPointLightsBound",
+           LightManager<ComponentType::LIGHT_POINT>::instance()->getNumberOfBoundLights());
 
     for (const GameObjectIdentifier gId : std::ranges::reverse_view(_sortedObjects))
     {

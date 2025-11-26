@@ -218,7 +218,7 @@ std::vector<InstancedDataGenerator> InstancedShader<MaterialStruct>::getDataGene
         }
     };
 
-    const auto numTexturesInMaterial = getNumTexturesInMaterial<MaterialStruct>();
+    constexpr auto numTexturesInMaterial = getNumTexturesInMaterial<MaterialStruct>();
 
     // makes the texture indices instanced
     const InstancedDataGenerator standardMaterialIndices = InstancedDataGenerator{
