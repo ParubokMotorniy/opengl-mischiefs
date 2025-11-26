@@ -17,8 +17,8 @@ namespace
 {
 const glm::mat4 planeModelToNdc = glm::rotate(glm::identity<glm::mat4>(), glm::radians(90.0f),
                                               glm::vec3(1.0f, 0.0f, 0.0f));
-bool useHdr = false;
-bool useGamma = false;
+bool useHdr = true;
+bool useGamma = true;
 float exposure = 0.3f;
 int tonemappingAlgo = 0;
 } // namespace

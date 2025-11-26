@@ -60,7 +60,7 @@ void StandardPass::runPass()
         ImGui::Begin("Standard pass parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Shadow mapping");
         ImGui::Separator();
-        ImGui::SliderFloat("Directional shadow bias", &directionalShadowBias, 0.001f, 0.05f);
+        ImGui::SliderFloat("Directional shadow bias", &directionalShadowBias, 0.001f, 0.35f);
         ImGui::End();
     }
 

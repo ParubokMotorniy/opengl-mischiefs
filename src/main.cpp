@@ -166,6 +166,15 @@ void imGuiInitialization(Window *windowToBindTo)
     ImGui_ImplOpenGL3_Init();
 }
 
+uint32_t nextRandomInt()
+{
+    static uint32_t x = 7;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    return x;
+}
+
 } // namespace
 
 int main(int argc, const char *argv[])
@@ -321,8 +330,8 @@ int main(int argc, const char *argv[])
     const GameObjectIdentifier gunModelId
         = ModelLoader::instance()->loadModel(ENGINE_MODELS "/firearm/scene.gltf", false, true);
 
-    const GameObjectIdentifier engineModelId
-        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/jet_engine/scene.gltf", false, true);
+    const GameObjectIdentifier suzukiModelId
+        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/suzuki/scene.gltf", false, true);
 
     const GameObjectIdentifier gameboyModelId
         = ModelLoader::instance()->loadModel(ENGINE_MODELS "/gameboy/gameboy.obj", false, true);
@@ -652,7 +661,7 @@ int main(int argc, const char *argv[])
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 15; k < 45; ++k)
+        for (int k = 20; k < 50; ++k)
         {
             const float fK = static_cast<float>(k);
             // add cubes and pyramids
@@ -669,11 +678,11 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
-            t->setPosition(
-                glm::vec3(std::sin(k) * 10.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
+            t->setPosition(glm::vec3(nextRandomInt() % static_cast<int>(lightRotationRadius),
+                                     (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
-            t->setScale(glm::vec3(std::max((k % 10) / 2.0f, 0.2f)));
+            t->setScale(glm::vec3(std::max(static_cast<int>(nextRandomInt()) % 5, 1)));
 
             shaderProgramMain.addObject(standardObject);
             movingObjects.emplace_back(standardObject);
@@ -688,20 +697,6 @@ int main(int argc, const char *argv[])
         }
         for (int k = 10; k < 15; ++k)
         {
-            /// add bills
-            // const auto billCopy = ObjectManager::instance()->copyObject(billModel);
-            // auto billTransform = TransformManager::instance()->getTransform(
-            //     ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
-            //         ComponentType::TRANSFORM));
-            // billTransform->setPosition(
-            //     glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
-            // billTransform->setRotation(
-            //     glm::rotate(billTransform->rotation(), glm::radians((float)k),
-            //                 glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-            // billTransform->setScale(glm::vec3(20.0f));
-
-            // shaderProgramMain.addObjectWithChildren(billCopy);
-
             const auto gameBoyCopy = ObjectManager::instance()->copyObject(gameboyModelId);
             auto gameboyTransform = TransformManager::instance()->getTransform(
                 ObjectManager::instance()
@@ -726,6 +721,7 @@ int main(int argc, const char *argv[])
             worldAxesShader.addObject(worldAxes);
         }
         {
+            // add PBR models
             auto gunTransform = TransformManager::instance()->getTransform(
                 ObjectManager::instance()
                     ->getObject(gunModelId)
@@ -737,14 +733,17 @@ int main(int argc, const char *argv[])
 
             mainPbrShader.addObjectWithChildren(gunModelId);
 
-            auto engineTransform = TransformManager::instance()->getTransform(
+            auto suzukiTransform = TransformManager::instance()->getTransform(
                 ObjectManager::instance()
-                    ->getObject(engineModelId)
+                    ->getObject(suzukiModelId)
                     .getIdentifierForComponent(ComponentType::TRANSFORM));
-            engineTransform->setPosition(glm::vec3(15.0f, 2.0f, -15.0f));
-            engineTransform->setScale(glm::vec3(1.5f));
+            suzukiTransform->setPosition(glm::vec3(15.0f, 2.0f, -15.0f));
+            suzukiTransform->setRotation(glm::rotate(glm::identity<glm::mat4>(),
+                                                     glm::radians(-90.0f),
+                                                     glm::vec3(1.0f, 0.0f, 0.0f)));
+            suzukiTransform->setScale(glm::vec3(10.0f));
 
-            mainPbrShader.addObjectWithChildren(engineModelId);
+            mainPbrShader.addObjectWithChildren(suzukiModelId);
         }
         {
             for (const auto &[materialId, rotationAxis, position] :
@@ -805,8 +804,8 @@ int main(int argc, const char *argv[])
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->initializeLightBuffer();
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->bindLightBuffer(4);
 
-            camera->moveTo(glm::vec3(20.0f, 7.0f, 0.0f));
-            camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
+            camera->moveTo(glm::vec3(35.0f, 10.0f, 35.0f));
+            camera->lookAt(glm::vec3(0.0f, -3.0f, 0.0f));
         }
         //// Render loop
         while (!mainWindow.shouldClose())
