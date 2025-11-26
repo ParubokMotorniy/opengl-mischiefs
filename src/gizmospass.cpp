@@ -15,6 +15,11 @@ GizmosPass::GizmosPass(GeometryShaderProgram *axesShader) : _axesShader(axesShad
 void GizmosPass::runPass()
 {
     {
+        {
+            const auto [viewportX, viewportY] = _currentWindow->currentWindowDimensions();
+            ImGui::SetNextWindowPos(ImVec2(viewportX * 0.05, viewportY * 0.2), ImGuiCond_Always,
+                                    ImVec2(0.0f, 0.5f));
+        }
         ImGui::Begin("Gizmos", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Transform");
         ImGui::Separator();

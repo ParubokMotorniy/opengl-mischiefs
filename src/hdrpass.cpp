@@ -10,6 +10,7 @@
 #include "texturemanager.h"
 #include "window.h"
 
+#include <cstdint>
 #include <iostream>
 
 namespace
@@ -19,6 +20,7 @@ const glm::mat4 planeModelToNdc = glm::rotate(glm::identity<glm::mat4>(), glm::r
 bool useHdr = false;
 bool useGamma = false;
 float exposure = 0.3f;
+int tonemappingAlgo = 0;
 } // namespace
 
 HdrPass::HdrPass(MeshIdentifier planeId) : _planeMeshId(planeId)
@@ -27,7 +29,8 @@ HdrPass::HdrPass(MeshIdentifier planeId) : _planeMeshId(planeId)
 
     glGenTextures(1, &_colorBuf);
     glBindTexture(GL_TEXTURE_2D, _colorBuf);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1920, 1080, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1920, 1080, 0, GL_RGBA, GL_FLOAT,
+                 NULL); // yup, the current output resolution is limited to full HD
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     _colorTextureId = TextureManager::instance()->registerTexture(_colorBuf);
@@ -50,12 +53,26 @@ HdrPass::HdrPass(MeshIdentifier planeId) : _planeMeshId(planeId)
 void HdrPass::runPass()
 {
     {
+        {
+            const auto [viewportX, viewportY] = _currentWindow->currentWindowDimensions();
+            ImGui::SetNextWindowPos(ImVec2(viewportX * 0.85, viewportY * 0.75), ImGuiCond_Always,
+                                    ImVec2(0.5f, 0.5f));
+        }
         ImGui::Begin("HDR pass parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
         ImGui::Text("HDR");
         ImGui::Separator();
         ImGui::Checkbox("Use HDR", &useHdr);
         ImGui::SliderFloat("Exposure", &exposure, 0.001f, 5.0f);
+
+        ImGui::BeginGroup();
+        ImGui::Text("Tonemapping algorithm:");
+        ImGui::RadioButton("Reinhard", &tonemappingAlgo, 0);
+        ImGui::RadioButton("Uncharted", &tonemappingAlgo, 1);
+        ImGui::RadioButton("Filmic", &tonemappingAlgo, 2);
+        ImGui::RadioButton("ACES", &tonemappingAlgo, 3);
+        ImGui::RadioButton("ACES filmic", &tonemappingAlgo, 4);
+        ImGui::EndGroup();
 
         ImGui::Separator();
 
@@ -92,11 +109,12 @@ void HdrPass::runShader()
     setMatrix4("modelToNdc", planeModelToNdc);
 
     setFloat("exposure", exposure);
-    setFloat("gamma", useGamma ? 2.2f : 1.0f); //just to avoid branching in the shader
+    setFloat("gamma", useGamma ? 2.2f : 1.0f); // just to avoid branching in the shader
     setBool("useHdr", useHdr);
     setInt("hdrColorTexture", bindingLocation);
     setFloat("viewportXScale", (float)viewportX / 1920.0f);
     setFloat("viewportYScale", (float)viewportY / 1080.0f);
+    setInt("tonemappingAlgo", tonemappingAlgo < 0 ? 0 : tonemappingAlgo);
 
     glDrawElements(GL_TRIANGLES, MeshManager::instance()->getMesh(_planeMeshId)->numIndices(),
                    GL_UNSIGNED_INT, 0);

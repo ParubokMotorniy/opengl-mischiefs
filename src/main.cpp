@@ -317,7 +317,7 @@ int main(int argc, const char *argv[])
     //     ENGINE_MODELS
     //     "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
     //                               // Surprisingly, it seems to be better optimized than bill
-    
+
     const GameObjectIdentifier gunModelId
         = ModelLoader::instance()->loadModel(ENGINE_MODELS "/firearm/scene.gltf", false, true);
 
@@ -387,6 +387,7 @@ int main(int argc, const char *argv[])
 
         GizmosPass _gizmosPass(&worldAxesShader);
         _gizmosPass.setCamera(camera);
+        _gizmosPass.setWindow(&mainWindow);
 
         // Events
         {

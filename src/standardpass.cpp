@@ -52,6 +52,11 @@ void StandardPass::runPass()
 
     static float directionalShadowBias = 0.0f;
     {
+        {
+            const auto [viewportX, viewportY] = _currentWindow->currentWindowDimensions();
+            ImGui::SetNextWindowPos(ImVec2(viewportX * 0.05, viewportY * 0.07), ImGuiCond_Always,
+                                    ImVec2(0.0f, 0.5f));
+        }
         ImGui::Begin("Standard pass parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Shadow mapping");
         ImGui::Separator();
