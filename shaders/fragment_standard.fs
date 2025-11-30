@@ -10,6 +10,8 @@ in vec2 texCoord;
 in vec3 vPos; //fragment world position
 in vec3 vNorm; //fragment world normal
 
+uniform vec3 viewPos;
+
 flat in ivec3 instanceMaterialIndices;
 
 layout(binding = 0, std430) readonly buffer TextureHandles { uvec2 textures[]; };
@@ -81,8 +83,6 @@ struct TexturedSpotLight
 
     uvec2 textureIdx;
 };
-
-uniform vec3 viewPos;
 
 #define NUM_DIRECTIONAL 8
 layout(binding = 1, std140) uniform DirectionalLights
@@ -285,8 +285,6 @@ void main()
     vec3 specularColor = instanceMaterialIndices.y == -1 ? vec3(0.0) : texture(sampler2D(textures[instanceMaterialIndices.y]), texCoord).xyz;
 
     vec3 ambientColor = instanceMaterialIndices.x == -1 ? vec3(0.0) : texture(sampler2D(textures[instanceMaterialIndices.x]), texCoord).xyz;
-
-    //TODO: find a reliable way of telling shader how many lights are currently bound
 
     for (int d = 0; d < numDirectionalLightsBound; ++d)
     {

@@ -29,10 +29,10 @@ public:
     operator int() const { return _textureId; }
 
 private:
-    Cubemap(const std::array<const char *, 6> &cubemapPaths,
-              bool enableAnisotropicFiltering = false,
-              Texture3DParameters params = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
-                                             GL_LINEAR, GL_LINEAR });
+    explicit Cubemap(const std::array<const char *, 6> &cubemapPaths,
+            bool enableAnisotropicFiltering = false,
+            const Texture3DParameters &params = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
+                                                  GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR });
     void allocateTexture();
 
     void deallocateTexture();

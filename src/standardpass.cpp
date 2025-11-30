@@ -5,11 +5,14 @@
 
 #include "imgui.h"
 
+#include "camera.h"
 #include "instancedshader.h"
 #include "lightmanager.h"
 #include "lightvisualizationshader.h"
+#include "pbrshader.h"
 #include "skyboxshader.h"
 #include "texturemanager.h"
+#include "window.h"
 #include "worldplaneshader.h"
 
 namespace
@@ -29,31 +32,35 @@ void bindDirectionalShadowMaps(ShaderProgram *target)
 }
 } // namespace
 
-StandardPass::StandardPass(InstancedShader *ins, WorldPlaneShader *wrld,
-                           LightVisualizationShader *lightVis, SkyboxShader *skybox)
+StandardPass::StandardPass(InstancedBlinnPhongShader *ins, WorldPlaneShader *wrld,
+                           LightVisualizationShader *lightVis, SkyboxShader *skybox,
+                           PbrShader *pbrShader)
     : _shaderProgramMain(ins),
       _worldPlaneShader(wrld),
       _lightVisualizationShader(lightVis),
-      _mainSkybox(skybox)
+      _mainSkybox(skybox),
+      _pbrShader(pbrShader)
 {
 }
 
 void StandardPass::runPass()
 {
-    FrameBufferManager::instance()->unbindFrameBuffer(GL_FRAMEBUFFER);
-    _currentTargetWindow->resetViewport();
+    _currentWindow->resetViewport();
 
-    const auto [windowWidth, windowHeight] = _currentTargetWindow->currentWindowDimensions();
-
-    const glm::mat4 projection = _currentViewCamera->projectionMatrix();
-    const glm::mat4 view = _currentViewCamera->getViewMatrix();
+    const glm::mat4 projection = _currentCamera->projectionMatrix();
+    const glm::mat4 view = _currentCamera->getViewMatrix();
 
     static float directionalShadowBias = 0.0f;
     {
+        {
+            const auto [viewportX, viewportY] = _currentWindow->currentWindowDimensions();
+            ImGui::SetNextWindowPos(ImVec2(viewportX * 0.05, viewportY * 0.07), ImGuiCond_Always,
+                                    ImVec2(0.0f, 0.5f));
+        }
         ImGui::Begin("Standard pass parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Shadow mapping");
         ImGui::Separator();
-        ImGui::SliderFloat("Directional shadow bias", &directionalShadowBias, 0.001f, 0.05f);
+        ImGui::SliderFloat("Directional shadow bias", &directionalShadowBias, 0.001f, 0.35f);
         ImGui::End();
     }
 
@@ -62,7 +69,7 @@ void StandardPass::runPass()
         bindDirectionalShadowMaps(_shaderProgramMain);
         _shaderProgramMain->setMatrix4("view", view);
         _shaderProgramMain->setMatrix4("projection", projection);
-        _shaderProgramMain->setVec3("viewPos", _currentViewCamera->position());
+        _shaderProgramMain->setVec3("viewPos", _currentCamera->position());
         _shaderProgramMain->setFloat("directionalShadowBias", directionalShadowBias);
         _shaderProgramMain->setInt("numDirectionalLightsBound",
                                    LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
@@ -70,13 +77,36 @@ void StandardPass::runPass()
         _shaderProgramMain->setInt("numPointLightsBound",
                                    LightManager<ComponentType::LIGHT_POINT>::instance()
                                        ->getNumberOfBoundLights());
-        _shaderProgramMain->runShader();
         _shaderProgramMain
             ->setInt("numSpotLightsBound",
                      LightManager<ComponentType::LIGHT_SPOT>::instance()->getNumberOfBoundLights());
         _shaderProgramMain->setInt("numTexturedLightsBound",
                                    LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
                                        ->getNumberOfBoundLights());
+        _shaderProgramMain->runShader();
+        TextureManager::instance()->unbindAllTextures();
+        MeshManager::instance()->unbindMesh();
+    }
+
+    {
+        _pbrShader->use();
+        bindDirectionalShadowMaps(_pbrShader);
+        _pbrShader->setMatrix4("view", view);
+        _pbrShader->setMatrix4("projection", projection);
+        _pbrShader->setVec3("viewPos", _currentCamera->position());
+        _pbrShader->setFloat("directionalShadowBias", directionalShadowBias);
+        _pbrShader->setInt("numDirectionalLightsBound",
+                           LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                               ->getNumberOfBoundLights());
+        _pbrShader->setInt("numPointLightsBound",
+                           LightManager<ComponentType::LIGHT_POINT>::instance()
+                               ->getNumberOfBoundLights());
+        _pbrShader->setInt("numSpotLightsBound", LightManager<ComponentType::LIGHT_SPOT>::instance()
+                                                     ->getNumberOfBoundLights());
+        _pbrShader->setInt("numTexturedLightsBound",
+                           LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
+                               ->getNumberOfBoundLights());
+        _pbrShader->runShader();
         TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();
     }
@@ -86,7 +116,7 @@ void StandardPass::runPass()
         bindDirectionalShadowMaps(_worldPlaneShader);
         _worldPlaneShader->setMatrix4("view", view);
         _worldPlaneShader->setMatrix4("projection", projection);
-        _worldPlaneShader->setVec3("viewPos", _currentViewCamera->position());
+        _worldPlaneShader->setVec3("viewPos", _currentCamera->position());
         _worldPlaneShader->setFloat("directionalShadowBias", directionalShadowBias);
         _worldPlaneShader->setInt("numDirectionalLightsBound",
                                   LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
@@ -115,7 +145,3 @@ void StandardPass::runPass()
         MeshManager::instance()->unbindMesh();
     }
 }
-
-void StandardPass::setCamera(const Camera *newCamera) { _currentViewCamera = newCamera; }
-
-void StandardPass::setWindow(const Window *newWindow) { _currentTargetWindow = newWindow; }

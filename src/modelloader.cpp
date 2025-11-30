@@ -7,16 +7,18 @@
 
 ModelLoader::ModelLoader() = default;
 
-GameObjectIdentifier ModelLoader::loadModel(std::string const &path, bool flipTexturesOnLoad)
+GameObjectIdentifier ModelLoader::loadModel(std::string const &path, bool flipTexturesOnLoad,
+                                            bool loadAsPbr)
 {
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(path,
                                              aiProcess_Triangulate | aiProcess_GenSmoothNormals
                                                  | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
-                                                 | aiProcess_OptimizeMeshes);
+                                                 | aiProcess_OptimizeMeshes
+                                                 | aiProcess_OptimizeGraph);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
-        std::cout << "Failed to load model wit assimp: " << importer.GetErrorString()
+        std::cerr << "Failed to load model wit assimp: " << importer.GetErrorString()
                   << ". Model: " << path << std::endl;
         return InvalidIdentifier;
     }
@@ -31,7 +33,8 @@ GameObjectIdentifier ModelLoader::loadModel(std::string const &path, bool flipTe
     GameObject &loadedObject = ObjectManager::instance()->getObject(
         ObjectManager::instance()->addObject());
 
-    processNode(scene->mRootNode, scene, path.substr(0, path.find_last_of('/')), loadedObject);
+    processNode(scene->mRootNode, scene, path.substr(0, path.find_last_of('/')), loadedObject,
+                loadAsPbr);
     loadedObject.addComponent(
         Component(ComponentType::TRANSFORM,
                   TransformManager::instance()->registerNewTransform(loadedObject)));
@@ -41,7 +44,7 @@ GameObjectIdentifier ModelLoader::loadModel(std::string const &path, bool flipTe
 
 GameObjectIdentifier ModelLoader::processNode(aiNode *node, const aiScene *scene,
                                               const std::string &modelRoot,
-                                              GameObjectIdentifier parentObject)
+                                              GameObjectIdentifier parentObject, bool loadAsPbr)
 {
     GameObject &nodeObject = ObjectManager::instance()->getObject(
         ObjectManager::instance()->addObject());
@@ -49,11 +52,12 @@ GameObjectIdentifier ModelLoader::processNode(aiNode *node, const aiScene *scene
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        nodeObject.addChildObject(processMesh(mesh, scene, modelRoot));
+        nodeObject.addChildObject(processMesh(mesh, scene, modelRoot, loadAsPbr));
     }
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        nodeObject.addChildObject(processNode(node->mChildren[i], scene, modelRoot, nodeObject));
+        nodeObject.addChildObject(
+            processNode(node->mChildren[i], scene, modelRoot, nodeObject, loadAsPbr));
     }
 
     nodeObject.addComponent(
@@ -65,7 +69,7 @@ GameObjectIdentifier ModelLoader::processNode(aiNode *node, const aiScene *scene
 }
 
 GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene,
-                                              const std::string &modelRoot)
+                                              const std::string &modelRoot, bool loadAsPbr)
 {
     GameObject &meshContainer = ObjectManager::instance()->getObject(
         ObjectManager::instance()->addObject());
@@ -77,6 +81,7 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
     {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
+        std::vector<glm::vec3> tangents;
 
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
         {
@@ -100,6 +105,13 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
             }
 
             vertices.push_back(vertex);
+
+            if (loadAsPbr && mesh->HasTangentsAndBitangents())
+            {
+                // bitangents will be computed on the fly to reduce traffic
+                tangents.emplace_back(mesh->mTangents[i].x, mesh->mTangents[i].y,
+                                      mesh->mTangents[i].z);
+            }
         }
 
         for (unsigned int i = 0; i < mesh->mNumFaces; i++)
@@ -111,51 +123,111 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
 
         meshId = mesh->mName.length == 0
                      ? MeshManager::instance()
-                           ->registerMesh(Mesh{ std::move(vertices), std::move(indices) })
+                           ->registerMesh(
+                               Mesh{ std::move(vertices), std::move(indices), std::move(tangents) })
                            .second
                      : MeshManager::instance()->registerMesh(Mesh{ std::move(vertices),
-                                                                   std::move(indices) },
+                                                                   std::move(indices),
+                                                                   std::move(tangents) },
                                                              std::string(mesh->mName.C_Str()));
     }
 
     aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
 
-    TextureIdentifier diffuseMap = loadMaterialTextures(material, aiTextureType_DIFFUSE, modelRoot);
-    TextureIdentifier specularMap = loadMaterialTextures(material, aiTextureType_SPECULAR,
+    TextureIdentifier diffuseMap = loadMaterialTextures(material,
+                                                        { aiTextureType_DIFFUSE,
+                                                          aiTextureType_BASE_COLOR },
+                                                        modelRoot);
+    TextureIdentifier specularMap = loadMaterialTextures(material, { aiTextureType_SPECULAR },
                                                          modelRoot);
-    TextureIdentifier emissionMap = loadMaterialTextures(material, aiTextureType_EMISSION_COLOR,
+    TextureIdentifier emissionMap = loadMaterialTextures(material, { aiTextureType_EMISSION_COLOR },
                                                          modelRoot);
+
+    if (loadAsPbr)
+    {
+        const TextureIdentifier albedo = loadMaterialTextures(material,
+                                                              { aiTextureType_BASE_COLOR,
+                                                                aiTextureType_DIFFUSE },
+                                                              modelRoot);
+        const TextureIdentifier normal = loadMaterialTextures(material,
+                                                              { aiTextureType_NORMAL_CAMERA,
+                                                                aiTextureType_NORMALS,
+                                                                aiTextureType_HEIGHT },
+                                                              modelRoot, false);
+        const TextureIdentifier roughness
+            = loadMaterialTextures(material, { aiTextureType_DIFFUSE_ROUGHNESS }, modelRoot, false);
+        const TextureIdentifier ambientOcclusion
+            = loadMaterialTextures(material, { aiTextureType_AMBIENT_OCCLUSION }, modelRoot, false);
+        const TextureIdentifier metalness = loadMaterialTextures(material,
+                                                                 { aiTextureType_METALNESS,
+                                                                   aiTextureType_SPECULAR },
+                                                                 modelRoot, false);
+
+        if (metalness != InvalidIdentifier && roughness != InvalidIdentifier
+            && normal != InvalidIdentifier)
+        {
+            const auto [mName,
+                        mi] = MaterialManager<PbrMaterial, ComponentType::PBR_MATERIAL>::instance()
+                                  ->registerMaterial(PbrMaterial{
+                                      albedo, normal, roughness, metalness,
+                                      ambientOcclusion != InvalidIdentifier
+                                          ? ambientOcclusion
+                                          : TextureManager::instance()->textureRegistered(
+                                                "white") });
+            meshContainer.addComponent(Component(ComponentType::PBR_MATERIAL, mi));
+        }
+        else
+        {
+            std::cerr << "The requested model does not include the necessary PBR textures!"
+                      << std::endl;
+        }
+    }
 
     const auto [mName,
                 mi] = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-                          ->registerMaterial(BasicMaterial{ diffuseMap, specularMap, emissionMap });
+                          ->registerMaterial(BasicMaterial{
+                              diffuseMap,
+                              specularMap != InvalidIdentifier
+                                  ? specularMap
+                                  : TextureManager::instance()->textureRegistered("black"),
+                              emissionMap != InvalidIdentifier
+                                  ? emissionMap
+                                  : TextureManager::instance()->textureRegistered("black") });
 
     meshContainer.addComponent(Component(ComponentType::MESH, meshId));
     meshContainer.addComponent(Component(ComponentType::BASIC_MATERIAL, mi));
     meshContainer.addComponent(
         Component(ComponentType::TRANSFORM,
                   TransformManager::instance()->registerNewTransform(meshContainer)));
+
     return meshContainer;
 }
 
 // allows only one texture of a particular type
-TextureIdentifier ModelLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
-                                                    const std::string &modelRoot)
+TextureIdentifier ModelLoader::loadMaterialTextures(
+    aiMaterial *mat, const std::initializer_list<aiTextureType> &types,
+    const std::string &modelRoot, bool loadAsSrgb)
 {
     TextureIdentifier texture = InvalidIdentifier;
 
-    for (unsigned int i = 0; i < mat->GetTextureCount(type) && i < 1; i++)
+    for (const auto type : types)
     {
-        aiString str;
-        mat->GetTexture(type, i, &str);
-        const std::string texName = str.C_Str();
-        if (texture = TextureManager::instance()->textureRegistered(texName);
-            texture == InvalidIdentifier)
+        for (unsigned int i = 0; i < mat->GetTextureCount(type) && i < 1;
+             i++) // limit to one texture currently
         {
-            texture = TextureManager::instance()
-                          ->registerTexture((modelRoot + '/' + str.C_Str()).c_str(), texName);
+            aiString str;
+            mat->GetTexture(type, i, &str);
+            const std::string texName = str.C_Str();
+            if (texture = TextureManager::instance()->textureRegistered(texName);
+                texture == InvalidIdentifier)
+            {
+                texture = TextureManager::instance()
+                              ->registerTexture((modelRoot + '/' + str.C_Str()).c_str(), texName);
+                TextureManager::instance()->getTexture(texture)->setUseSrgb(loadAsSrgb);
+            }
+            if (texture != InvalidIdentifier)
+                return texture;
         }
     }
-
     return texture;
 }

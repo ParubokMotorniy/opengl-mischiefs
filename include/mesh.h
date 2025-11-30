@@ -1,22 +1,24 @@
 #pragma once
+#include "glm/glm.hpp"
 #include "material.h"
 
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 #pragma pack(push, 1)
 struct Vertex
 {
-    float coordinates[3] = {0.0f, 0.0f, 0.0f};
-    float texCoordinates[2] = {0.0f, 0.0f};
-    float normal[3] = {0.0f, 0.0f, 0.0f};
+    float coordinates[3] = { 0.0f, 0.0f, 0.0f };
+    float texCoordinates[2] = { 0.0f, 0.0f };
+    float normal[3] = { 0.0f, 0.0f, 0.0f };
 };
 #pragma pack(pop)
 
 struct Mesh
 {
     Mesh() = default;
-    Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint32_t> &&meshIndices);
+    Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint32_t> &&meshIndices,
+         std::vector<glm::vec3> &&tangentVectors = {});
     ~Mesh();
 
     bool isAllocated() const noexcept;
@@ -26,7 +28,7 @@ struct Mesh
     void bindMesh() const;
 
     void enableInstancing();
-    bool instancingEnabled();
+    bool instancingEnabled() const;
     void bindMeshInstanced();
 
     uint32_t standardArrayId() const noexcept;
@@ -42,12 +44,15 @@ struct Mesh
 
     uint32_t numIndices() const;
 
+    uint32_t tangentsSize() const;
+
 private:
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    std::vector<glm::vec3> tangents;
 
-    uint32_t vId = 0; //vbo
-    uint32_t id = 0; //vao
+    uint32_t vId = 0; // vbo
+    uint32_t id = 0;  // vao
 
     uint32_t instancedId = 0;
 };

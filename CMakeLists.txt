@@ -150,7 +150,7 @@ if(ENGINE_ENABLE_HW_PCF)
     target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ENABLE_HW_PCF)
 endif()
 
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-    COMMAND git lfs pull || true #to make sure the models and textures are intact
-)
+# add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+#     COMMAND git lfs pull || true #to make sure the models and textures are intact
+# )
 

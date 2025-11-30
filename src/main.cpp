@@ -14,6 +14,8 @@
 #include "basicshader.h"
 #include "camera.h"
 #include "geometryshaderprogram.h"
+#include "gizmospass.h"
+#include "hdrpass.h"
 #include "instancedshader.h"
 #include "instancer.h"
 #include "lightmanager.h"
@@ -23,6 +25,7 @@
 #include "modelloader.h"
 #include "object.h"
 #include "objectmanager.h"
+#include "pbrshader.h"
 #include "quaternioncamera.h"
 #include "shadowpass.h"
 #include "skyboxshader.h"
@@ -37,6 +40,7 @@
 #include "window.h"
 #include "worldplaneshader.h"
 
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -60,10 +64,11 @@ const char *simpleTransparentVertexShaderSource = ENGINE_SHADERS "/simple_transp
 const char *simpleTransparentFragmentShaderSource = ENGINE_SHADERS
     "/simple_transparent_fragment.fs";
 
+const char *pbrVertexShaderSource = ENGINE_SHADERS "/pbr_vertex.vs";
+const char *pbrFragmentShaderSource = ENGINE_SHADERS "/pbr_fragment.fs";
+
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
 const float lightRotationRadius = 40.0f;
-
-bool renderAxes = true;
 
 #ifndef NDEBUG
 void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -151,17 +156,26 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severi
 
 void imGuiInitialization(Window *windowToBindTo)
 {
-    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(windowToBindTo->getRawWindow(), true);
 
     ImGui_ImplOpenGL3_Init();
+}
+
+uint32_t nextRandomInt()
+{
+    static uint32_t x = std::chrono::duration_cast<std::chrono::seconds>(
+                            std::chrono::system_clock::now().time_since_epoch())
+                            .count();
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    return x;
 }
 
 } // namespace
@@ -311,10 +325,19 @@ int main(int argc, const char *argv[])
     // Models
 
     // Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
-    const GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
-        ENGINE_MODELS
-        "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
-                                  // Surprisingly, it seems to be better optimized than bill
+    // const GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
+    //     ENGINE_MODELS
+    //     "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
+    //                               // Surprisingly, it seems to be better optimized than bill
+
+    const GameObjectIdentifier gunModelId
+        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/firearm/scene.gltf", false, true);
+
+    const GameObjectIdentifier suzukiModelId
+        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/suzuki/scene.gltf", false, true);
+
+    const GameObjectIdentifier gameboyModelId
+        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/gameboy/gameboy.obj", false, true);
 
     const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
         ENGINE_MODELS "/sphere/sphere.obj");
@@ -335,7 +358,7 @@ int main(int argc, const char *argv[])
     {
         //// Shaders
 
-        InstancedShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
+        InstancedBlinnPhongShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
         shaderProgramMain.initializeShaderProgram();
 
         WorldPlaneShader worldPlaneShader{ cubeMesh, checkerboardTexture };
@@ -355,22 +378,32 @@ int main(int argc, const char *argv[])
                                                    simpleTransparentFragmentShaderSource };
         simpleTransparentShader.initializeShaderProgram();
 
+        PbrShader mainPbrShader{ pbrVertexShaderSource, pbrFragmentShaderSource };
+        mainPbrShader.initializeShaderProgram();
+
         // passes
         StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
-                                             &lightVisualizationShader, &mainSkybox };
+                                             &lightVisualizationShader, &mainSkybox,
+                                             &mainPbrShader };
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
 
-        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader };
+        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader, &mainPbrShader };
 
         SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader };
         _sortingTransparentPass.setCamera(camera);
 
+        HdrPass _hdrPass(planeMesh);
+        _hdrPass.initializeShaderProgram();
+        _hdrPass.setWindow(&mainWindow);
+
+        GizmosPass _gizmosPass(&worldAxesShader);
+        _gizmosPass.setCamera(camera);
+        _gizmosPass.setWindow(&mainWindow);
+
         // Events
         {
             mainWindow.subscribeEventListener([&](KeyboardInput input, KeyboardInput releasedKeys) {
-                if (releasedKeys.CtrlLeft)
-                    renderAxes = !renderAxes;
                 if (releasedKeys.CtrlRight)
                     worldPlaneShader.setPlaneEnabled(!worldPlaneShader.isPlaneEnabled());
             });
@@ -471,8 +504,8 @@ int main(int argc, const char *argv[])
                 dirLight1.addComponent(Component(ComponentType::TRANSFORM, lightTransform));
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
-                lightStruct->ambient = glm::vec3(0.029f, 0.078f, 0.075f);
-                lightStruct->diffuse = glm::vec3(0.122f, 0.135f, 0.298f);
+                lightStruct->ambient = glm::vec3(0.029f, 0.058f, 0.055f);
+                lightStruct->diffuse = glm::vec3(0.322f, 0.335f, 0.498f);
                 lightStruct->specular = glm::vec3(0.091f, 0.078f, 0.057f);
 
                 const auto [bufId, textureIdentifier]
@@ -507,7 +540,7 @@ int main(int argc, const char *argv[])
                 auto lightStruct = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                        ->getLight(lId);
                 lightStruct->ambient = glm::vec3(0.089f, 0.039f, 0.069f);
-                lightStruct->diffuse = glm::vec3(0.169f, 0.245f, 0.171f);
+                lightStruct->diffuse = glm::vec3(0.369f, 0.445f, 0.371f);
                 lightStruct->specular = glm::vec3(0.098f, 0.002f, 0.008f);
                 const auto [bufId, textureIdentifier]
                     = LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
@@ -631,7 +664,7 @@ int main(int argc, const char *argv[])
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 15; k < 45; ++k)
+        for (int k = 20; k < 50; ++k)
         {
             const float fK = static_cast<float>(k);
             // add cubes and pyramids
@@ -648,11 +681,11 @@ int main(int argc, const char *argv[])
             standardObject.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             Transform *t = TransformManager::instance()->getTransform(tId);
-            t->setPosition(
-                glm::vec3(std::sin(k) * 10.0f, (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
+            t->setPosition(glm::vec3(nextRandomInt() % static_cast<int>(lightRotationRadius),
+                                     (fK / 2) * std::cos(k), (fK / 2) * std::sin(k)));
             t->setRotation(glm::rotate(t->rotation(), glm::radians((float)k),
                                        glm::vec3(50.0f - k, 1.0f, 0.0f)));
-            t->setScale(glm::vec3(std::max((k % 10) / 1.5f, 0.2f)));
+            t->setScale(glm::vec3(std::max(static_cast<int>(nextRandomInt()) % 5, 1)));
 
             shaderProgramMain.addObject(standardObject);
             movingObjects.emplace_back(standardObject);
@@ -665,21 +698,21 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
         }
-        for(int k = 10; k < 20; ++k)
+        for (int k = 10; k < 15; ++k)
         {
-            /// add bills
-            auto billCopy = ObjectManager::instance()->copyObject(billModel);
-            auto billTransform = TransformManager::instance()->getTransform(
-                ObjectManager::instance()->getObject(billCopy).getIdentifierForComponent(
-                    ComponentType::TRANSFORM));
-            billTransform->setPosition(
-                glm::vec3(k * std::sin(k), k * std::sin(k), k * std::cos(k)));
-            billTransform->setRotation(
-                glm::rotate(billTransform->rotation(), glm::radians((float)k),
+            const auto gameBoyCopy = ObjectManager::instance()->copyObject(gameboyModelId);
+            auto gameboyTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()
+                    ->getObject(gameBoyCopy)
+                    .getIdentifierForComponent(ComponentType::TRANSFORM));
+            gameboyTransform->setPosition(
+                glm::vec3(-k * std::sin(k), -k * std::sin(k), k * std::cos(k)));
+            gameboyTransform->setRotation(
+                glm::rotate(gameboyTransform->rotation(), glm::radians((float)k),
                             glm::vec3(0.0f, (float)(k % 2), (float)((1 + k) % 2))));
-            billTransform->setScale(glm::vec3(20.0f));
+            gameboyTransform->setScale(glm::vec3(30.0f));
 
-            shaderProgramMain.addObjectWithChildren(billCopy);
+            mainPbrShader.addObjectWithChildren(gameBoyCopy);
         }
         {
             GameObject &worldAxes = ObjectManager::instance()->getObject(
@@ -689,6 +722,31 @@ int main(int argc, const char *argv[])
                 Component(ComponentType::TRANSFORM,
                           TransformManager::instance()->registerNewTransform(worldAxes)));
             worldAxesShader.addObject(worldAxes);
+        }
+        {
+            // add PBR models
+            auto gunTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()
+                    ->getObject(gunModelId)
+                    .getIdentifierForComponent(ComponentType::TRANSFORM));
+            gunTransform->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
+            gunTransform->setRotation(glm::rotate(glm::identity<glm::mat4>(), glm::radians(-90.0f),
+                                                  glm::vec3(1.0f, 0.0f, 0.0f)));
+            gunTransform->setScale(glm::vec3(35.0f));
+
+            mainPbrShader.addObjectWithChildren(gunModelId);
+
+            auto suzukiTransform = TransformManager::instance()->getTransform(
+                ObjectManager::instance()
+                    ->getObject(suzukiModelId)
+                    .getIdentifierForComponent(ComponentType::TRANSFORM));
+            suzukiTransform->setPosition(glm::vec3(15.0f, 2.0f, -15.0f));
+            suzukiTransform->setRotation(glm::rotate(glm::identity<glm::mat4>(),
+                                                     glm::radians(-90.0f),
+                                                     glm::vec3(1.0f, 0.0f, 0.0f)));
+            suzukiTransform->setScale(glm::vec3(10.0f));
+
+            mainPbrShader.addObjectWithChildren(suzukiModelId);
         }
         {
             for (const auto &[materialId, rotationAxis, position] :
@@ -726,6 +784,9 @@ int main(int argc, const char *argv[])
             shaderProgramMain.runTextureMapping();
             shaderProgramMain.runInstancing();
 
+            mainPbrShader.runTextureMapping();
+            mainPbrShader.runInstancing();
+
             LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->setLightSourceValidator(
                 [](DirectionalLight) -> bool { return true; });
             LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()->initializeLightBuffer();
@@ -746,8 +807,8 @@ int main(int argc, const char *argv[])
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->initializeLightBuffer();
             LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()->bindLightBuffer(4);
 
-            camera->moveTo(glm::vec3(20.0f, 7.0f, 0.0f));
-            camera->lookAt(glm::vec3(-10.0f, 7.0f, -1.0f));
+            camera->moveTo(glm::vec3(35.0f, 10.0f, 35.0f));
+            camera->lookAt(glm::vec3(0.0f, -3.0f, 0.0f));
         }
         //// Render loop
         while (!mainWindow.shouldClose())
@@ -770,26 +831,14 @@ int main(int argc, const char *argv[])
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
             _sortingTransparentPass.runPass();
+            _gizmosPass.runPass();
+            _hdrPass.runPass();
 
-            // TODO: move this into some gizmos pass
-            if (renderAxes)
             {
-                glDisable(GL_DEPTH_TEST);
-                worldAxesShader.use();
-
-                worldAxesShader.setMatrix4("viewMat", camera->getViewMatrix());
-                worldAxesShader.setMatrix4("projectionMat", camera->projectionMatrix());
-
-                worldAxesShader.runShader();
-
-                glEnable(GL_DEPTH_TEST);
-            }
-            {
-                ImGui::Begin("Gizmos", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-                ImGui::Text("Transform");
-                ImGui::Separator();
-                ImGui::Checkbox("Toggle axes", &renderAxes);
-                ImGui::End();
+                FrameBufferManager::instance()->pushFrameBuffer(0);
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                FrameBufferManager::instance()->popFrameBuffer();
             }
 
             {
@@ -817,7 +866,7 @@ int main(int argc, const char *argv[])
                         texturedLight1Transform);
                     transformStruct->setRotation(
                         glm::rotate(transformStruct->rotation(),
-                                    (float)(glm::radians(std::sin(time) * 20.0f) * deltaTime),
+                                    (float)(glm::radians(25.0f) * deltaTime),
                                     glm::vec3(0.0f, 1.0f, 0.0f)));
                 }
             }
@@ -836,12 +885,6 @@ int main(int argc, const char *argv[])
                                     (float)(glm::radians(std::cos(m) * 10.0f) * deltaTime),
                                     glm::vec3((float)(m % 2), 0.0f, (float)((m + 1) % 2))));
                 }
-            }
-
-            {
-                // Rendering
-                ImGui::Render();
-                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             }
 
             {

@@ -56,7 +56,7 @@ public:
         return cPtr == _objectComponents.end() ? InvalidIdentifier : cPtr->second;
     }
 
-    const std::vector<GameObjectIdentifier> &children() { return _objectChildren; }
+    const std::vector<GameObjectIdentifier> &children() const { return _objectChildren; }
 
 private:
     GameObject(GameObjectIdentifier newId) : _objectId(newId) {}

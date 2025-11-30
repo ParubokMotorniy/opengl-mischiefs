@@ -38,7 +38,7 @@ private:
     TextureManager();
 
     // returns -1 if is not bound and the binding index otherwise
-    int isTextureBound(const Texture2D &texture);
+    int isTextureBound(const Texture2D &texture) const;
 
 private:
     TextureIdentifier _identifiers = 0; // TODO: add some defragmentation logic
@@ -47,7 +47,7 @@ private:
     constexpr static uint32_t MAX_TEXTURES = 16;
     uint32_t _boundTextures[MAX_TEXTURES];
     int _numBoundTextures = 0;
-
+    
 #ifndef NDEBUG
     // the screaming magenta texture shall be used for debugging purposes
     TextureIdentifier _debugMagenta = InvalidIdentifier;

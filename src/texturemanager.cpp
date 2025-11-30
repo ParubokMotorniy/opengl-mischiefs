@@ -18,6 +18,12 @@ TextureManager::TextureManager()
 {
     std::memset(_boundTextures, 0, MAX_TEXTURES);
 
+    const auto whiteTex = registerTexture(ENGINE_TEXTURES "/white.jpg", "white");
+    allocateTexture(whiteTex);
+
+    const auto blackTex = registerTexture(ENGINE_TEXTURES "/black.jpg", "white");
+    allocateTexture(blackTex);
+
 #ifndef NDEBUG
     _debugMagenta = registerTexture(ENGINE_TEXTURES "/debug_magenta.jpg", "debug_magenta_tex");
     allocateTexture(_debugMagenta);
@@ -36,7 +42,6 @@ TextureIdentifier TextureManager::registerTexture(const char *textureSource,
 
 TextureIdentifier TextureManager::registerTexture(uint32_t textureId)
 {
-    const auto rName = RandomNamer::instance()->getRandomName(10);
     _textures.emplace(++_identifiers, NamedTexture{ RandomNamer::instance()->getRandomName(10),
                                                     Texture2D(textureId) });
     return _identifiers;
@@ -180,7 +185,7 @@ Texture2D *TextureManager::getTexture(TextureIdentifier tId)
     return &tPtr->second.componentData;
 }
 
-int TextureManager::isTextureBound(const Texture2D &texture)
+int TextureManager::isTextureBound(const Texture2D &texture) const
 {
     if (!texture.isAllocated())
         return -1;

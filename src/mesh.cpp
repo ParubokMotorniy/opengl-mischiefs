@@ -4,8 +4,11 @@
 
 #include <cstddef>
 
-Mesh::Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint32_t> &&meshIndices)
-    : vertices(std::move(meshVertices)), indices(std::move(meshIndices))
+Mesh::Mesh(std::vector<Vertex> &&meshVertices, std::vector<uint32_t> &&meshIndices,
+           std::vector<glm::vec3> &&tangentVectors)
+    : vertices(std::move(meshVertices)),
+      indices(std::move(meshIndices)),
+      tangents(std::move(tangentVectors))
 {
 }
 
@@ -36,6 +39,17 @@ void Mesh::allocateMesh()
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                               (void *)offsetof(Vertex, normal));
         glEnableVertexAttribArray(2); // normals
+
+        if (!tangents.empty())
+        {
+            uint32_t TBO;
+            glGenBuffers(1, &TBO);
+            glBindBuffer(GL_ARRAY_BUFFER, TBO);
+            glBufferData(GL_ARRAY_BUFFER, tangentsSize(), tangents.data(), GL_STATIC_DRAW);
+
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+            glEnableVertexAttribArray(3); // tangent vectors
+        }
     }
 
     glBindVertexArray(0);
@@ -91,12 +105,23 @@ void Mesh::enableInstancing()
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                               (void *)offsetof(Vertex, normal));
         glEnableVertexAttribArray(2); // normals
+
+        if (!tangents.empty())
+        {
+            uint32_t TBO;
+            glGenBuffers(1, &TBO);
+            glBindBuffer(GL_ARRAY_BUFFER, TBO);
+            glBufferData(GL_ARRAY_BUFFER, tangentsSize(), tangents.data(), GL_STATIC_DRAW);
+
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+            glEnableVertexAttribArray(3); // tangent vectors
+        }
     }
 
     glBindVertexArray(0);
 }
 
-bool Mesh::instancingEnabled() { return instancedId != 0; }
+bool Mesh::instancingEnabled() const { return instancedId != 0; }
 
 void Mesh::bindMeshInstanced()
 {
@@ -122,3 +147,6 @@ uint32_t Mesh::numVertices() const { return vertices.size(); }
 uint32_t Mesh::indicesSize() const { return indices.size() * sizeof(uint32_t); }
 
 uint32_t Mesh::numIndices() const { return indices.size(); }
+
+// size in bytes
+uint32_t Mesh::tangentsSize() const { return tangents.size() * sizeof(glm::vec3); }

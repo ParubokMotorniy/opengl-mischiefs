@@ -3,6 +3,8 @@
 #include "glad/glad.h"
 
 #include <cmath>
+#include <iostream>
+#include <cassert>
 
 Texture2D::Texture2D(const char *textureSourcePath, bool enableAnisotropicFiltering,
                      Texture2DParameters params)
@@ -22,13 +24,28 @@ void Texture2D::allocateTexture()
     int width, height, numChannels;
     auto *imageData = stbi_load(_textureSourcePath.c_str(), &width, &height, &numChannels, 0);
 
-    GLenum format;
+    assert(numChannels > 0 && imageData != nullptr) ;
+
+    GLenum format = 0;
+    GLenum internalFormat = 0;
     if (numChannels == 1)
+    {
         format = GL_RED;
+        internalFormat = GL_RED;
+    }
     else if (numChannels == 3)
+    {
         format = GL_RGB;
+        internalFormat = GL_SRGB;
+    }
     else if (numChannels == 4)
+    {
         format = GL_RGBA;
+        internalFormat = GL_SRGB_ALPHA;
+    }
+
+    if (!_useSrgb)
+        internalFormat = format;
 
     glGenTextures(1, &_textureId);
     glBindTexture(GL_TEXTURE_2D, _textureId);
@@ -48,7 +65,8 @@ void Texture2D::allocateTexture()
                         std::min(_anisoLevel, maxAnisoLevel));
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, imageData);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE,
+                 imageData);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     stbi_image_free(imageData);
@@ -77,5 +95,7 @@ void Texture2D::setUseAnisotropic(bool useAniso, size_t level)
     _useAnisotropic = useAniso;
     _anisoLevel = level;
 }
+
+void Texture2D::setUseSrgb(bool ifUseSrgb) { _useSrgb = ifUseSrgb; }
 
 void Texture2D::setParameters(Texture2DParameters params) { _params = params; }

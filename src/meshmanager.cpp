@@ -16,6 +16,7 @@ TextureIdentifier MeshManager::registerMesh(const Mesh &&mesh, const std::string
     return _identifiers;
 }
 
+
 void MeshManager::unregisterMesh(MeshIdentifier id)
 {
     const auto meshPtr = _meshes.find(id);
@@ -29,12 +30,14 @@ void MeshManager::unregisterMesh(MeshIdentifier id)
     _meshes.erase(id);
 }
 
+
 std::pair<std::string, MeshIdentifier> MeshManager::registerMesh(const Mesh &&mesh)
 {
     const auto rName = RandomNamer::instance()->getRandomName(10);
     const auto id = registerMesh(std::move(mesh), rName);
     return std::make_pair(rName, id);
 }
+
 
 MeshIdentifier MeshManager::meshRegistered(const std::string &meshName)
 {
@@ -44,6 +47,7 @@ MeshIdentifier MeshManager::meshRegistered(const std::string &meshName)
     return meshPtr == _meshes.end() ? InvalidIdentifier : meshPtr->first;
 }
 
+
 void MeshManager::allocateMesh(MeshIdentifier id)
 {
     const auto meshPtr = _meshes.find(id);
@@ -52,6 +56,7 @@ void MeshManager::allocateMesh(MeshIdentifier id)
 
     meshPtr->second.componentData.allocateMesh();
 }
+
 
 void MeshManager::bindMesh(MeshIdentifier id)
 {
@@ -66,11 +71,13 @@ void MeshManager::bindMesh(MeshIdentifier id)
     _boundMesh = id;
 }
 
+
 void MeshManager::unbindMesh()
 {
     glBindVertexArray(0);
     _boundMesh = InvalidIdentifier;
 }
+
 
 void MeshManager::bindMeshInstanced(MeshIdentifier id)
 {
@@ -89,6 +96,7 @@ void MeshManager::bindMeshInstanced(MeshIdentifier id)
     _boundMesh = id;
 }
 
+
 void MeshManager::enableMeshInstancing(MeshIdentifier id)
 {
     auto meshPtr = _meshes.find(id);
@@ -97,6 +105,7 @@ void MeshManager::enableMeshInstancing(MeshIdentifier id)
 
     meshPtr->second.componentData.enableInstancing();
 }
+
 
 void MeshManager::deallocateMesh(MeshIdentifier id)
 {
@@ -107,11 +116,13 @@ void MeshManager::deallocateMesh(MeshIdentifier id)
     meshPtr->second.componentData.deallocateMesh();
 }
 
+
 void MeshManager::cleanUpGracefully()
 {
     unbindMesh();
     _meshes.clear();
 }
+
 
 const Mesh *MeshManager::getMesh(MeshIdentifier id)
 {

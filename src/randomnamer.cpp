@@ -14,7 +14,6 @@ std::string RandomNamer::getRandomName(size_t nameLength)
     rName.resize(nameLength);
     for (int a = 0; a < nameLength; ++a)
     {
-        const auto c = _charDist(_generator);
         rName.push_back(_charDist(_generator));
     }  
 

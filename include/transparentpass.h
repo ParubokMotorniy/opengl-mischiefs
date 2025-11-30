@@ -10,7 +10,7 @@ class SortingTransparentPass : public FramePass
 public:
     SortingTransparentPass(TransparentShader *_transparentShader);
     void runPass() override;
-    void setCamera(const Camera *currentCamera);
+    void setCamera(const Camera *currentCamera) override;
 
 private:
     TransparentShader *_transparentShader = nullptr;

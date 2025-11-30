@@ -1,0 +1,11 @@
+Model Information:
+* title:	Suzuki Esteem 1998
+* source:	https://sketchfab.com/3d-models/suzuki-esteem-1998-d0ef65285179484191b75602d67804a1
+* author:	Artem P (https://sketchfab.com/temp0.crazy)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Suzuki Esteem 1998" (https://sketchfab.com/3d-models/suzuki-esteem-1998-d0ef65285179484191b75602d67804a1) by Artem P (https://sketchfab.com/temp0.crazy) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

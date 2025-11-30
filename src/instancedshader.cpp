@@ -2,18 +2,21 @@
 #include "instancer.h"
 #include "materialmanager.h"
 
-InstancedShader::InstancedShader(const char *vertexPath, const char *fragmentPath)
+template <typename MaterialStruct>
+InstancedShader<MaterialStruct>::InstancedShader(const char *vertexPath, const char *fragmentPath)
     : _vertexPath(vertexPath), _fragmentPath(fragmentPath)
 {
 }
 
-InstancedShader::~InstancedShader()
+template <typename MaterialStruct>
+InstancedShader<MaterialStruct>::~InstancedShader()
 {
     glDeleteBuffers(1, &_texturesSSBO);
     glDeleteBuffers(_instancedBufferIds.size(), _instancedBufferIds.data());
 }
 
-void InstancedShader::updateInstancedBuffer(
+template <typename MaterialStruct>
+void InstancedShader<MaterialStruct>::updateInstancedBuffer(
     const std::unordered_set<GameObjectIdentifier> &objsToUpdate)
 {
     if (_instancedBufferIds.empty())
@@ -60,7 +63,8 @@ void InstancedShader::updateInstancedBuffer(
     }
 }
 
-void InstancedShader::runShader()
+template <typename MaterialStruct>
+void InstancedShader<MaterialStruct>::runShader()
 {
     use();
 
@@ -79,7 +83,8 @@ void InstancedShader::runShader()
     }
 }
 
-void InstancedShader::compileAndAttachNecessaryShaders(uint32_t id)
+template <typename MaterialStruct>
+void InstancedShader<MaterialStruct>::compileAndAttachNecessaryShaders(uint32_t id)
 {
     if (_vertexShaderId == 0)
     {
@@ -108,7 +113,8 @@ void InstancedShader::compileAndAttachNecessaryShaders(uint32_t id)
     glAttachShader(id, _fragmentShaderId);
 }
 
-void InstancedShader::deleteShaders()
+template <typename MaterialStruct>
+void InstancedShader<MaterialStruct>::deleteShaders()
 {
     glDeleteShader(_vertexShaderId);
     _vertexShaderId = 0;
@@ -117,18 +123,20 @@ void InstancedShader::deleteShaders()
     _fragmentShaderId = 0;
 }
 
-void InstancedShader::runTextureMapping()
+template <typename MaterialStruct>
+void InstancedShader<MaterialStruct>::runTextureMapping()
 {
     glDeleteBuffers(1, &_texturesSSBO);
     _objectsTextureMappings
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
+        = MaterialManager<MaterialStruct, getComponentTypeForStruct<MaterialStruct>()>::instance()
               ->bindTextures(std::vector<GameObjectIdentifier>(_orderedShaderObjects.cbegin(),
                                                                _orderedShaderObjects.cend()),
-                             0, _texturesSSBO);
+                             _textureHandlesbindingPoint, _texturesSSBO);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 }
 
-std::vector<InstancedDataGenerator> InstancedShader::getDataGenerators()
+template <typename MaterialStruct>
+std::vector<InstancedDataGenerator> InstancedShader<MaterialStruct>::getDataGenerators()
 {
     // TODO: these generators are quite inefficient -> rework
     const InstancedDataGenerator modelMatrixCol0 = InstancedDataGenerator{
@@ -210,17 +218,22 @@ std::vector<InstancedDataGenerator> InstancedShader::getDataGenerators()
         }
     };
 
+    constexpr auto numTexturesInMaterial = getNumTexturesInMaterial<MaterialStruct>();
+
     // makes the texture indices instanced
     const InstancedDataGenerator standardMaterialIndices = InstancedDataGenerator{
-        sizeof(int) * 4, // 4 to preserve the 16-byte alignment
-        3,
+        sizeof(int) * (int)std::ceil((float)numTexturesInMaterial / 4.0f)
+            * 4, // to preserve the 16-byte alignment
+        numTexturesInMaterial,
         7,
         GL_INT,
         false,
-        [this](void *destination, GameObjectIdentifier gId) {
-            const std::array<int, 3> &objectTextureIndices = _objectsTextureMappings.at(gId);
+        [this, numTexturesInMaterial](void *destination, GameObjectIdentifier gId) {
+            const std::array<int, numTexturesInMaterial> &objectTextureIndices
+                = _objectsTextureMappings.at(gId);
 
-            std::memcpy(destination, objectTextureIndices.data(), sizeof(int) * 3);
+            std::memcpy(destination, objectTextureIndices.data(),
+                        sizeof(int) * numTexturesInMaterial);
         }
     };
 
@@ -228,7 +241,8 @@ std::vector<InstancedDataGenerator> InstancedShader::getDataGenerators()
              standardMaterialIndices };
 }
 
-void InstancedShader::runInstancing()
+template <typename MaterialStruct>
+void InstancedShader<MaterialStruct>::runInstancing()
 {
     const std::vector<GameObjectIdentifier> shaderObjects
         = std::vector<GameObjectIdentifier>(_orderedShaderObjects.cbegin(),
@@ -259,7 +273,8 @@ void InstancedShader::runInstancing()
 
                 const GLuint vertexBufferid = Instancer::instance()
                                                   ->instanceData(std::span(meshStart, meshEnd),
-                                                                 getDataGenerators(), mesh.instancedArrayId());
+                                                                 getDataGenerators(),
+                                                                 mesh.instancedArrayId());
 
                 _instancedMeshes.emplace(sharedMesh, meshEnd - meshStart);
                 _instancedBufferIds.emplace_back(vertexBufferid);

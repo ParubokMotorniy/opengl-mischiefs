@@ -21,6 +21,7 @@ enum class ComponentType
     MESH,
     TRANSFORM,
     BASIC_MATERIAL,
+    PBR_MATERIAL,
     LIGHT_POINT,
     LIGHT_DIRECTIONAL,
     LIGHT_SPOT,

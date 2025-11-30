@@ -159,7 +159,7 @@ Cubemap *CubemapManager::getTexture(TextureIdentifier3D tId)
     return &tPtr->second.componentData;
 }
 
-int CubemapManager::isTextureBound(const Cubemap &texture)
+int CubemapManager::isTextureBound(const Cubemap &texture) const
 {
     if (!texture.isAllocated())
         return -1;

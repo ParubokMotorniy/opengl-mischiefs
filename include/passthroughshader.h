@@ -8,7 +8,7 @@ class PassThroughShader : public ShaderProgram
 {
 public:
     PassThroughShader(const char *vertexPath, const char *fragmentPath);
-    void runShader() {};
+    void runShader() override {};
 
 protected:
     void compileAndAttachNecessaryShaders(uint32_t id) override;
@@ -21,4 +21,3 @@ private:
     uint32_t _vertexShaderId = 0;
     uint32_t _fragmentShaderId = 0;
 };
-
