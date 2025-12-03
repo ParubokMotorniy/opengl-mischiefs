@@ -4,7 +4,7 @@
 
 ComputeShader::ComputeShader(const char *shaderSource) : _shaderSrc(shaderSource) {}
 
-const ComputeShader *ComputeShader::setGlobalDispatchDimenisons(const glm::uvec3 &newDimensions)
+ComputeShader *ComputeShader::setGlobalDispatchDimenisons(const glm::uvec3 &newDimensions)
 {
     _globalDispatchDimensions = newDimensions;
     return this;
@@ -12,7 +12,6 @@ const ComputeShader *ComputeShader::setGlobalDispatchDimenisons(const glm::uvec3
 
 void ComputeShader::runShader()
 {
-    // TODO: dispatch
     use();
     glDispatchCompute(_globalDispatchDimensions.x, _globalDispatchDimensions.y,
                       _globalDispatchDimensions.z);

@@ -1,14 +1,14 @@
 #pragma once
 
 #include "mesh.h"
-#include "types.h"
 #include "singleton.h"
+#include "types.h"
 
-#include <vector>
-#include <unordered_map>
-#include <string>
 #include <cstdint>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 class MeshManager : public SystemSingleton<MeshManager>
 {
@@ -28,6 +28,7 @@ public:
     void bindMesh(MeshIdentifier id);
     void bindMeshInstanced(MeshIdentifier id);
     void unbindMesh();
+    MeshIdentifier getDummyMesh() const;
 
     void enableMeshInstancing(MeshIdentifier id);
 
@@ -36,10 +37,12 @@ public:
     const Mesh *getMesh(MeshIdentifier id);
 
 private:
-    MeshManager() = default;
+    MeshManager() { registerMesh(Mesh(), "dummy_mesh"); }
 
 private:
     MeshIdentifier _identifiers = 0;
     std::unordered_map<MeshIdentifier, NamedMesh> _meshes;
     MeshIdentifier _boundMesh = 0;
+
+    MeshIdentifier _dummyMesh = InvalidIdentifier;
 };
