@@ -7,12 +7,11 @@
 // uvec3	gl_GlobalInvocationID	global index of the current work item (gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID)
 // uint	    gl_LocalInvocationIndex	1d index representation of gl_LocalInvocationID (gl_LocalInvocationID.z * gl_WorkGroupSize.x * gl_WorkGroupSize.y + gl_LocalInvocationID.y * gl_WorkGroupSize.x + gl_LocalInvocationID.x)
 
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(rgba32f, binding = 0) uniform image2D colorOutput;
-layout(rgba32f, binding = 1) uniform image2D viewSpacePosOutput;
+layout(rgba16f, binding = 0) uniform image2D colorOutput;
+layout(rgba16f, binding = 1) uniform image2D viewSpacePosOutput;
 
-uniform float nearClip;
 uniform int resolutionX;
 uniform int resolutionY;
 
@@ -20,8 +19,9 @@ uniform vec3  spherePos;
 uniform float sphereRadius;
 
 uniform mat4  viewMatrix;
-uniform mat4 projectionMatrix;
 uniform mat4 ndcToView;
+
+uniform float densityScale;
 
 const float marchStepSize = 0.1;
 const float maxMarchDistance = 100;
@@ -66,5 +66,6 @@ void main()
         distanceMarched += marchStepSize;
     }
 
+    densityAccumulation *= densityScale;
     imageStore(colorOutput, imgCoords, vec4(densityAccumulation, densityAccumulation, densityAccumulation, densityAccumulation));
 };

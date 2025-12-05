@@ -25,6 +25,7 @@ void FullscreenFogShader::runShader()
 
     MeshManager::instance()->bindMesh(MeshManager::instance()->getDummyMesh());
     glDrawArrays(GL_TRIANGLES, 0, 3);
+    MeshManager::instance()->unbindMesh();
 }
 
 void FullscreenFogShader::compileAndAttachNecessaryShaders(uint32_t id)

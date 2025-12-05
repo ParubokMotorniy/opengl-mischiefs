@@ -25,8 +25,8 @@ public:
     void allocateMesh(MeshIdentifier id);
     void deallocateMesh(MeshIdentifier id);
 
-    void bindMesh(MeshIdentifier id);
-    void bindMeshInstanced(MeshIdentifier id);
+    int bindMesh(MeshIdentifier id);
+    int bindMeshInstanced(MeshIdentifier id);
     void unbindMesh();
     MeshIdentifier getDummyMesh() const;
 

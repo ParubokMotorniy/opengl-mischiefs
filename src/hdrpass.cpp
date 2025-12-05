@@ -104,7 +104,8 @@ void HdrPass::runShader()
 
     const int bindingLocation = TextureManager::instance()->bindTexture(_colorTextureId);
     MeshManager::instance()->allocateMesh(_planeMeshId);
-    MeshManager::instance()->bindMesh(_planeMeshId);
+    const auto bindRes = MeshManager::instance()->bindMesh(_planeMeshId);
+    assert(bindRes == 0);
 
     setMatrix4("modelToNdc", planeModelToNdc);
 

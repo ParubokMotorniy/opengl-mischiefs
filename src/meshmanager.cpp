@@ -53,17 +53,18 @@ void MeshManager::allocateMesh(MeshIdentifier id)
     meshPtr->second.componentData.allocateMesh();
 }
 
-void MeshManager::bindMesh(MeshIdentifier id)
+int MeshManager::bindMesh(MeshIdentifier id)
 {
     if (_boundMesh != InvalidIdentifier)
-        return;
+        return -1;
     const auto meshPtr = _meshes.find(id);
     if (meshPtr == _meshes.end())
-        return;
+        return -1;
     auto &mesh = meshPtr->second.componentData;
 
     mesh.bindMesh();
     _boundMesh = id;
+    return 0;
 }
 
 void MeshManager::unbindMesh()
@@ -74,21 +75,22 @@ void MeshManager::unbindMesh()
 
 MeshIdentifier MeshManager::getDummyMesh() const { return _dummyMesh; }
 
-void MeshManager::bindMeshInstanced(MeshIdentifier id)
+int MeshManager::bindMeshInstanced(MeshIdentifier id)
 {
     if (_boundMesh != InvalidIdentifier)
-        return;
+        return -1;
 
     auto meshPtr = _meshes.find(id);
     if (meshPtr == _meshes.end())
-        return;
+        return -1;
 
     auto &mesh = meshPtr->second.componentData;
     if (!mesh.instancingEnabled())
-        return;
+        return -1;
 
     mesh.bindMeshInstanced();
     _boundMesh = id;
+    return 0;
 }
 
 void MeshManager::enableMeshInstancing(MeshIdentifier id)
