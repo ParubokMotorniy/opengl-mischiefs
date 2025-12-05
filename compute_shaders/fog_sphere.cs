@@ -19,7 +19,7 @@ uniform vec3  spherePos;
 uniform float sphereRadius;
 
 uniform mat4  viewMatrix;
-uniform mat4 ndcToView;
+uniform mat4 clipToView;
 
 uniform float densityScale;
 
@@ -32,14 +32,10 @@ void main()
     //initializes the ray
 
     const ivec2 imgCoords = ivec2(gl_GlobalInvocationID.xy);
-    //  imageStore(colorOutput, imgCoords, normalize(imgCoords).xyxy);
-    //  imageStore(viewSpacePosOutput, imgCoords, vec4(10 * normalize(imgCoords).xy, -3.0, 0.0));
 
-    const vec3 ndcEndpoint = vec3(vec2(imgCoords) / vec2(resolutionX, resolutionY) * 2.0 - 1.0, 1.0);
-    const vec4 viewEndpoint = ndcToView * vec4(ndcEndpoint, 1.0);
+    const vec3 ndcEndpoint = vec3((vec2(imgCoords) / vec2(resolutionX, resolutionY)) * 2.0 - 1.0, 1.0);
+    const vec4 viewEndpoint = clipToView * vec4(ndcEndpoint, 1.0);
     const vec3 rayDirection = normalize(viewEndpoint.xyz / viewEndpoint.w);
-
-    // imageStore(colorOutput, imgCoords, vec4(abs(rayDirection.x),abs(rayDirection.y), abs(rayDirection.z), 1.0));
 
     const vec3 viewSpherePos = (viewMatrix * vec4(spherePos, 1.0)).xyz;
     const float radiusSquared = sphereRadius * sphereRadius;

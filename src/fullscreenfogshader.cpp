@@ -1,4 +1,5 @@
 #include "fullscreenfogshader.h"
+#include "framebuffermanager.h"
 #include "meshmanager.h"
 #include "texturemanager.h"
 #include "volumetricfogcomputepass.h"
@@ -11,6 +12,7 @@ void FullscreenFogShader::runShader()
 {
     use();
 
+    // TODO: consider using a different blending setup
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
 
@@ -20,8 +22,13 @@ void FullscreenFogShader::runShader()
 
     assert(colorBinding != -1 && positionBinding != -1);
 
+    const auto &[viewportOffsetX, viewportOffsetY, viewportSizeX,
+                 viewportSizeY] = FrameBufferManager::instance()->getViewportDims();
+
     setInt("texColor", colorBinding);
     setInt("texPosition", positionBinding);
+    setInt("viewportOffsetX", viewportOffsetX);
+    setInt("viewportOffsetY", viewportOffsetY);
 
     MeshManager::instance()->bindMesh(MeshManager::instance()->getDummyMesh());
     glDrawArrays(GL_TRIANGLES, 0, 3);
