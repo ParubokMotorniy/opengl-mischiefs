@@ -39,7 +39,7 @@ VolumetricFogPass::VolumetricFogPass()
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1920, 1080, 0, GL_RGBA, GL_FLOAT, NULL);
 
         // TODO: create a manager for this shit
-        glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+        glBindImageTexture(1, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         _positionTexture = TextureManager::instance()->registerTexture(texture);
     }
@@ -53,11 +53,14 @@ void VolumetricFogPass::runPass()
 
         _fogSphereShader.setFloat("aspectRatio", 1920.0f / 1080.0f);
         _fogSphereShader.setFloat("nearClip", 0.1f);
+
         _fogSphereShader.setInt("resolutionX", 1920);
         _fogSphereShader.setInt("resolutionY", 1080);
         _fogSphereShader.setVec3("spherePos", glm::vec3(5.0f, 5.0f, 5.0f));
-        _fogSphereShader.setFloat("sphereRadius", 10.0f);
+        _fogSphereShader.setFloat("sphereRadius", 2.0f);
         _fogSphereShader.setMatrix4("viewMatrix", _currentCamera->getViewMatrix());
+        _fogSphereShader.setMatrix4("projectionMatrix", _currentCamera->projectionMatrix());
+        _fogSphereShader.setMatrix4("ndcToView", glm::inverse(_currentCamera->projectionMatrix()));
 
         _fogSphereShader.setGlobalDispatchDimenisons(glm::uvec3(1920, 1080, 1))->runShader();
 

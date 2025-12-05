@@ -18,6 +18,8 @@ void FullscreenFogShader::runShader()
     const auto positionBinding = TextureManager::instance()->bindTexture(
         _fogPass->positionTextureId());
 
+    assert(colorBinding != -1 && positionBinding != -1);
+
     setInt("texColor", colorBinding);
     setInt("texPosition", positionBinding);
 

@@ -115,7 +115,7 @@ void MeshManager::cleanUpGracefully()
     _meshes.clear();
 }
 
-const Mesh *MeshManager::getMesh(MeshIdentifier id)
+const Mesh *MeshManager::getMesh(MeshIdentifier id) const
 {
     auto meshPtr = _meshes.find(id);
     return meshPtr == _meshes.end() ? nullptr : &meshPtr->second.componentData;

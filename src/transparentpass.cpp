@@ -15,11 +15,12 @@ void SortingTransparentPass::runPass()
 {
     glEnable(GL_BLEND);
 
-    _transparentShader->runShader();
+    // _transparentShader->runShader();
 
     {
         _fogShader->use();
-        _fogShader->setMatrix4("projection", _currentCamera->projectionMatrix());
+        _fogShader->setMatrix4("projectionMatrix", _currentCamera->projectionMatrix());
+        _fogShader->setMatrix4("viewMatrix", _currentCamera->getViewMatrix());
         _fogShader->runShader();
     }
 

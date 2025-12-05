@@ -12,26 +12,35 @@ layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(rgba32f, binding = 0) uniform image2D colorOutput;
 layout(rgba32f, binding = 1) uniform image2D viewSpacePosOutput;
 
-uniform float aspectRatio; //width / height
 uniform float nearClip;
 uniform int resolutionX;
 uniform int resolutionY;
 
 uniform vec3  spherePos;
 uniform float sphereRadius;
-uniform mat4  viewMatrix;
 
-const float marchStepSize = 0.001;
+uniform mat4  viewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 ndcToView;
+
+const float marchStepSize = 0.1;
 const float maxMarchDistance = 100;
-const float densityIncrement = 0.01;
+const float densityIncrement = 0.005;
 
 void main()
 {
     //initializes the ray
 
     const ivec2 imgCoords = ivec2(gl_GlobalInvocationID.xy);
-    const vec3 rayDirection = vec3((imgCoords / uvec2(resolutionX, resolutionY)) * vec2(aspectRatio, 1.0), nearClip);
-    
+    //  imageStore(colorOutput, imgCoords, normalize(imgCoords).xyxy);
+    //  imageStore(viewSpacePosOutput, imgCoords, vec4(10 * normalize(imgCoords).xy, -3.0, 0.0));
+
+    const vec3 ndcEndpoint = vec3(vec2(imgCoords) / vec2(resolutionX, resolutionY) * 2.0 - 1.0, 1.0);
+    const vec4 viewEndpoint = ndcToView * vec4(ndcEndpoint, 1.0);
+    const vec3 rayDirection = normalize(viewEndpoint.xyz / viewEndpoint.w);
+
+    // imageStore(colorOutput, imgCoords, vec4(abs(rayDirection.x),abs(rayDirection.y), abs(rayDirection.z), 1.0));
+
     const vec3 viewSpherePos = (viewMatrix * vec4(spherePos, 1.0)).xyz;
     const float radiusSquared = sphereRadius * sphereRadius;
 
@@ -39,17 +48,7 @@ void main()
 
     float densityAccumulation = 0.0;
     float distanceMarched = 0.0;
-
-    while(distanceMarched < maxMarchDistance)
-    {
-        vec3 rayPosition = rayDirection * distanceMarched;
-        if(dot(rayPosition - viewSpherePos, rayPosition - viewSpherePos) <= radiusSquared)
-        {
-            imageStore(viewSpacePosOutput, imgCoords, vec4(rayPosition, 0.0)); //the first point of contact will give fragment depth in the future
-            break;
-        }
-        distanceMarched += marchStepSize;
-    }   
+    bool sphereEntered = false;
 
     while(distanceMarched < maxMarchDistance)
     {
@@ -57,11 +56,14 @@ void main()
         if(dot(rayPosition - viewSpherePos,rayPosition - viewSpherePos) <= radiusSquared)
         {
             densityAccumulation += densityIncrement;
-            distanceMarched += marchStepSize;
-        }else
-        {
-            break; //the ray has left the sphere
+
+            if(!sphereEntered)
+            {
+                sphereEntered = true;
+                imageStore(viewSpacePosOutput, imgCoords, vec4(rayPosition, 0.0));
+            }
         }
+        distanceMarched += marchStepSize;
     }
 
     imageStore(colorOutput, imgCoords, vec4(densityAccumulation, densityAccumulation, densityAccumulation, densityAccumulation));

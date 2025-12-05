@@ -2,6 +2,8 @@
 
 #include "glad/glad.h"
 
+#include <string>
+
 ComputeShader::ComputeShader(const char *shaderSource) : _shaderSrc(shaderSource) {}
 
 ComputeShader *ComputeShader::setGlobalDispatchDimenisons(const glm::uvec3 &newDimensions)

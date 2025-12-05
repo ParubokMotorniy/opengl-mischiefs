@@ -834,11 +834,11 @@ int main(int argc, const char *argv[])
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             _volumetricFogPass.runPass();
-            _shadowPass.runPass();
-            _standardRenderingPass.runPass();
+            // _shadowPass.runPass();
+            // _standardRenderingPass.runPass();
             _sortingTransparentPass.runPass();
-            _gizmosPass.runPass();
-            _hdrPass.runPass();
+            // _gizmosPass.runPass();
+            // _hdrPass.runPass();
 
             {
                 FrameBufferManager::instance()->pushFrameBuffer(0);

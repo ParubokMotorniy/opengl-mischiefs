@@ -15,6 +15,7 @@
 
 #include "meshmanager.h"
 #include "objectmanager.h"
+#include "types.h"
 
 class ShaderProgram
 {

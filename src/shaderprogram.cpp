@@ -13,13 +13,15 @@ ShaderProgram::ShaderProgram() {}
 
 void ShaderProgram::initializeShaderProgram()
 {
+    if (_id != 0)
+        return;
     _id = glCreateProgram();
     compileAndAttachNecessaryShaders(_id);
     linkProgram(_id);
     deleteShaders();
 }
 
-ShaderProgram::~ShaderProgram() { glDeleteProgram(_id); } 
+ShaderProgram::~ShaderProgram() { glDeleteProgram(_id); }
 
 void ShaderProgram::use() const { glUseProgram(programId()); }
 
@@ -43,7 +45,8 @@ void ShaderProgram::setFloat(const std::string &name, float value) const
 }
 void ShaderProgram::setMatrix4(const std::string &name, const glm::mat4 &mat) const
 {
-    glUniformMatrix4fv(glGetUniformLocation(programId(), name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+    glUniformMatrix4fv(glGetUniformLocation(programId(), name.c_str()), 1, GL_FALSE,
+                       glm::value_ptr(mat));
 }
 void ShaderProgram::setVec3(const std::string &name, const glm::vec3 &vec) const
 {
@@ -56,7 +59,8 @@ void ShaderProgram::setVec4(const std::string &name, const glm::vec4 &vec) const
 
 void ShaderProgram::setUvec2(const std::string &name, GLuint64 value) const
 {
-    glUniform2ui(glGetUniformLocation(programId(), name.c_str()), value & 0xFFFFFFFF, (value >> 32) & 0xFFFFFFFF);
+    glUniform2ui(glGetUniformLocation(programId(), name.c_str()), value & 0xFFFFFFFF,
+                 (value >> 32) & 0xFFFFFFFF);
 }
 
 void ShaderProgram::addObject(GameObjectIdentifier gId) { _orderedShaderObjects.insert(gId); }

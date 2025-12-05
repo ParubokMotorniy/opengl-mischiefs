@@ -34,10 +34,14 @@ public:
 
     void cleanUpGracefully();
 
-    const Mesh *getMesh(MeshIdentifier id);
+    const Mesh *getMesh(MeshIdentifier id) const;
 
 private:
-    MeshManager() { registerMesh(Mesh(), "dummy_mesh"); }
+    MeshManager()
+    {
+        _dummyMesh = registerMesh(Mesh(), "dummy_mesh");
+        allocateMesh(_dummyMesh);
+    }
 
 private:
     MeshIdentifier _identifiers = 0;
