@@ -44,24 +44,21 @@ void main()
 
     float densityAccumulation = 0.0;
     float distanceMarched = 0.0;
-    bool sphereEntered = false;
+    vec3 closestSpherePosition = imageLoad(viewSpacePosOutput, imgCoords).xyz;
 
     while(distanceMarched < maxMarchDistance)
     {
         vec3 rayPosition = rayDirection * distanceMarched;
-        if(dot(rayPosition - viewSpherePos,rayPosition - viewSpherePos) <= radiusSquared)
-        {
-            densityAccumulation += densityIncrement;
+        bool inSphere = dot(rayPosition - viewSpherePos,rayPosition - viewSpherePos) <= radiusSquared;
 
-            if(!sphereEntered)
-            {
-                sphereEntered = true;
-                imageStore(viewSpacePosOutput, imgCoords, vec4(rayPosition, 0.0));
-            }
-        }
+        densityAccumulation += densityIncrement * float(inSphere);
+        
+        closestSpherePosition = inSphere ? (min(length(rayPosition), length(closestSpherePosition)) * rayDirection) : closestSpherePosition; 
+
         distanceMarched += marchStepSize;
     }
 
+    imageStore(viewSpacePosOutput, imgCoords, vec4(closestSpherePosition, 0.0));
     densityAccumulation *= densityScale;
     imageStore(colorOutput, imgCoords, vec4(densityAccumulation, densityAccumulation, densityAccumulation, densityAccumulation));
 };
