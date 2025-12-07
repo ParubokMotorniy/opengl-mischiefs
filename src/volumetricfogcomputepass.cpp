@@ -91,7 +91,7 @@ void VolumetricFogPass::runPass()
         _fogSphereShader.setFloat("densityScale", fogDensity);
 
         _fogSphereShader.setVec3("shadowColor", glm::vec3(0.03f));
-        _fogSphereShader.setVec3("fogColor", glm::vec3(0.15f, 1.0f, 0.45f));
+        _fogSphereShader.setVec3("fogColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
         _fogSphereShader.setFloat("transmittance", transmittance);
         _fogSphereShader.setFloat("darknessThreshold", darknessThreshold);

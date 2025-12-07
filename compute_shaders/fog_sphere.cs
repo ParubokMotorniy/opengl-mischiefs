@@ -161,10 +161,13 @@ void main()
                 if(!lightRayInSphere)
                     break;
 
-                // float attenuation = clamp(1.0
-                        // / (pointLights[p].attenuationConstantTerm + pointLights[p].attenuationLinearTerm * distToLight
-                        //    + pointLights[p].attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
+                float attenuation = clamp(1.0
+                        / (pointLights[p].attenuationConstantTerm + pointLights[p].attenuationLinearTerm * distToLight
+                           + pointLights[p].attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
                 // lightAccumulation += mix(minLightDensityContribution, densityIncrement, 1.0 - attenuation);
+
+                if(attenuation <= 0.0)
+                    break;
 
                 lightAccumulation += densityIncrement;
             }
@@ -189,9 +192,12 @@ void main()
                 if(!lightRayInSphere)
                     break;
 
-                // float attenuation = clamp(1.0
-                //         / (testedLight.attenuationConstantTerm + testedLight.attenuationLinearTerm * distToLight
-                //            + testedLight.attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
+                float attenuation = clamp(1.0
+                        / (testedLight.attenuationConstantTerm + testedLight.attenuationLinearTerm * distToLight
+                           + testedLight.attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
+
+                if(attenuation <= 0.0)
+                    break;
 
                 // float theta = dot(rayToLight, normalize(-testedLight.direction));
                 // float epsilon = (testedLight.innerCutOff - testedLight.outerCutOff);

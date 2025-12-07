@@ -4,14 +4,16 @@ uniform sampler2D texColor;
 uniform sampler2D texPosition;
 uniform mat4 projectionMatrix;
 
-uniform int viewportOffsetX;
-uniform int viewportOffsetY;
+uniform int viewportWidth;
+uniform int viewportHeight;
 
 layout (location = 0) out vec4 finalColor;
 
 void main()
 {
-    ivec2 realFragmentCoord = ivec2(gl_FragCoord.xy);// + ivec2(viewportOffsetX, viewportOffsetY);
+    vec2 uv = gl_FragCoord.xy / vec2(viewportWidth, viewportHeight);
+    ivec2 realFragmentCoord = ivec2(uv * vec2(1920, 1080));
+
     vec3 viewPos = texelFetch(texPosition, realFragmentCoord, 0).xyz;
 
     vec4 clip = projectionMatrix * vec4(viewPos, 1.0);

@@ -15,7 +15,7 @@ void SortingTransparentPass::runPass()
 {
     glEnable(GL_BLEND);
 
-    _transparentShader->runShader();
+    // _transparentShader->runShader();
 
     {
         _fogShader->use();

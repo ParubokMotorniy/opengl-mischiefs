@@ -28,8 +28,8 @@ void FullscreenFogShader::runShader()
 
     setInt("texColor", colorBinding);
     setInt("texPosition", positionBinding);
-    setInt("viewportOffsetX", viewportOffsetX);
-    setInt("viewportOffsetY", viewportOffsetY);
+    setInt("viewportWidth", viewportSizeX);
+    setInt("viewportHeight", viewportSizeY);
 
     MeshManager::instance()->bindMesh(MeshManager::instance()->getDummyMesh());
     glDrawArrays(GL_TRIANGLES, 0, 3);
