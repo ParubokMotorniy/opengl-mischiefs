@@ -9,7 +9,7 @@ public:
     ComputeShader(const char *shaderSource);
     ComputeShader *setGlobalDispatchDimenisons(const glm::uvec3 &newDimensions);
     void runShader() override;
-    void synchronizeGpuAccess(uint32_t syncBits);
+    void synchronizeGpuAccess(uint32_t syncBits) const;
 
 protected:
     void compileAndAttachNecessaryShaders(uint32_t id) final override;

@@ -11,7 +11,7 @@ layout (location = 0) out vec4 finalColor;
 
 void main()
 {
-    ivec2 realFragmentCoord = ivec2(gl_FragCoord.xy) + ivec2(viewportOffsetX, viewportOffsetY);
+    ivec2 realFragmentCoord = ivec2(gl_FragCoord.xy);// + ivec2(viewportOffsetX, viewportOffsetY);
     vec3 viewPos = texelFetch(texPosition, realFragmentCoord, 0).xyz;
 
     vec4 clip = projectionMatrix * vec4(viewPos, 1.0);

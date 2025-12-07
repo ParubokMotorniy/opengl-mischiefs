@@ -9,6 +9,7 @@ class VolumetricFogPass : public FramePass
 public:
     VolumetricFogPass();
     void runPass() override;
+    void syncTextureAccess(uint32_t syncBits) const;
     TextureIdentifier colorTextureId() const;
     TextureIdentifier positionTextureId() const;
 

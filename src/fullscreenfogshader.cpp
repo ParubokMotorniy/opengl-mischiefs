@@ -16,6 +16,7 @@ void FullscreenFogShader::runShader()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
 
+    _fogPass->syncTextureAccess(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     const auto colorBinding = TextureManager::instance()->bindTexture(_fogPass->colorTextureId());
     const auto positionBinding = TextureManager::instance()->bindTexture(
         _fogPass->positionTextureId());

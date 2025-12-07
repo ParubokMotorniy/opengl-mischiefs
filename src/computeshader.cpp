@@ -19,7 +19,7 @@ void ComputeShader::runShader()
                       _globalDispatchDimensions.z);
 }
 
-void ComputeShader::synchronizeGpuAccess(uint32_t syncBits)
+void ComputeShader::synchronizeGpuAccess(uint32_t syncBits) const
 {
     glMemoryBarrier(syncBits);
 }
