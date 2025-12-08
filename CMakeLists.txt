@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(ENGINE_DISABLE_BINDLESS_TEXTURES "Determines whether the bindless textures are used. Note: calls to the corresponding API are merely disabled in OFF mode." OFF)
 
-option(ENGINE_ENABLE_HW_PCF "Whether to use hardware PCF for shadow mapping" ON)
 
 include(FetchContent)
 
@@ -144,10 +143,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ROOT="${CMAKE_CURRENT_
 )
 if(ENGINE_DISABLE_BINDLESS_TEXTURES)
     target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_DISABLE_BINDLESS_TEXTURES)
-endif()
-
-if(ENGINE_ENABLE_HW_PCF)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ENGINE_ENABLE_HW_PCF)
 endif()
 
 # add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD

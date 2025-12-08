@@ -138,7 +138,9 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
                                                         { aiTextureType_DIFFUSE,
                                                           aiTextureType_BASE_COLOR },
                                                         modelRoot);
-    TextureIdentifier specularMap = loadMaterialTextures(material, { aiTextureType_SPECULAR },
+    TextureIdentifier specularMap = loadMaterialTextures(material,
+                                                         { aiTextureType_SPECULAR,
+                                                           aiTextureType_METALNESS },
                                                          modelRoot);
     TextureIdentifier emissionMap = loadMaterialTextures(material, { aiTextureType_EMISSION_COLOR },
                                                          modelRoot);

@@ -42,7 +42,7 @@ void main()
     {
         if(tonemappingAlgo == 0)
         {
-            //reinhard
+            //reinhard-exposure
             result = vec3(1.0) - exp(-hdrColor * exposure);
         }
         else if(tonemappingAlgo == 1)

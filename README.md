@@ -21,10 +21,40 @@ cmake --build . #muttering prayer to the gods of compilation and c++ (whoever th
 + Hit LeftCtrl to toggle axes (or use UI)
 + Hit RightCtrl to toggle world plane
 
-## Homework 4 report:
-
-*Important*: for proper out-of-the-box compilation `ENGINE_ENABLE_HW_PCF` must be `ON`, while `ENGINE_DISABLE_BINDLESS_TEXTURES` must be `OFF`.
+*Important*: for proper out-of-the-box compilation, the `ENGINE_DISABLE_BINDLESS_TEXTURES` must be `OFF`.
 *Note*: the engine demo can be found in the `data` folder. 
+
+## Homework 5 report:
+
+### Task [1]
+
+The engine keeps a stack of frame buffers that can be swapped at runtime. Among those is the HDR color buffer that most passes unknowingly render into until the HDR pass silently tonemaps that buffer into the standard LDR color buffer.  
+Currently 5 tonemapping algorithms are supported (**EXTRA TASK**).  
+
+|||
+|---|---|
+|No tonemapping|Reinhard-Exposure|
+|![nt](./data/no_tonemapping.png)|![re](./data/exposure.png)|
+|Uncharted|Filmic|
+|![uc](./data/uncharted.png)|![fc](./data/filmic.png)|
+|ACES|ACES filmic|
+|![as](./data/aces.png)|![af](./data/aces_filmic.png)|
+
+### Task [2]
+
+The models are loaded with a simple material by default, plus the PBR material if explicitly requested. Thus, one can allocate that model to either standard or PBR passes. 
+Moreover, the PBR models are instanced and rely on bindless textures, the same way the standard models do.
+
+### Task [3]
+
+The PBR pipeline supports normal mapping (as long as the normal map is provided with the model!). Not much to say on that account.
+
+### Task [4]
+
+I am at your judgement.      
+In my defense, the engine did compile with MSVC 2022.
+
+## Homework 4 report:
 
 ### Tasks [1]
 Shadow biasing is achieved by slightly shifting fragments along their normals prior to shadow testing.   
