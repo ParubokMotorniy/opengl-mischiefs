@@ -334,7 +334,13 @@ void main()
 
     vec3 viewDir = normalize(viewPos - fs_in.vPos);
 
-    vec3 fNormal = normalHandle == -1 ? normalize(vec3(1.0)) : normalize(fs_in.tbnMatrix * ((texture(sampler2D(pbrTextures[normalHandle]), fs_in.texCoord).rgb * 2.0) - 1.0)).rgb;
+    //gramm-schmidt
+    mat3 renormalizedTbn = fs_in.tbnMatrix;
+    renormalizedTbn[0] = normalize(renormalizedTbn[0]);
+    renormalizedTbn[1] = normalize(renormalizedTbn[1] - dot(renormalizedTbn[0], renormalizedTbn[1]) * renormalizedTbn[0]);
+    renormalizedTbn[2] = normalize(renormalizedTbn[2] - dot(renormalizedTbn[0], renormalizedTbn[2]) * renormalizedTbn[0] - dot(renormalizedTbn[1], renormalizedTbn[2]) * renormalizedTbn[1]);
+
+    vec3 fNormal = normalHandle == -1 ? normalize(vec3(1.0)) : normalize(renormalizedTbn * ((texture(sampler2D(pbrTextures[normalHandle]), fs_in.texCoord).rgb * 2.0) - 1.0)).rgb;
     vec3 albedo = albedoHandle == -1 ? vec3(0.0) : texture(sampler2D(pbrTextures[albedoHandle]), fs_in.texCoord).rgb;
     vec3 metallic = metallicHandle == -1 ? vec3(0.0) : texture(sampler2D(pbrTextures[metallicHandle]), fs_in.texCoord).rgb;
     vec3 roughness = roughnessHandle == -1 ? vec3(0.0) : texture(sampler2D(pbrTextures[roughnessHandle]), fs_in.texCoord).rgb;
