@@ -82,6 +82,7 @@ layout(rgba16f, binding = 1) uniform image2D viewSpacePosOutput;
 
 uniform int resolutionX;
 uniform int resolutionY;
+uniform int numMipLeves;
 
 uniform vec3  spherePos;
 uniform float sphereRadius;
@@ -91,26 +92,27 @@ uniform mat4 clipToView;
 
 uniform float densityScale;
 
-const float marchStepSize = 0.1;
-const float maxMarchDistance = 50;
-const float densityIncrement = 0.001;
-
 uniform vec3 shadowColor;
 uniform vec3 fogColor;
 uniform float transmittance;
 uniform float darknessThreshold; 
 uniform float lightAbsorb;
 
+uniform sampler3D fogTexture;
+
+const float marchStepSize = 0.1;
+const float maxMarchDistance = 50;
+const float densityIncrement = 0.001;
+
 const float lightStepSize = 0.5;
 const float maxLightMarchDistance = 10;
 // const float minLightDensityContribution = 0.001;
-uniform sampler3D fogTexture;
 
-float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition)
+float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, int mipLevel)
 {
     vec3 localFogVector = (rayPosition - fogCenter) / sphereRadius;
     localFogVector += 0.5;
-    return texture(fogTexture, localFogVector).a;
+    return textureLod(fogTexture, localFogVector, mipLevel).a;
 }
 
 // vec3 getFogColor(vec3 fogCenter, vec3 rayPosition)
@@ -123,6 +125,8 @@ void main()
 {
     //initializes the ray
 
+    //TODO: most of these can be passed from the dispatcher
+
     const ivec2 imgCoords = ivec2(gl_GlobalInvocationID.xy);
 
     const vec3 ndcEndpoint = vec3((vec2(imgCoords) / vec2(resolutionX, resolutionY)) * 2.0 - 1.0, 1.0);
@@ -131,7 +135,12 @@ void main()
 
     const vec3 viewSpherePos = (viewMatrix * vec4(spherePos, 1.0)).xyz;
     const float radiusSquared = sphereRadius * sphereRadius;
-    const float minDistanceToSphere = length(viewSpherePos) - sphereRadius;
+
+    const float minDistanceToSphere = abs(viewSpherePos.z) - sphereRadius;
+    const float actualMaxMarchDistance = min(maxMarchDistance, abs(viewSpherePos.z) + sphereRadius);
+
+    const int currentMipLevel = int(mix(0, numMipLeves, length(viewSpherePos) / maxMarchDistance)); //TODO: consider non-linear mip level selection
+    
     //marches the ray
 
     float densityAccumulation = 0.0;
@@ -142,8 +151,7 @@ void main()
 	float finalLight = 0;
     float transmittance = 0.01;
 
-
-    while(distanceMarched < maxMarchDistance)
+    while(distanceMarched < actualMaxMarchDistance)
     {
         vec3 rayPosition = rayDirection * distanceMarched;
         distanceMarched += marchStepSize;
@@ -154,7 +162,7 @@ void main()
     
         closestSpherePosition = (min(length(rayPosition), length(closestSpherePosition)) * rayDirection); 
         // densityAccumulation += densityIncrement * densityScale;
-        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition);
+        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, currentMipLevel);
 
         //directional light effect
         for(int d = 0; d < numDirectionalLightsBound; ++d)
@@ -169,7 +177,7 @@ void main()
                     break;
 
                 // lightAccumulation += densityIncrement;
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel);
             }
         }
 
@@ -196,7 +204,7 @@ void main()
                     break;
 
                 // lightAccumulation += densityIncrement;
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel);
             }
         }
 
@@ -233,7 +241,7 @@ void main()
                 // lightAccumulation += mix(minLightDensityContribution, densityIncrement, 1.0 - attenuation * intensity);
                 // lightAccumulation += densityIncrement;
 
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel);
             }
         }
 

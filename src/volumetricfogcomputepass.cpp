@@ -28,7 +28,7 @@ VolumetricFogPass::VolumetricFogPass()
 {
     _fogSphereShader.initializeShaderProgram();
 
-    const auto renderImageCreator = [](int bindingPoint, TextureIdentifier &storeTarget) {
+    const auto renderImageCreator = []() {
         unsigned int texture;
 
         glGenTextures(1, &texture);
@@ -41,17 +41,16 @@ VolumetricFogPass::VolumetricFogPass()
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screenDiscretizationResoutionX,
                      screenDiscretizationResoutionY, 0, GL_RGBA, GL_FLOAT, NULL);
 
-        // TODO: create a manager for this shit
-        glBindImageTexture(bindingPoint, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-
-        storeTarget = TextureManager::instance()->registerTexture(texture);
+        return TextureManager::instance()->registerTexture(texture);
     };
 
-    renderImageCreator(0, _colorTexture);
-    renderImageCreator(1, _positionTexture);
+    _readPair.colorTexture = renderImageCreator();
+    _readPair.positionTexture = renderImageCreator();
+
+    _writePair.colorTexture = renderImageCreator();
+    _writePair.positionTexture = renderImageCreator();
 
     {
-        // glEnable(GL_TEXTURE_3D);
         unsigned int fogTexture;
         glGenTextures(1, &fogTexture);
 
@@ -81,7 +80,8 @@ VolumetricFogPass::VolumetricFogPass()
                 const int imageIdx = imageIdxY * slicesPerDimension + imageIdxX;
 
                 const int targetIdx = ((imageIdx * texelsPerImage)
-                                      + ((y % texelsPerY) * texelsPerX + (x % texelsPerX))) * numChannels;
+                                       + ((y % texelsPerY) * texelsPerX + (x % texelsPerX)))
+                                      * numChannels;
 
                 for (int c = 0; c < numChannels; ++c)
                 {
@@ -112,18 +112,16 @@ VolumetricFogPass::VolumetricFogPass()
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        // TODO: make it a solid border
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-        // glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE,
-        //  imageData);
-        // glGenerateMipmap(GL_TEXTURE_2D);
         glTexImage3D(GL_TEXTURE_3D, 0, format, texelsPerX, texelsPerY, numSlices, 0, format,
                      GL_UNSIGNED_BYTE, atlasedTexture.data());
+        glGenerateMipmap(GL_TEXTURE_3D);
         glBindTexture(GL_TEXTURE_3D, 0);
 
+        _numMipLeves = glm::floor(glm::log2(static_cast<float>(width))) + 1;
         stbi_image_free(imageData);
 
         _fogTexture = TextureManager::instance()->registerTexture(fogTexture);
@@ -150,17 +148,34 @@ void VolumetricFogPass::runPass()
     }
 
     {
-        glClearTexImage(*TextureManager::instance()->getTexture(_positionTexture), 0, GL_RGBA,
-                        GL_FLOAT, clearPosition);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        _currentPair = !_currentPair;
 
-        glClearTexImage(*TextureManager::instance()->getTexture(_colorTexture), 0, GL_RGBA,
-                        GL_FLOAT, clearColor);
+        {
+            const auto colorImageIdentifier = getCurrentWriteTarget().colorTexture;
+            const int colorImageHandle = *TextureManager::instance()->getTexture(
+                colorImageIdentifier);
+            glClearTexImage(colorImageHandle, 0, GL_RGBA, GL_FLOAT, clearColor);
+            // TODO: create a manager for this shit
+            glBindImageTexture(0, colorImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        }
+
+        {
+            const auto positionImageIdentifier = getCurrentWriteTarget().positionTexture;
+            const int positionImageHandle = *TextureManager::instance()->getTexture(
+                positionImageIdentifier);
+
+            glClearTexImage(positionImageHandle, 0, GL_RGBA, GL_FLOAT, clearPosition);
+            // TODO: create a manager for this shit
+            glBindImageTexture(1, positionImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        }
     }
 
     {
         _fogSphereShader.use();
         _fogSphereShader.setInt("resolutionX", screenDiscretizationResoutionX);
         _fogSphereShader.setInt("resolutionY", screenDiscretizationResoutionY);
+        _fogSphereShader.setInt("numMipLeves", _numMipLeves);
 
         _fogSphereShader.setMatrix4("viewMatrix", _currentCamera->getViewMatrix());
         _fogSphereShader.setMatrix4("clipToView", glm::inverse(_currentCamera->projectionMatrix()));
@@ -176,21 +191,24 @@ void VolumetricFogPass::runPass()
         _fogSphereShader.setFloat("darknessThreshold", darknessThreshold);
         _fogSphereShader.setFloat("lightAbsorb", lightAbsorb);
 
-        _fogSphereShader.setInt("numDirectionalLightsBound",
-                                LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
-                                    ->getNumberOfBoundLights());
-        _fogSphereShader
-            .setInt("numPointLightsBound",
-                    LightManager<ComponentType::LIGHT_POINT>::instance()->getNumberOfBoundLights());
-        _fogSphereShader
-            .setInt("numSpotLightsBound",
-                    LightManager<ComponentType::LIGHT_SPOT>::instance()->getNumberOfBoundLights());
+        // lights
+        {
+            _fogSphereShader.setInt("numDirectionalLightsBound",
+                                    LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
+                                        ->getNumberOfBoundLights());
+            _fogSphereShader.setInt("numPointLightsBound",
+                                    LightManager<ComponentType::LIGHT_POINT>::instance()
+                                        ->getNumberOfBoundLights());
+            _fogSphereShader.setInt("numSpotLightsBound",
+                                    LightManager<ComponentType::LIGHT_SPOT>::instance()
+                                        ->getNumberOfBoundLights());
 
-        _fogSphereShader
-            .setGlobalDispatchDimenisons(glm::uvec3(screenDiscretizationResoutionX / groupSize.x,
-                                                    screenDiscretizationResoutionY / groupSize.y,
-                                                    1))
-            ->runShader();
+            _fogSphereShader
+                .setGlobalDispatchDimenisons(
+                    glm::uvec3(screenDiscretizationResoutionX / groupSize.x,
+                               screenDiscretizationResoutionY / groupSize.y, 1))
+                ->runShader();
+        }
 
         const auto fogBindingUnit = TextureManager::instance()->bindTexture(_fogTexture,
                                                                             GL_TEXTURE_3D);
@@ -207,6 +225,24 @@ void VolumetricFogPass::syncTextureAccess(uint32_t syncBits) const
     _fogSphereShader.synchronizeGpuAccess(syncBits);
 }
 
-TextureIdentifier VolumetricFogPass::colorTextureId() const { return _colorTexture; }
+// public; returns the one for reading
+TextureIdentifier VolumetricFogPass::colorTextureId() const
+{
+    return getCurrentReadTarget().colorTexture;
+}
 
-TextureIdentifier VolumetricFogPass::positionTextureId() const { return _positionTexture; }
+// public;  returns the one for reading
+TextureIdentifier VolumetricFogPass::positionTextureId() const
+{
+    return getCurrentReadTarget().positionTexture;
+}
+
+const VolumetricFogPass::RenderTargetPair &VolumetricFogPass::getCurrentReadTarget() const
+{
+    return _currentPair ? _readPair : _writePair;
+}
+
+const VolumetricFogPass::RenderTargetPair &VolumetricFogPass::getCurrentWriteTarget() const
+{
+    return _currentPair ? _writePair : _readPair;
+}
