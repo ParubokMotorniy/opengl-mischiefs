@@ -64,7 +64,7 @@ void TextureManager::allocateTexture(TextureIdentifier id)
     texture->second.componentData.allocateTexture();
 }
 
-int TextureManager::bindTexture(TextureIdentifier id)
+int TextureManager::bindTexture(TextureIdentifier id, GLuint bindingType)
 {
     const auto texturePtr = _textures.find(id);
     if (texturePtr == _textures.end())
@@ -84,7 +84,7 @@ int TextureManager::bindTexture(TextureIdentifier id)
             _boundTextures[q] = texture;
             ++_numBoundTextures;
             glActiveTexture(GL_TEXTURE0 + q);
-            glBindTexture(GL_TEXTURE_2D, texture);
+            glBindTexture(bindingType, texture);
             return q;
         }
     }

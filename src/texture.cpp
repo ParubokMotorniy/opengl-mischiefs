@@ -48,6 +48,7 @@ void Texture2D::allocateTexture()
         internalFormat = format;
 
     glGenTextures(1, &_textureId);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _textureId);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, _params.wrappingS);

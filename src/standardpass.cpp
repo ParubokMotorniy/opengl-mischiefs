@@ -84,7 +84,7 @@ void StandardPass::runPass()
                                    LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
                                        ->getNumberOfBoundLights());
         _shaderProgramMain->runShader();
-        TextureManager::instance()->unbindAllTextures();
+        // TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();
     }
 
@@ -107,7 +107,7 @@ void StandardPass::runPass()
                            LightManager<ComponentType::LIGHT_TEXTURED_SPOT>::instance()
                                ->getNumberOfBoundLights());
         _pbrShader->runShader();
-        TextureManager::instance()->unbindAllTextures();
+        // TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();
     }
 
@@ -122,7 +122,7 @@ void StandardPass::runPass()
                                   LightManager<ComponentType::LIGHT_DIRECTIONAL>::instance()
                                       ->getNumberOfBoundLights());
         _worldPlaneShader->runShader();
-        TextureManager::instance()->unbindAllTextures();
+        // TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();
     }
     {
@@ -130,7 +130,7 @@ void StandardPass::runPass()
         _lightVisualizationShader->setMatrix4("view", view);
         _lightVisualizationShader->setMatrix4("projection", projection);
         _lightVisualizationShader->runShader();
-        TextureManager::instance()->unbindAllTextures();
+        // TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();
     }
 
@@ -141,7 +141,7 @@ void StandardPass::runPass()
         _mainSkybox->setMatrix4("projection", projection);
         _mainSkybox->runShader();
         glDepthFunc(GL_LESS);
-        TextureManager::instance()->unbindAllTextures();
+        // TextureManager::instance()->unbindAllTextures();
         MeshManager::instance()->unbindMesh();
     }
 }

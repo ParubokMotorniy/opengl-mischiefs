@@ -7,6 +7,15 @@
 // uvec3	gl_GlobalInvocationID	global index of the current work item (gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID)
 // uint	    gl_LocalInvocationIndex	1d index representation of gl_LocalInvocationID (gl_LocalInvocationID.z * gl_WorkGroupSize.x * gl_WorkGroupSize.y + gl_LocalInvocationID.y * gl_WorkGroupSize.x + gl_LocalInvocationID.x)
 
+//TODO: before I do anything more complex, the current implementation has to be optimized (it definitely can be):
+// 1. Double buffering?
+// 2. Render only depth. No need to keep a large view position texture around
+// 3. Optimize the marching itself. Can splitting it into multiple passes help?
+// 4. Adaptive step size. I can't really use SFD, but I can chabge the step size based on the distance of the sphere to the camera
+// 4. Profit?
+
+//TODO: sample fog color from texture 
+
 layout (local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
 
 struct DirectionalLight
@@ -82,8 +91,8 @@ uniform mat4 clipToView;
 
 uniform float densityScale;
 
-const float marchStepSize = 0.5;
-const float maxMarchDistance = 100;
+const float marchStepSize = 0.1;
+const float maxMarchDistance = 50;
 const float densityIncrement = 0.001;
 
 uniform vec3 shadowColor;
@@ -95,6 +104,20 @@ uniform float lightAbsorb;
 const float lightStepSize = 0.5;
 const float maxLightMarchDistance = 10;
 // const float minLightDensityContribution = 0.001;
+uniform sampler3D fogTexture;
+
+float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition)
+{
+    vec3 localFogVector = (rayPosition - fogCenter) / sphereRadius;
+    localFogVector += 0.5;
+    return texture(fogTexture, localFogVector).a;
+}
+
+// vec3 getFogColor(vec3 fogCenter, vec3 rayPosition)
+// {
+//     vec3 localFogVector = (rayPosition - fogCenter) / sphereRadius;
+//     return texture(fogTexture, localFogVector).xyz;
+// }
 
 void main()
 {
@@ -108,16 +131,17 @@ void main()
 
     const vec3 viewSpherePos = (viewMatrix * vec4(spherePos, 1.0)).xyz;
     const float radiusSquared = sphereRadius * sphereRadius;
-
+    const float minDistanceToSphere = length(viewSpherePos) - sphereRadius;
     //marches the ray
 
     float densityAccumulation = 0.0;
-    float distanceMarched = 0.0;
+    float distanceMarched = minDistanceToSphere;
     vec3 closestSpherePosition = imageLoad(viewSpacePosOutput, imgCoords).xyz;
 
 	float lightAccumulation = 0;
 	float finalLight = 0;
     float transmittance = 0.01;
+
 
     while(distanceMarched < maxMarchDistance)
     {
@@ -129,7 +153,8 @@ void main()
             continue;
     
         closestSpherePosition = (min(length(rayPosition), length(closestSpherePosition)) * rayDirection); 
-        densityAccumulation += densityIncrement * densityScale;
+        // densityAccumulation += densityIncrement * densityScale;
+        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition);
 
         //directional light effect
         for(int d = 0; d < numDirectionalLightsBound; ++d)
@@ -143,7 +168,8 @@ void main()
                 if(!lightRayInSphere)
                     break;
 
-                lightAccumulation += densityIncrement;
+                // lightAccumulation += densityIncrement;
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition);
             }
         }
 
@@ -169,7 +195,8 @@ void main()
                 if(attenuation <= 0.0)
                     break;
 
-                lightAccumulation += densityIncrement;
+                // lightAccumulation += densityIncrement;
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition);
             }
         }
 
@@ -204,7 +231,9 @@ void main()
                 // float intensity = clamp((theta - testedLight.outerCutOff) / epsilon, 0.0, 1.0);
 
                 // lightAccumulation += mix(minLightDensityContribution, densityIncrement, 1.0 - attenuation * intensity);
-                lightAccumulation += densityIncrement;
+                // lightAccumulation += densityIncrement;
+
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition);
             }
         }
 

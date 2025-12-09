@@ -16,6 +16,7 @@ public:
 private:
     TextureIdentifier _colorTexture = InvalidIdentifier;
     TextureIdentifier _positionTexture = InvalidIdentifier;
+    TextureIdentifier _fogTexture = InvalidIdentifier;
 
     ComputeShader _fogSphereShader{ ENGINE_COMPUTE_SHADERS "/fog_sphere.cs" };
 };

@@ -49,6 +49,85 @@ VolumetricFogPass::VolumetricFogPass()
 
     renderImageCreator(0, _colorTexture);
     renderImageCreator(1, _positionTexture);
+
+    {
+        // glEnable(GL_TEXTURE_3D);
+        unsigned int fogTexture;
+        glGenTextures(1, &fogTexture);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_3D, fogTexture);
+
+        int width, height, numChannels;
+        auto *imageData = stbi_load(ENGINE_TEXTURES "/fog.png", &width, &height, &numChannels, 0);
+        assert(numChannels > 0 && imageData != nullptr);
+
+        const int slicesPerDimension = 4;
+        const int numSlices = slicesPerDimension * slicesPerDimension;
+        const int texelsPerY = (height / slicesPerDimension);
+        const int texelsPerX = (width / slicesPerDimension);
+        const int texelsPerImage = texelsPerX * texelsPerY;
+        std::vector<unsigned char> atlasedTexture;
+        atlasedTexture.resize(width * height * numChannels);
+
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                const int nextTexelIdx = (y * width + x) * numChannels;
+
+                const int imageIdxX = x / texelsPerX;
+                const int imageIdxY = y / texelsPerY;
+                const int imageIdx = imageIdxY * slicesPerDimension + imageIdxX;
+
+                const int targetIdx = ((imageIdx * texelsPerImage)
+                                      + ((y % texelsPerY) * texelsPerX + (x % texelsPerX))) * numChannels;
+
+                for (int c = 0; c < numChannels; ++c)
+                {
+                    const auto nextTexel = imageData[nextTexelIdx + c];
+                    atlasedTexture[targetIdx + c] = nextTexel;
+                }
+            }
+        }
+
+        GLenum format = 0;
+        GLenum internalFormat = 0;
+        if (numChannels == 1)
+        {
+            format = GL_RED;
+            internalFormat = GL_RED;
+        }
+        else if (numChannels == 3)
+        {
+            format = GL_RGB;
+            internalFormat = GL_SRGB;
+        }
+        else if (numChannels == 4)
+        {
+            format = GL_RGBA;
+            internalFormat = GL_SRGB_ALPHA;
+        }
+
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // TODO: make it a solid border
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        // glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE,
+        //  imageData);
+        // glGenerateMipmap(GL_TEXTURE_2D);
+        glTexImage3D(GL_TEXTURE_3D, 0, format, texelsPerX, texelsPerY, numSlices, 0, format,
+                     GL_UNSIGNED_BYTE, atlasedTexture.data());
+        glBindTexture(GL_TEXTURE_3D, 0);
+
+        stbi_image_free(imageData);
+
+        _fogTexture = TextureManager::instance()->registerTexture(fogTexture);
+    }
 }
 
 void VolumetricFogPass::runPass()
@@ -113,8 +192,13 @@ void VolumetricFogPass::runPass()
                                                     1))
             ->runShader();
 
+        const auto fogBindingUnit = TextureManager::instance()->bindTexture(_fogTexture,
+                                                                            GL_TEXTURE_3D);
+        assert(fogBindingUnit != -1);
+        _fogSphereShader.setInt("fogTexture", fogBindingUnit);
+
         MeshManager::instance()->unbindMesh();
-        TextureManager::instance()->unbindAllTextures();
+        // TextureManager::instance()->unbindAllTextures();
     }
 }
 
