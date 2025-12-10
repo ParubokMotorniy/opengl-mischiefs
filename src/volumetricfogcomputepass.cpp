@@ -21,7 +21,7 @@ constexpr glm::uvec3 groupSize = glm::uvec3(32, 16, 1);
 constexpr size_t screenDiscretizationResoutionX = 1920;
 constexpr size_t screenDiscretizationResoutionY = 1080;
 
-constexpr float clearPosition[1] = {  1.0f };
+constexpr float clearPosition[1] = { 1.0f };
 constexpr float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 } // namespace
@@ -130,16 +130,19 @@ VolumetricFogPass::VolumetricFogPass()
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+
+        const float borderColor[4] = { 0.0, 0.0, 0.0, 0.0 };
+        glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
         glTexImage3D(GL_TEXTURE_3D, 0, internalFormat, texelsPerX, texelsPerY, numSlices, 0, format,
                      GL_UNSIGNED_BYTE, atlasedTexture.data());
         glGenerateMipmap(GL_TEXTURE_3D);
         glBindTexture(GL_TEXTURE_3D, 0);
 
-        _numMipLeves = glm::floor(glm::log2(static_cast<float>(width))) + 1;
+        _numMipLeves = glm::floor(glm::log2(static_cast<float>(texelsPerX))) + 1;
         stbi_image_free(imageData);
 
         _fogTexture = TextureManager::instance()->registerTexture(fogTexture);
