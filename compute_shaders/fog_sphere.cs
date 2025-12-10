@@ -82,10 +82,12 @@ layout(r16f, binding = 1) uniform image2D depthOutputImage;
 
 uniform int resolutionX;
 uniform int resolutionY;
-uniform int numMipLeves;
+uniform int currentMipLevel;
 uniform int stepsPerVolume;
+uniform float marchStepSize;
+uniform float maxMarchDistance;
 
-uniform vec3  spherePos;
+uniform vec3  viewSpherePos;
 uniform float sphereRadius;
 
 uniform mat4 viewMatrix;
@@ -102,7 +104,6 @@ uniform float lightAbsorb;
 
 uniform sampler3D fogTexture;
 
-const float maxMarchDistance = 50;
 const float densityIncrement = 0.001;
 const float sqrt2 = 1.414213562;
 
@@ -126,22 +127,17 @@ void main()
 {
     //initializes the ray
 
-    //TODO: most of these can be passed from the dispatcher
-
     const ivec2 imgCoords = ivec2(gl_GlobalInvocationID.xy);
 
+    //// per ray
     const vec3 ndcEndpoint = vec3((vec2(imgCoords) / vec2(resolutionX, resolutionY)) * 2.0 - 1.0, 1.0);
     const vec4 viewEndpoint = clipToView * vec4(ndcEndpoint, 1.0);
     const vec3 rayDirection = normalize(viewEndpoint.xyz / viewEndpoint.w);
 
-    const vec3 viewSpherePos = (viewMatrix * vec4(spherePos, 1.0)).xyz;
+    //// shared
     const float radiusSquared = sphereRadius * sphereRadius;
-
     const float minDistanceToSphere = abs(viewSpherePos.z) - sphereRadius;
     const float actualMaxMarchDistance = min(maxMarchDistance, abs(viewSpherePos.z) + sphereRadius);
-
-    const int currentMipLevel = int(mix(0, numMipLeves, length(viewSpherePos) / maxMarchDistance)); //TODO: consider non-linear mip level selection
-    const float marchStepSize = 2.0 * sphereRadius / stepsPerVolume;
     const float inscribedRadius = sphereRadius / sqrt2;
     
     //marches the ray

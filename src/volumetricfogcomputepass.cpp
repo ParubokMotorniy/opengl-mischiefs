@@ -16,6 +16,7 @@ float darknessThreshold = 0.15f;
 float lightAbsorb = 0.15f;
 
 int stepsPerVolume = 10;
+float maxMarchDistance = 50.0f;
 
 constexpr glm::uvec3 groupSize = glm::uvec3(32, 16, 1);
 constexpr size_t screenDiscretizationResoutionX = 1920;
@@ -163,6 +164,7 @@ void VolumetricFogPass::runPass()
         ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 50.0f);
         ImGui::SliderFloat("Fog sphere radius", &sphereRadius, 1.0f, 50.0f);
         ImGui::SliderInt("Steps per volume", &stepsPerVolume, 5, 100);
+        ImGui::SliderFloat("Max march distance", &maxMarchDistance, 25.0f, 150.0f);
         ImGui::SliderFloat("Transmittance", &transmittance, 0.001f, 1.0f);
         ImGui::SliderFloat("Darkness threshold", &darknessThreshold, 0.001f, 1.0f);
         ImGui::SliderFloat("Light absorbtion", &lightAbsorb, 0.001f, 1.0f);
@@ -194,17 +196,29 @@ void VolumetricFogPass::runPass()
     }
 
     {
+        const glm::vec3 sphereViewPosition = _currentCamera->getViewMatrix()
+                                             * glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
+
+        const int currentMipLevel = int(
+            glm::mix(0, _numMipLeves,
+                     glm::length(sphereViewPosition)
+                         / maxMarchDistance)); // TODO: consider non-linear mip level selection
+        const float marchStepSize = 2.0 * sphereRadius / stepsPerVolume;
+
         _fogSphereShader.use();
         _fogSphereShader.setInt("resolutionX", screenDiscretizationResoutionX);
         _fogSphereShader.setInt("resolutionY", screenDiscretizationResoutionY);
-        _fogSphereShader.setInt("numMipLeves", _numMipLeves);
         _fogSphereShader.setInt("stepsPerVolume", stepsPerVolume);
+
+        _fogSphereShader.setInt("currentMipLevel", currentMipLevel);
+        _fogSphereShader.setFloat("marchStepSize", marchStepSize);
+        _fogSphereShader.setFloat("maxMarchDistance", maxMarchDistance);
 
         _fogSphereShader.setMatrix4("viewMatrix", _currentCamera->getViewMatrix());
         _fogSphereShader.setMatrix4("projectionMatrix", _currentCamera->projectionMatrix());
         _fogSphereShader.setMatrix4("clipToView", glm::inverse(_currentCamera->projectionMatrix()));
 
-        _fogSphereShader.setVec3("spherePos", glm::vec3(5.0f, 5.0f, 5.0f));
+        _fogSphereShader.setVec3("viewSpherePos", sphereViewPosition);
         _fogSphereShader.setFloat("sphereRadius", sphereRadius);
         _fogSphereShader.setFloat("densityScale", fogDensity);
 
