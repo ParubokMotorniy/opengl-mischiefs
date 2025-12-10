@@ -2,6 +2,7 @@
 #include "camera.h"
 #include "lightmanager.h"
 #include "texturemanager.h"
+#include "timemanager.h"
 
 #include "glad/glad.h"
 #include "imgui/imgui.h"
@@ -196,14 +197,17 @@ void VolumetricFogPass::runPass()
     }
 
     {
-        const glm::vec3 sphereViewPosition = _currentCamera->getViewMatrix()
-                                             * glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
+        const auto currentViewMatrix = _currentCamera->getViewMatrix();
+        const auto currentProjectionMatrix = _currentCamera->projectionMatrix();
+
+        const glm::vec3 sphereViewPosition = currentViewMatrix * glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
 
         const int currentMipLevel = int(
             glm::mix(0, _numMipLeves,
                      glm::length(sphereViewPosition)
                          / maxMarchDistance)); // TODO: consider non-linear mip level selection
         const float marchStepSize = 2.0 * sphereRadius / stepsPerVolume;
+        const float currentTime = TimeManager::instance()->getTime();
 
         _fogSphereShader.use();
         _fogSphereShader.setInt("resolutionX", screenDiscretizationResoutionX);
@@ -213,10 +217,19 @@ void VolumetricFogPass::runPass()
         _fogSphereShader.setInt("currentMipLevel", currentMipLevel);
         _fogSphereShader.setFloat("marchStepSize", marchStepSize);
         _fogSphereShader.setFloat("maxMarchDistance", maxMarchDistance);
+        _fogSphereShader.setMatrix3("fogVolumeWorldToModelRotation",
+                                    glm::inverse(
+                                        glm::rotate(glm::identity<glm::mat4>(),
+                                                    glm::radians(
+                                                        currentTime
+                                                        - (float)(static_cast<int>(currentTime) / 2)
+                                                              * 360.0f),
+                                                    glm::vec3(1.0f, 1.0f, 1.0f))));
+        _fogSphereShader.setMatrix4("inverseViewMatrix", glm::inverse(currentViewMatrix));
 
-        _fogSphereShader.setMatrix4("viewMatrix", _currentCamera->getViewMatrix());
-        _fogSphereShader.setMatrix4("projectionMatrix", _currentCamera->projectionMatrix());
-        _fogSphereShader.setMatrix4("clipToView", glm::inverse(_currentCamera->projectionMatrix()));
+        _fogSphereShader.setMatrix4("viewMatrix", currentViewMatrix);
+        _fogSphereShader.setMatrix4("projectionMatrix", currentProjectionMatrix);
+        _fogSphereShader.setMatrix4("clipToView", glm::inverse(currentProjectionMatrix));
 
         _fogSphereShader.setVec3("viewSpherePos", sphereViewPosition);
         _fogSphereShader.setFloat("sphereRadius", sphereRadius);

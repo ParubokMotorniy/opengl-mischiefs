@@ -91,6 +91,7 @@ uniform vec3  viewSpherePos;
 uniform float sphereRadius;
 
 uniform mat4 viewMatrix;
+uniform mat4 inverseViewMatrix;
 uniform mat4 projectionMatrix;
 uniform mat4 clipToView;
 
@@ -102,6 +103,8 @@ uniform float transmittance;
 uniform float darknessThreshold; 
 uniform float lightAbsorb;
 
+uniform mat3 fogVolumeWorldToModelRotation;
+
 uniform sampler3D fogTexture;
 
 const float densityIncrement = 0.001;
@@ -112,7 +115,7 @@ const float maxLightMarchDistance = 10;
 
 float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, int mipLevel, float inscribedRadius)
 {
-    vec3 localFogVector = (rayPosition - fogCenter) / inscribedRadius;
+    vec3 localFogVector =  fogVolumeWorldToModelRotation * mat3(inverseViewMatrix) * ((rayPosition - fogCenter) / inscribedRadius);
     localFogVector += 0.5;
     return textureLod(fogTexture, localFogVector, mipLevel).a;
 }
@@ -164,7 +167,7 @@ void main()
         depth = depth * 0.5 + 0.5;
         fragmentDepth = min(fragmentDepth, depth); 
         // densityAccumulation += densityIncrement * densityScale;
-        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, currentMipLevel, inscribedRadius);
+        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, currentMipLevel, inscribedRadius) * densityScale;
 
         //directional light effect
         for(int d = 0; d < numDirectionalLightsBound; ++d)
