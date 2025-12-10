@@ -15,6 +15,8 @@ float transmittance = 0.75f;
 float darknessThreshold = 0.15f;
 float lightAbsorb = 0.15f;
 
+int stepsPerVolume = 10;
+
 constexpr glm::uvec3 groupSize = glm::uvec3(32, 16, 1);
 constexpr size_t screenDiscretizationResoutionX = 1920;
 constexpr size_t screenDiscretizationResoutionY = 1080;
@@ -116,7 +118,7 @@ VolumetricFogPass::VolumetricFogPass()
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-        glTexImage3D(GL_TEXTURE_3D, 0, format, texelsPerX, texelsPerY, numSlices, 0, format,
+        glTexImage3D(GL_TEXTURE_3D, 0, internalFormat, texelsPerX, texelsPerY, numSlices, 0, format,
                      GL_UNSIGNED_BYTE, atlasedTexture.data());
         glGenerateMipmap(GL_TEXTURE_3D);
         glBindTexture(GL_TEXTURE_3D, 0);
@@ -141,6 +143,7 @@ void VolumetricFogPass::runPass()
         ImGui::Separator();
         ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 50.0f);
         ImGui::SliderFloat("Fog sphere radius", &sphereRadius, 1.0f, 50.0f);
+        ImGui::SliderInt("Steps per volume", &stepsPerVolume, 5, 100);
         ImGui::SliderFloat("Transmittance", &transmittance, 0.001f, 1.0f);
         ImGui::SliderFloat("Darkness threshold", &darknessThreshold, 0.001f, 1.0f);
         ImGui::SliderFloat("Light absorbtion", &lightAbsorb, 0.001f, 1.0f);
@@ -176,6 +179,7 @@ void VolumetricFogPass::runPass()
         _fogSphereShader.setInt("resolutionX", screenDiscretizationResoutionX);
         _fogSphereShader.setInt("resolutionY", screenDiscretizationResoutionY);
         _fogSphereShader.setInt("numMipLeves", _numMipLeves);
+        _fogSphereShader.setInt("stepsPerVolume", stepsPerVolume);
 
         _fogSphereShader.setMatrix4("viewMatrix", _currentCamera->getViewMatrix());
         _fogSphereShader.setMatrix4("clipToView", glm::inverse(_currentCamera->projectionMatrix()));

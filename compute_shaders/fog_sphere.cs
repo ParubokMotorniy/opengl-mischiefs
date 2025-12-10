@@ -8,7 +8,7 @@
 // uint	    gl_LocalInvocationIndex	1d index representation of gl_LocalInvocationID (gl_LocalInvocationID.z * gl_WorkGroupSize.x * gl_WorkGroupSize.y + gl_LocalInvocationID.y * gl_WorkGroupSize.x + gl_LocalInvocationID.x)
 
 //TODO: before I do anything more complex, the current implementation has to be optimized (it definitely can be):
-// 1. Double buffering?
+// 1. ~Double buffering~
 // 2. Render only depth. No need to keep a large view position texture around
 // 3. Optimize the marching itself. Can splitting it into multiple passes help?
 // 4. Adaptive step size. I can't really use SFD, but I can chabge the step size based on the distance of the sphere to the camera
@@ -83,6 +83,7 @@ layout(rgba16f, binding = 1) uniform image2D viewSpacePosOutput;
 uniform int resolutionX;
 uniform int resolutionY;
 uniform int numMipLeves;
+uniform int stepsPerVolume;
 
 uniform vec3  spherePos;
 uniform float sphereRadius;
@@ -100,17 +101,17 @@ uniform float lightAbsorb;
 
 uniform sampler3D fogTexture;
 
-const float marchStepSize = 0.1;
 const float maxMarchDistance = 50;
 const float densityIncrement = 0.001;
+const float sqrt2 = 1.414213562;
 
 const float lightStepSize = 0.5;
 const float maxLightMarchDistance = 10;
 // const float minLightDensityContribution = 0.001;
 
-float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, int mipLevel)
+float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, int mipLevel, float inscribedRadius)
 {
-    vec3 localFogVector = (rayPosition - fogCenter) / sphereRadius;
+    vec3 localFogVector = (rayPosition - fogCenter) / inscribedRadius;
     localFogVector += 0.5;
     return textureLod(fogTexture, localFogVector, mipLevel).a;
 }
@@ -140,6 +141,8 @@ void main()
     const float actualMaxMarchDistance = min(maxMarchDistance, abs(viewSpherePos.z) + sphereRadius);
 
     const int currentMipLevel = int(mix(0, numMipLeves, length(viewSpherePos) / maxMarchDistance)); //TODO: consider non-linear mip level selection
+    const float marchStepSize = 2 * sphereRadius / stepsPerVolume;
+    const float inscribedRadius = sphereRadius / sqrt2;
     
     //marches the ray
 
@@ -162,7 +165,7 @@ void main()
     
         closestSpherePosition = (min(length(rayPosition), length(closestSpherePosition)) * rayDirection); 
         // densityAccumulation += densityIncrement * densityScale;
-        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, currentMipLevel);
+        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, currentMipLevel, inscribedRadius);
 
         //directional light effect
         for(int d = 0; d < numDirectionalLightsBound; ++d)
@@ -177,7 +180,7 @@ void main()
                     break;
 
                 // lightAccumulation += densityIncrement;
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel, inscribedRadius);
             }
         }
 
@@ -185,7 +188,7 @@ void main()
         for(int p = 0; p < numPointLightsBound; ++p)
         {
             vec3 lightViewPosition = (viewMatrix * vec4(pointLights[p].position, 1.0)).xyz; 
-            vec3 lightDirection = normalize(lightViewPosition  - rayPosition); //the light direction also has to be transformed to view space, with no translation
+            vec3 lightDirection = normalize(lightViewPosition  - rayPosition);
             float distToLight = length(lightViewPosition - rayPosition);
             for(int lightStepsTaken = 0; float(lightStepsTaken) * lightStepSize < maxLightMarchDistance; ++lightStepsTaken)
             {
@@ -204,7 +207,7 @@ void main()
                     break;
 
                 // lightAccumulation += densityIncrement;
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel, inscribedRadius);
             }
         }
 
@@ -213,7 +216,7 @@ void main()
         {
             SpotLight testedLight = spotLights[s];
             vec3 lightViewPosition = (viewMatrix * vec4(testedLight.position, 1.0)).xyz; 
-            vec3 lightDirection = normalize(lightViewPosition  - rayPosition); //the light direction also has to be transformed to view space, with no translation
+            vec3 lightDirection = normalize(lightViewPosition  - rayPosition);
 
             float distToLight = length(lightViewPosition - rayPosition);
             vec3 rayToLight = normalize(lightViewPosition - rayPosition);
@@ -241,7 +244,7 @@ void main()
                 // lightAccumulation += mix(minLightDensityContribution, densityIncrement, 1.0 - attenuation * intensity);
                 // lightAccumulation += densityIncrement;
 
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel, inscribedRadius);
             }
         }
 
