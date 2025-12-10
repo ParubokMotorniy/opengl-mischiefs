@@ -19,7 +19,6 @@ void SortingTransparentPass::runPass()
 
     {
         _fogShader->use();
-        _fogShader->setMatrix4("projectionMatrix", _currentCamera->projectionMatrix());
         _fogShader->runShader();
     }
 

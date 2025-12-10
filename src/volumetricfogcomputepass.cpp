@@ -21,7 +21,7 @@ constexpr glm::uvec3 groupSize = glm::uvec3(32, 16, 1);
 constexpr size_t screenDiscretizationResoutionX = 1920;
 constexpr size_t screenDiscretizationResoutionY = 1080;
 
-constexpr float clearPosition[4] = { 1000.0f, 1000.0f, -1000.0f, 0.0f };
+constexpr float clearPosition[1] = {  1.0f };
 constexpr float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 } // namespace
@@ -30,7 +30,7 @@ VolumetricFogPass::VolumetricFogPass()
 {
     _fogSphereShader.initializeShaderProgram();
 
-    const auto renderImageCreator = []() {
+    const auto colorImageCreator = []() {
         unsigned int texture;
 
         glGenTextures(1, &texture);
@@ -46,11 +46,27 @@ VolumetricFogPass::VolumetricFogPass()
         return TextureManager::instance()->registerTexture(texture);
     };
 
-    _readPair.colorTexture = renderImageCreator();
-    _readPair.positionTexture = renderImageCreator();
+    const auto depthImageCreator = []() {
+        unsigned int texture;
 
-    _writePair.colorTexture = renderImageCreator();
-    _writePair.positionTexture = renderImageCreator();
+        glGenTextures(1, &texture);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, screenDiscretizationResoutionX,
+                     screenDiscretizationResoutionY, 0, GL_RED, GL_FLOAT, NULL);
+
+        return TextureManager::instance()->registerTexture(texture);
+    };
+
+    _readPair.colorTexture = colorImageCreator();
+    _readPair.positionTexture = depthImageCreator();
+
+    _writePair.colorTexture = colorImageCreator();
+    _writePair.positionTexture = depthImageCreator();
 
     {
         unsigned int fogTexture;
@@ -168,9 +184,9 @@ void VolumetricFogPass::runPass()
             const int positionImageHandle = *TextureManager::instance()->getTexture(
                 positionImageIdentifier);
 
-            glClearTexImage(positionImageHandle, 0, GL_RGBA, GL_FLOAT, clearPosition);
+            glClearTexImage(positionImageHandle, 0, GL_RED, GL_FLOAT, clearPosition);
             // TODO: create a manager for this shit
-            glBindImageTexture(1, positionImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+            glBindImageTexture(1, positionImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16F);
         }
     }
 
@@ -182,6 +198,7 @@ void VolumetricFogPass::runPass()
         _fogSphereShader.setInt("stepsPerVolume", stepsPerVolume);
 
         _fogSphereShader.setMatrix4("viewMatrix", _currentCamera->getViewMatrix());
+        _fogSphereShader.setMatrix4("projectionMatrix", _currentCamera->projectionMatrix());
         _fogSphereShader.setMatrix4("clipToView", glm::inverse(_currentCamera->projectionMatrix()));
 
         _fogSphereShader.setVec3("spherePos", glm::vec3(5.0f, 5.0f, 5.0f));

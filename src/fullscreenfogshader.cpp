@@ -21,15 +21,15 @@ void FullscreenFogShader::runShader()
     const auto positionTextureId = _fogPass->positionTextureId();
 
     const auto colorBinding = TextureManager::instance()->bindTexture(colorTextureId);
-    const auto positionBinding = TextureManager::instance()->bindTexture(positionTextureId);
+    const auto depthBinding = TextureManager::instance()->bindTexture(positionTextureId);
 
-    assert(colorBinding != -1 && positionBinding != -1);
+    assert(colorBinding != -1 && depthBinding != -1);
 
     const auto &[viewportOffsetX, viewportOffsetY, viewportSizeX,
                  viewportSizeY] = FrameBufferManager::instance()->getViewportDims();
 
     setInt("texColor", colorBinding);
-    setInt("texPosition", positionBinding);
+    setInt("texDepth", depthBinding);
     setInt("viewportWidth", viewportSizeX);
     setInt("viewportHeight", viewportSizeY);
 

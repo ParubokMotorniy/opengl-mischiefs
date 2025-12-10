@@ -78,7 +78,7 @@ layout(binding = 3, std140) uniform SpotLights { SpotLight spotLights[NUM_SPOT];
 uniform int numSpotLightsBound;
 
 layout(rgba16f, binding = 0) uniform image2D colorOutput;
-layout(rgba16f, binding = 1) uniform image2D viewSpacePosOutput;
+layout(r16f, binding = 1) uniform image2D depthOutputImage;
 
 uniform int resolutionX;
 uniform int resolutionY;
@@ -89,6 +89,7 @@ uniform vec3  spherePos;
 uniform float sphereRadius;
 
 uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
 uniform mat4 clipToView;
 
 uniform float densityScale;
@@ -148,7 +149,7 @@ void main()
 
     float densityAccumulation = 0.0;
     float distanceMarched = minDistanceToSphere;
-    vec3 closestSpherePosition = imageLoad(viewSpacePosOutput, imgCoords).xyz;
+    float fragmentDepth = 1.0;
 
 	float lightAccumulation = 0;
 	float finalLight = 0;
@@ -163,7 +164,10 @@ void main()
         if(!inSphere)
             continue;
     
-        closestSpherePosition = (min(length(rayPosition), length(closestSpherePosition)) * rayDirection); 
+        vec4 clip = projectionMatrix * vec4(rayPosition, 1.0);
+        float depth = clip.z / clip.w;
+        depth = depth * 0.5 + 0.5;
+        fragmentDepth = min(fragmentDepth, depth); 
         // densityAccumulation += densityIncrement * densityScale;
         densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, currentMipLevel, inscribedRadius);
 
@@ -260,6 +264,6 @@ void main()
 
 	vec4 finalColor = vec4(mix(shadowColor, fogColor, finalLight), 1.0 - exp(-densityAccumulation));
 
-    imageStore(viewSpacePosOutput, imgCoords, vec4(closestSpherePosition, 0.0));
+    imageStore(depthOutputImage, imgCoords, vec4(fragmentDepth,fragmentDepth,fragmentDepth,fragmentDepth));
     imageStore(colorOutput, imgCoords, finalColor);
 };
