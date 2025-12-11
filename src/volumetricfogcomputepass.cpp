@@ -62,7 +62,7 @@ VolumetricFogPass::VolumetricFogPass()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, screenDiscretizationResoutionX,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, screenDiscretizationResoutionX,
                      screenDiscretizationResoutionY, 0, GL_RED, GL_FLOAT, NULL);
 
         return TextureManager::instance()->registerTexture(texture);
@@ -177,7 +177,6 @@ void VolumetricFogPass::runPass()
         ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 50.0f);
         ImGui::SliderFloat("Fog sphere radius", &sphereRadius, 1.0f, 50.0f);
         ImGui::SliderFloat("Transmittance", &transmittance, 0.001f, 1.0f);
-        ImGui::SliderFloat("Darkness threshold", &darknessThreshold, 0.001f, 1.0f);
         ImGui::SliderFloat("Light absorbtion", &lightAbsorb, 0.001f, 1.0f);
         ImGui::Separator();
 
@@ -283,11 +282,9 @@ void VolumetricFogPass::runPass()
         _fogSphereShader.setFloat("sphereRadius", sphereRadius);
         _fogSphereShader.setFloat("densityScale", fogDensity);
 
-        _fogSphereShader.setVec3("shadowColor", glm::vec3(0.03f));
         _fogSphereShader.setVec3("fogColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
         _fogSphereShader.setFloat("transmittance", transmittance);
-        _fogSphereShader.setFloat("darknessThreshold", darknessThreshold);
         _fogSphereShader.setFloat("lightAbsorb", lightAbsorb);
 
         // lights
@@ -331,7 +328,7 @@ void VolumetricFogPass::runPass()
                     glClearTexImage(positionImageHandle, 0, GL_RED, GL_FLOAT, clearPosition);
                     // TODO: create a manager for this shit
                     glBindImageTexture(1, positionImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY,
-                                       GL_R16F);
+                                       GL_R32F);
                 }
             }
 

@@ -14,9 +14,6 @@
 // 4. ~Adaptive step size. I can't really use SFD, but I can chabge the step size based on the distance of the sphere to the camera~
 // 4. Profit?
 
-//TODO: move to 32-bit depth
-//TODO: optimize the light marching
-
 //TODO: how to further paralelize
 // 1. First pass computes desnity+transmittance at sample points
 // 2. Second pass dispatches as many threads as there are sample points to compute shadowing at each point (over all lights. This dimension can alos be splitted but that would entail even more synchronization within warps what can deteriorate the performance). Along the ray, the finalight's are summed into an atomic color value.
@@ -94,7 +91,7 @@ layout(binding = 3, std140) uniform SpotLights
 uniform int numSpotLightsBound;
 
 layout(rgba16f, binding = 0) uniform image2D colorOutput;
-layout(r16f, binding = 1) uniform image2D depthOutputImage;
+layout(r32f, binding = 1) uniform image2D depthOutputImage;
 
 uniform int resolutionX;
 uniform int resolutionY;
@@ -114,10 +111,8 @@ uniform mat4 clipToView;
 
 uniform float densityScale;
 
-uniform vec3 shadowColor;
 uniform vec3 fogColor;
 uniform float transmittance;
-uniform float darknessThreshold;
 uniform float lightAbsorb;
 
 uniform mat3 fogVolumeWorldToModelRotation;
@@ -152,8 +147,9 @@ float remap(float v, float inMin, float inMax, float outMin, float outMax)
     return mix(outMin, outMax, t);
 }
 
-vec3 saturate3(vec3 x) {
-  return clamp(x, vec3(0.0), vec3(1.0));
+vec3 saturate3(vec3 x)
+{
+    return clamp(x, vec3(0.0), vec3(1.0));
 }
 
 float mean(vec3 x)
@@ -222,7 +218,8 @@ vec3 CalculateLightEnergy(
     float mu,
     float stepLength,
     float maxLightSteps,
-    float inscribedRadius
+    float inscribedRadius,
+    float sphereRadiusSquared
 )
 {
     float lightRayDensity = 0.0;
@@ -231,6 +228,9 @@ vec3 CalculateLightEnergy(
     for(float j = 0.0; j < maxLightSteps; j++)
     {
         vec3 lightSamplePos = lightOrigin + lightDirection * distanceMarchedToLight;
+
+        if(dot(lightSamplePos - viewSpherePos, lightSamplePos - viewSpherePos) <= sphereRadiusSquared)
+            break;
 
         lightRayDensity += computeDensityContributionWithinTexture(lightSamplePos, inscribedRadius) * stepLength;
         distanceMarchedToLight += stepLength;
@@ -255,9 +255,10 @@ void main()
 
     //// shared
     const float radiusSquared = sphereRadius * sphereRadius;
+    const float inscribedRadius = sphereRadius / sqrt2;
+
     const float minDistanceToSphere = abs(viewSpherePos.z) - sphereRadius;
     const float actualMaxMarchDistance = min(maxMarchDistance, abs(viewSpherePos.z) + sphereRadius);
-    const float inscribedRadius = sphereRadius / sqrt2;
     const float maxLightMarchDistance = 2.0 * sphereRadius;
 
     //marches the ray
@@ -267,12 +268,10 @@ void main()
     float fragmentDepth = 1.0;
 
     vec3 luminance = vec3(0.0);
-    float finalLight = 0;
-    float transmittance = 0.01;
 
     ScatteringTransmittance marchedFogParameters;
     marchedFogParameters.scattering = vec3(0.0, 0.0, 0.0);
-    marchedFogParameters.transmittance = vec3(1.0, 1.0, 1.0);
+    marchedFogParameters.transmittance = vec3(transmittance, transmittance, transmittance);
 
     while(distanceMarched < actualMaxMarchDistance)
     {
@@ -299,7 +298,7 @@ void main()
         {
             vec3 lightDirection = normalize(mat3(viewMatrix) * (-dirLights[d].direction)); //the light direction also has to be transformed to view space, with no translation
             float mu = dot(rayDirection, lightDirection);
-            vec3 srcLuminance = dirLights[d].diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius);
+            vec3 srcLuminance = dirLights[d].diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius, radiusSquared);
 
             luminance += srcLuminance;
         }
@@ -307,11 +306,18 @@ void main()
         //point light effect
         for(int p = 0; p < numPointLightsBound; ++p)
         {
-            vec3 lightViewPosition = (viewMatrix * vec4(pointLights[p].position, 1.0)).xyz;
-            vec3 lightDirection = normalize(lightViewPosition - rayPosition);
+            PointLight testedLight = pointLights[p];
+            vec3 lightViewPosition = (viewMatrix * vec4(testedLight.position, 1.0)).xyz;
+            float distToLight = length(lightViewPosition - rayPosition);
 
+            float attenuation = clamp(1.0 / (testedLight.attenuationConstantTerm + testedLight.attenuationLinearTerm * distToLight + testedLight.attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
+
+            if(attenuation <= 0.0)
+                continue;
+
+            vec3 lightDirection = normalize(lightViewPosition - rayPosition);
             float mu = dot(rayDirection, lightDirection);
-            vec3 srcLuminance = pointLights[p].diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius);
+            vec3 srcLuminance = pointLights[p].diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius, radiusSquared);
 
             luminance += srcLuminance;
         }
@@ -321,10 +327,16 @@ void main()
         {
             SpotLight testedLight = spotLights[s];
             vec3 lightViewPosition = (viewMatrix * vec4(testedLight.position, 1.0)).xyz;
-            vec3 lightDirection = normalize(lightViewPosition - rayPosition);
+            float distToLight = length(lightViewPosition - rayPosition);
 
+            float attenuation = clamp(1.0 / (testedLight.attenuationConstantTerm + testedLight.attenuationLinearTerm * distToLight + testedLight.attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
+
+            if(attenuation <= 0.0)
+                continue;
+
+            vec3 lightDirection = normalize(lightViewPosition - rayPosition);
             float mu = dot(rayDirection, lightDirection);
-            vec3 srcLuminance = testedLight.diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius);
+            vec3 srcLuminance = testedLight.diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius, radiusSquared);
 
             luminance += srcLuminance;
         }
@@ -347,7 +359,7 @@ void main()
 
     marchedFogParameters.transmittance = saturate3(marchedFogParameters.transmittance);
 
-    vec3 colour =  marchedFogParameters.transmittance + scatteredFogColor * 1.0;// * CLOUD_EXPOSURE;
+    vec3 colour = marchedFogParameters.transmittance + scatteredFogColor * 1.0;// * CLOUD_EXPOSURE;
 
     imageStore(depthOutputImage, imgCoords, vec4(fragmentDepth, fragmentDepth, fragmentDepth, fragmentDepth));
     imageStore(colorOutput, imgCoords, vec4(colour, 1.0 - exp(-densityAccumulation * meanScattering)));
