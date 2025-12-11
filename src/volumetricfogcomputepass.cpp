@@ -15,7 +15,6 @@ float fogDensity = 1.0f;
 float sphereRadius = 10.0f;
 
 float transmittance = 0.75f;
-float darknessThreshold = 0.15f;
 float lightAbsorb = 0.15f;
 float lod0ShellWidth = 5.0f;
 float lodSelectionFunctionPower = 1.4f;
@@ -174,7 +173,7 @@ void VolumetricFogPass::runPass()
 
         ImGui::Text("Prettiness thingies");
         ImGui::Separator();
-        ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 50.0f);
+        ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 10.0f);
         ImGui::SliderFloat("Fog sphere radius", &sphereRadius, 1.0f, 50.0f);
         ImGui::SliderFloat("Transmittance", &transmittance, 0.001f, 1.0f);
         ImGui::SliderFloat("Light absorbtion", &lightAbsorb, 0.001f, 1.0f);

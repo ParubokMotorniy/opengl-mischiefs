@@ -70,7 +70,7 @@ const char *pbrVertexShaderSource = ENGINE_SHADERS "/pbr_vertex.vs";
 const char *pbrFragmentShaderSource = ENGINE_SHADERS "/pbr_fragment.fs";
 
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
-const float lightRotationRadius = 40.0f;
+float lightRotationRadius = 40.0f;
 
 #ifndef NDEBUG
 void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -835,11 +835,17 @@ int main(int argc, const char *argv[])
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             _volumetricFogPass.runPass();
-            // _shadowPass.runPass();
-            // _standardRenderingPass.runPass();
+            _shadowPass.runPass();
+            _standardRenderingPass.runPass();
             _sortingTransparentPass.runPass();
-            // _gizmosPass.runPass();
+            _gizmosPass.runPass();
             _hdrPass.runPass();
+
+            {
+                ImGui::Begin("Tweaks");
+                ImGui::SliderFloat("Light orbit radius", &lightRotationRadius, 5.0f, 30.0f, "%.2f");
+                ImGui::End();
+            }
 
             {
                 FrameBufferManager::instance()->pushFrameBuffer(0);
