@@ -175,35 +175,49 @@ void VolumetricFogPass::runPass()
     }
 
     {
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-        _currentPair = !_currentPair;
-
-        {
-            const auto colorImageIdentifier = getCurrentWriteTarget().colorTexture;
-            const int colorImageHandle = *TextureManager::instance()->getTexture(
-                colorImageIdentifier);
-            glClearTexImage(colorImageHandle, 0, GL_RGBA, GL_FLOAT, clearColor);
-            // TODO: create a manager for this shit
-            glBindImageTexture(0, colorImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-        }
-
-        {
-            const auto positionImageIdentifier = getCurrentWriteTarget().positionTexture;
-            const int positionImageHandle = *TextureManager::instance()->getTexture(
-                positionImageIdentifier);
-
-            glClearTexImage(positionImageHandle, 0, GL_RED, GL_FLOAT, clearPosition);
-            // TODO: create a manager for this shit
-            glBindImageTexture(1, positionImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16F);
-        }
-    }
-
-    {
         const auto currentViewMatrix = _currentCamera->getViewMatrix();
         const auto currentProjectionMatrix = _currentCamera->projectionMatrix();
 
         const glm::vec3 sphereViewPosition = currentViewMatrix * glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
         const float zDistanceToSphereCenter = glm::abs(sphereViewPosition.z);
+
+        _volumeIsOutOfSight = maxMarchDistance < zDistanceToSphereCenter;
+
+        // the cheapest sphere is the one we don't render :)
+        if (_volumeIsOutOfSight)
+        {
+            {
+                const auto colorImageIdentifier = getCurrentReadTarget().colorTexture;
+                const int colorImageHandle = *TextureManager::instance()->getTexture(
+                    colorImageIdentifier);
+                glClearTexImage(colorImageHandle, 0, GL_RGBA, GL_FLOAT, clearColor);
+            }
+
+            {
+                const auto positionImageIdentifier = getCurrentReadTarget().positionTexture;
+                const int positionImageHandle = *TextureManager::instance()->getTexture(
+                    positionImageIdentifier);
+
+                glClearTexImage(positionImageHandle, 0, GL_RED, GL_FLOAT, clearPosition);
+            }
+
+            {
+                const auto colorImageIdentifier = getCurrentWriteTarget().colorTexture;
+                const int colorImageHandle = *TextureManager::instance()->getTexture(
+                    colorImageIdentifier);
+                glClearTexImage(colorImageHandle, 0, GL_RGBA, GL_FLOAT, clearColor);
+            }
+
+            {
+                const auto positionImageIdentifier = getCurrentWriteTarget().positionTexture;
+                const int positionImageHandle = *TextureManager::instance()->getTexture(
+                    positionImageIdentifier);
+
+                glClearTexImage(positionImageHandle, 0, GL_RED, GL_FLOAT, clearPosition);
+            }
+
+            return;
+        }
 
         // TODO: consider non-linear mip level selection, e.g. introduce less lod jumping when close
         // to the volume. And we must use the zero level
@@ -216,7 +230,9 @@ void VolumetricFogPass::runPass()
         const int bottomMip = glm::floor((float)_numMipLeves * distanceRatio);
         const int ceilingMip = glm::ceil((float)_numMipLeves * distanceRatio);
         const float mixingCoefficient = (distanceRatio - bottomMip * dLod) / dLod;
+        const float currentTime = TimeManager::instance()->getTime();
 
+        // gives the straight distance to the nearest bounding plane of the sphere
         const float straightDistanceToSphere = zDistanceToSphereCenter < sphereRadius
                                                    ? zDistanceToSphereCenter
                                                    : zDistanceToSphereCenter - sphereRadius;
@@ -226,7 +242,6 @@ void VolumetricFogPass::runPass()
                        0.0001f)
               / stepsPerVolume; // the step size decreases as the sphere goes out of sight so as not
                                 // to produce rapid visual artifacts
-        const float currentTime = TimeManager::instance()->getTime();
 
         std::cout << marchStepSize << std::endl;
 
@@ -277,6 +292,39 @@ void VolumetricFogPass::runPass()
             _fogSphereShader.setInt("numSpotLightsBound",
                                     LightManager<ComponentType::LIGHT_SPOT>::instance()
                                         ->getNumberOfBoundLights());
+        }
+
+        const auto fogBindingUnit = TextureManager::instance()->bindTexture(_fogTexture,
+                                                                            GL_TEXTURE_3D);
+        assert(fogBindingUnit != -1);
+        _fogSphereShader.setInt("fogTexture", fogBindingUnit);
+
+        {
+            {
+                glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+                _currentPair = !_currentPair;
+
+                {
+                    const auto colorImageIdentifier = getCurrentWriteTarget().colorTexture;
+                    const int colorImageHandle = *TextureManager::instance()->getTexture(
+                        colorImageIdentifier);
+                    glClearTexImage(colorImageHandle, 0, GL_RGBA, GL_FLOAT, clearColor);
+                    // TODO: create a manager for this shit
+                    glBindImageTexture(0, colorImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY,
+                                       GL_RGBA16F);
+                }
+
+                {
+                    const auto positionImageIdentifier = getCurrentWriteTarget().positionTexture;
+                    const int positionImageHandle = *TextureManager::instance()->getTexture(
+                        positionImageIdentifier);
+
+                    glClearTexImage(positionImageHandle, 0, GL_RED, GL_FLOAT, clearPosition);
+                    // TODO: create a manager for this shit
+                    glBindImageTexture(1, positionImageHandle, 0, GL_FALSE, 0, GL_WRITE_ONLY,
+                                       GL_R16F);
+                }
+            }
 
             _fogSphereShader
                 .setGlobalDispatchDimenisons(
@@ -284,11 +332,6 @@ void VolumetricFogPass::runPass()
                                screenDiscretizationResoutionY / groupSize.y, 1))
                 ->runShader();
         }
-
-        const auto fogBindingUnit = TextureManager::instance()->bindTexture(_fogTexture,
-                                                                            GL_TEXTURE_3D);
-        assert(fogBindingUnit != -1);
-        _fogSphereShader.setInt("fogTexture", fogBindingUnit);
 
         MeshManager::instance()->unbindMesh();
         // TextureManager::instance()->unbindAllTextures();
@@ -311,6 +354,8 @@ TextureIdentifier VolumetricFogPass::positionTextureId() const
 {
     return getCurrentReadTarget().positionTexture;
 }
+
+bool VolumetricFogPass::volumeIsOutOfSight() const { return _volumeIsOutOfSight; }
 
 const VolumetricFogPass::RenderTargetPair &VolumetricFogPass::getCurrentReadTarget() const
 {

@@ -10,6 +10,9 @@ FullscreenFogShader::FullscreenFogShader(const VolumetricFogPass *fogPass) : _fo
 
 void FullscreenFogShader::runShader()
 {
+    if (_fogPass->volumeIsOutOfSight())
+        return;
+
     use();
 
     // TODO: consider using a different blending setup

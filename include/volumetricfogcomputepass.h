@@ -12,6 +12,7 @@ public:
     void syncTextureAccess(uint32_t syncBits) const;
     TextureIdentifier colorTextureId() const;
     TextureIdentifier positionTextureId() const;
+    bool volumeIsOutOfSight() const;
 
 private:
     struct RenderTargetPair
@@ -30,6 +31,8 @@ private:
 
     TextureIdentifier _fogTexture = InvalidIdentifier;
     int _numMipLeves = -1;
+
+    bool _volumeIsOutOfSight = false;
 
     ComputeShader _fogSphereShader{ ENGINE_COMPUTE_SHADERS "/fog_sphere.cs" };
 };
