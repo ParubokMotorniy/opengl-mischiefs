@@ -7,19 +7,6 @@
 // uvec3	gl_GlobalInvocationID	global index of the current work item (gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID)
 // uint	    gl_LocalInvocationIndex	1d index representation of gl_LocalInvocationID (gl_LocalInvocationID.z * gl_WorkGroupSize.x * gl_WorkGroupSize.y + gl_LocalInvocationID.y * gl_WorkGroupSize.x + gl_LocalInvocationID.x)
 
-//TODO: before I do anything more complex, the current implementation has to be optimized (it definitely can be):
-// 1. ~Double buffering~
-// 2. ~Render only depth. No need to keep a large view position texture around~
-// 3. Optimize the marching itself. Can splitting it into multiple passes help?
-// 4. ~Adaptive step size. I can't really use SFD, but I can chabge the step size based on the distance of the sphere to the camera~
-// 4. Profit?
-
-//TODO: how to further paralelize
-// 1. First pass computes desnity+transmittance at sample points
-// 2. Second pass dispatches as many threads as there are sample points to compute shadowing at each point (over all lights. This dimension can alos be splitted but that would entail even more synchronization within warps what can deteriorate the performance). Along the ray, the finalight's are summed into an atomic color value.
-// 3. Third pass determines the final color of the fragment
-// 4. Profit? This does not seem to be a task for a day before the presentation. Way too much places where things can go wrong. So I have to come up with something else. Possibly dispatch more threads for a single invocation.
-
 layout(local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
 
 struct DirectionalLight
@@ -113,7 +100,8 @@ uniform float densityScale;
 
 uniform vec3 fogColor;
 uniform float transmittance;
-uniform float lightAbsorb;
+uniform vec3 lightAbsorb;
+uniform float noiseInfluence;
 
 uniform mat3 fogVolumeWorldToModelRotation;
 
@@ -122,7 +110,80 @@ uniform sampler3D fogTexture;
 const float sqrt2 = 1.414213562;
 const float lightDensityThreshold = 0.01;
 const float PI = 3.141592654;
-const float DUAL_LOBE_WEIGHT = 0.7; //TODO: the fuck this parameter takes care of?
+
+float Perlin3D(vec3 P)
+{
+    //  https://github.com/BrianSharpe/Wombat/blob/master/Perlin3D.glsl
+
+    // establish our grid cell and unit position
+    vec3 Pi = floor(P);
+    vec3 Pf = P - Pi;
+    vec3 Pf_min1 = Pf - 1.0;
+
+    // clamp the domain
+    Pi.xyz = Pi.xyz - floor(Pi.xyz * (1.0 / 69.0)) * 69.0;
+    vec3 Pi_inc1 = step(Pi, vec3(69.0 - 1.5)) * (Pi + 1.0);
+
+    // calculate the hash
+    vec4 Pt = vec4(Pi.xy, Pi_inc1.xy) + vec2(50.0, 161.0).xyxy;
+    Pt *= Pt;
+    Pt = Pt.xzxz * Pt.yyww;
+    const vec3 SOMELARGEFLOATS = vec3(635.298681, 682.357502, 668.926525);
+    const vec3 ZINC = vec3(48.500388, 65.294118, 63.934599);
+    vec3 lowz_mod = vec3(1.0 / (SOMELARGEFLOATS + Pi.zzz * ZINC));
+    vec3 highz_mod = vec3(1.0 / (SOMELARGEFLOATS + Pi_inc1.zzz * ZINC));
+    vec4 hashx0 = fract(Pt * lowz_mod.xxxx);
+    vec4 hashx1 = fract(Pt * highz_mod.xxxx);
+    vec4 hashy0 = fract(Pt * lowz_mod.yyyy);
+    vec4 hashy1 = fract(Pt * highz_mod.yyyy);
+    vec4 hashz0 = fract(Pt * lowz_mod.zzzz);
+    vec4 hashz1 = fract(Pt * highz_mod.zzzz);
+
+    // calculate the gradients
+    vec4 grad_x0 = hashx0 - 0.49999;
+    vec4 grad_y0 = hashy0 - 0.49999;
+    vec4 grad_z0 = hashz0 - 0.49999;
+    vec4 grad_x1 = hashx1 - 0.49999;
+    vec4 grad_y1 = hashy1 - 0.49999;
+    vec4 grad_z1 = hashz1 - 0.49999;
+    vec4 grad_results_0 = inversesqrt(grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0) * (vec2(Pf.x, Pf_min1.x).xyxy * grad_x0 + vec2(Pf.y, Pf_min1.y).xxyy * grad_y0 + Pf.zzzz * grad_z0);
+    vec4 grad_results_1 = inversesqrt(grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1) * (vec2(Pf.x, Pf_min1.x).xyxy * grad_x1 + vec2(Pf.y, Pf_min1.y).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1);
+
+    // Classic Perlin Interpolation
+    vec3 blend = Pf * Pf * Pf * (Pf * (Pf * 6.0 - 15.0) + 10.0);
+    vec4 res0 = mix(grad_results_0, grad_results_1, blend.z);
+    vec4 blend2 = vec4(blend.xy, vec2(1.0 - blend.xy));
+    float final = dot(res0, blend2.zxzx * blend2.wwyy);
+    return (final * 1.1547005383792515290182975610039);  // scale things to a strict -1.0->1.0 range  *= 1.0/sqrt(0.75)
+}
+
+float Value3D(vec3 P)
+{
+    //  https://github.com/BrianSharpe/Wombat/blob/master/Value3D.glsl
+
+    // establish our grid cell and unit position
+    vec3 Pi = floor(P);
+    vec3 Pf = P - Pi;
+    vec3 Pf_min1 = Pf - 1.0;
+
+    // clamp the domain
+    Pi.xyz = Pi.xyz - floor(Pi.xyz * (1.0 / 69.0)) * 69.0;
+    vec3 Pi_inc1 = step(Pi, vec3(69.0 - 1.5)) * (Pi + 1.0);
+
+    // calculate the hash
+    vec4 Pt = vec4(Pi.xy, Pi_inc1.xy) + vec2(50.0, 161.0).xyxy;
+    Pt *= Pt;
+    Pt = Pt.xzxz * Pt.yyww;
+    vec2 hash_mod = vec2(1.0 / (635.298681 + vec2(Pi.z, Pi_inc1.z) * 48.500388));
+    vec4 hash_lowz = fract(Pt * hash_mod.xxxx);
+    vec4 hash_highz = fract(Pt * hash_mod.yyyy);
+
+    //	blend the results and return
+    vec3 blend = Pf * Pf * Pf * (Pf * (Pf * 6.0 - 15.0) + 10.0);
+    vec4 res0 = mix(hash_lowz, hash_highz, blend.z);
+    vec4 blend2 = vec4(blend.xy, vec2(1.0 - blend.xy));
+    return dot(res0, blend2.zxzx * blend2.wwyy);
+}
 
 float computeDensityContributionWithinTexture(vec3 rayPosition, float inscribedRadius)
 {
@@ -130,10 +191,13 @@ float computeDensityContributionWithinTexture(vec3 rayPosition, float inscribedR
 
     localFogVector += 0.5;
 
+    vec3 unnormalizedLocalFogVector = fogVolumeWorldToModelRotation * mat3(inverseViewMatrix) * (rayPosition - viewSpherePos);
+    float coeff = max(Perlin3D(unnormalizedLocalFogVector) * Value3D(unnormalizedLocalFogVector), 1.0 - noiseInfluence);
+
+    //trilinear filtering
     float densityFloor = textureLod(fogTexture, localFogVector, currentMipLevelFloor).a;
     float densityCeiling = textureLod(fogTexture, localFogVector, currentMipLevelCeiling).a;
-
-    return mix(densityFloor, densityCeiling, lodMixingCoefficient);
+    return mix(densityFloor, densityCeiling, lodMixingCoefficient) * coeff;
 }
 
 float inverseLerp(float minValue, float maxValue, float v)
@@ -169,14 +233,9 @@ float HenyeyGreenstein(float g, float mu)
     return (1.0 / (4.0 * PI)) * ((1.0 - gg) / pow(1.0 + gg - 2.0 * g * mu, 1.5));
 }
 
-// float IsotropicPhaseFunction(float g, float costh)
-// {
-//     return 1.0 / (4.0 * PI);
-// }
-
 float DualHenyeyGreenstein(float g, float costh)
 {
-    return mix(HenyeyGreenstein(-g, costh), HenyeyGreenstein(g, costh), DUAL_LOBE_WEIGHT);
+    return mix(HenyeyGreenstein(-g, costh), HenyeyGreenstein(g, costh), 0.7);
 }
 
 float PhaseFunction(float g, float costh)
@@ -201,7 +260,7 @@ vec3 MultipleOctaveScattering(float density, float mu)
     for(float i = 0.0; i < scatteringOctaves; i++)
     {
         float phaseFunction = PhaseFunction(0.3 * c, mu);
-        float beers = exp(-density * lightAbsorb * a); //TODO: maybe, make beers multichanneled
+        vec3 beers = exp(-density * lightAbsorb * a); //TODO: maybe, make beers multichanneled
 
         luminance += b * phaseFunction * beers;
 
@@ -211,6 +270,8 @@ vec3 MultipleOctaveScattering(float density, float mu)
     }
     return luminance;
 }
+
+//adapted and experimented with: https://github.com/simondevyoutube/Shaders_Clouds1
 
 vec3 CalculateLightEnergy(
     vec3 lightOrigin,
@@ -237,9 +298,9 @@ vec3 CalculateLightEnergy(
     }
 
     vec3 beersLaw = MultipleOctaveScattering(lightRayDensity, mu);
-    float powder = 1.0 - exp(-lightRayDensity * 2.0 * lightAbsorb);
+    vec3 powder = 1.0 - exp(-lightRayDensity * 2.0 * lightAbsorb);
 
-    return beersLaw * mix(2.0 * vec3(powder, powder, powder), vec3(1.0), remap(mu, -1.0, 1.0, 0.0, 1.0));
+    return beersLaw * mix(2.0 * powder, vec3(1.0), remap(mu, -1.0, 1.0, 0.0, 1.0));
 }
 
 void main()
@@ -341,7 +402,7 @@ void main()
             luminance += srcLuminance;
         }
 
-        float transmittance = exp(-currentDensityContribution * marchStepSize * lightAbsorb);
+        vec3 transmittance = exp(-currentDensityContribution * marchStepSize * lightAbsorb);
         vec3 integScatt = currentDensityContribution * (luminance - luminance * transmittance) / currentDensityContribution;
 
         marchedFogParameters.scattering += marchedFogParameters.transmittance * integScatt;

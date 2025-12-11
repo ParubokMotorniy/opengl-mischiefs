@@ -15,12 +15,16 @@ float fogDensity = 1.0f;
 float sphereRadius = 10.0f;
 
 float transmittance = 0.75f;
-float lightAbsorb = 0.15f;
 float lod0ShellWidth = 5.0f;
 float lodSelectionFunctionPower = 1.4f;
 
 int stepsPerVolume = 10;
 float maxMarchDistance = 50.0f;
+
+float noiseInfluence = 0.75f;
+
+glm::vec3 lightAbsorbtion = glm::vec3(1.0f);
+glm::vec3 fogColor = glm::vec3(0.984f, 0.773f, 0.765f);
 
 constexpr glm::uvec3 groupSize = glm::uvec3(32, 16, 1);
 constexpr size_t screenDiscretizationResoutionX = 1920;
@@ -175,8 +179,10 @@ void VolumetricFogPass::runPass()
         ImGui::Separator();
         ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 10.0f);
         ImGui::SliderFloat("Fog sphere radius", &sphereRadius, 1.0f, 50.0f);
+        ImGui::SliderFloat("Noise influence", &noiseInfluence, 0.05f, 1.0f);
         ImGui::SliderFloat("Transmittance", &transmittance, 0.001f, 1.0f);
-        ImGui::SliderFloat("Light absorbtion", &lightAbsorb, 0.001f, 1.0f);
+        ImGui::SliderFloat3("Light absorbtion", (float *)&lightAbsorbtion, 0.01f, 1.0f);
+        ImGui::SliderFloat3("Fog color", (float *)&fogColor, 0.01f, 1.0f);
         ImGui::Separator();
 
         ImGui::End();
@@ -279,12 +285,11 @@ void VolumetricFogPass::runPass()
 
         _fogSphereShader.setVec3("viewSpherePos", sphereViewPosition);
         _fogSphereShader.setFloat("sphereRadius", sphereRadius);
+        _fogSphereShader.setFloat("noiseInfluence", noiseInfluence);
         _fogSphereShader.setFloat("densityScale", fogDensity);
-
-        _fogSphereShader.setVec3("fogColor", glm::vec3(1.0f, 1.0f, 1.0f));
-
         _fogSphereShader.setFloat("transmittance", transmittance);
-        _fogSphereShader.setFloat("lightAbsorb", lightAbsorb);
+        _fogSphereShader.setVec3("fogColor", fogColor);
+        _fogSphereShader.setVec3("lightAbsorb", lightAbsorbtion);
 
         // lights
         {
