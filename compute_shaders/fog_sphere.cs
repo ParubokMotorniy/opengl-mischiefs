@@ -14,8 +14,6 @@
 // 4. ~Adaptive step size. I can't really use SFD, but I can chabge the step size based on the distance of the sphere to the camera~
 // 4. Profit?
 
-//TODO: when the volume is about to go out of sight, increase the number of steps to make up for rapid disappearing slices 
-
 layout (local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
 
 struct DirectionalLight
@@ -109,11 +107,7 @@ uniform mat3 fogVolumeWorldToModelRotation;
 
 uniform sampler3D fogTexture;
 
-const float densityIncrement = 0.001;
 const float sqrt2 = 1.414213562;
-
-const float maxLightMarchDistance = 10;
-// const float minLightDensityContribution = 0.001;
 
 float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, float inscribedRadius)
 {
@@ -127,12 +121,6 @@ float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, 
 
     return mix(densityFloor, densityCeiling, lodMixingCoefficient);
 }
-
-// vec3 getFogColor(vec3 fogCenter, vec3 rayPosition)
-// {
-//     vec3 localFogVector = (rayPosition - fogCenter) / sphereRadius;
-//     return texture(fogTexture, localFogVector).xyz;
-// }
 
 void main()
 {
@@ -150,6 +138,7 @@ void main()
     const float minDistanceToSphere = abs(viewSpherePos.z) - sphereRadius;
     const float actualMaxMarchDistance = min(maxMarchDistance, abs(viewSpherePos.z) + sphereRadius);
     const float inscribedRadius = sphereRadius / sqrt2;
+    const float maxLightMarchDistance = 2.0 * sphereRadius;
     
     //marches the ray
 
@@ -174,7 +163,6 @@ void main()
         float depth = clip.z / clip.w;
         depth = depth * 0.5 + 0.5;
         fragmentDepth = min(fragmentDepth, depth); 
-        // densityAccumulation += densityIncrement * densityScale;
         densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, inscribedRadius) * densityScale;
 
         //directional light effect
@@ -189,7 +177,6 @@ void main()
                 if(!lightRayInSphere)
                     break;
 
-                // lightAccumulation += densityIncrement;
                 lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
             }
         }
@@ -211,12 +198,10 @@ void main()
                 float attenuation = clamp(1.0
                         / (pointLights[p].attenuationConstantTerm + pointLights[p].attenuationLinearTerm * distToLight
                            + pointLights[p].attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
-                // lightAccumulation += mix(minLightDensityContribution, densityIncrement, 1.0 - attenuation);
 
                 if(attenuation <= 0.0)
                     break;
 
-                lightAccumulation += densityIncrement;
                 lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
             }
         }
@@ -247,13 +232,6 @@ void main()
                 if(attenuation <= 0.0)
                     break;
 
-                // float theta = dot(rayToLight, normalize(-testedLight.direction));
-                // float epsilon = (testedLight.innerCutOff - testedLight.outerCutOff);
-                // float intensity = clamp((theta - testedLight.outerCutOff) / epsilon, 0.0, 1.0);
-
-                // lightAccumulation += mix(minLightDensityContribution, densityIncrement, 1.0 - attenuation * intensity);
-
-                // lightAccumulation += densityIncrement;
                 lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
             }
         }
@@ -273,3 +251,9 @@ void main()
     imageStore(depthOutputImage, imgCoords, vec4(fragmentDepth,fragmentDepth,fragmentDepth,fragmentDepth));
     imageStore(colorOutput, imgCoords, finalColor);
 };
+
+//TODO: how to further paralelize
+// 1. First pass computes desnity+transmittance at sample points
+// 2. Second pass dispatches as many threads as there are sample points to compute shadowing at each point (over all lights. This dimension can alos be splitted but that would entail even more synchronization within warps what can deteriorate the performance). Along the ray, the finalight's are summed into an atomic color value.
+// 3. Third pass determines the final color of the fragment
+// 4. Profit? This does not seem to be a task for a day before the presentation. Way too much places where things can go wrong. So I have to come up with something else. Possibly dispatch more threads for a single invocation.

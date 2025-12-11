@@ -17,6 +17,8 @@ float sphereRadius = 10.0f;
 float transmittance = 0.75f;
 float darknessThreshold = 0.15f;
 float lightAbsorb = 0.15f;
+float lod0ShellWidth = 5.0f;
+float lodSelectionFunctionPower = 1.4f;
 
 int stepsPerVolume = 10;
 float maxMarchDistance = 50.0f;
@@ -158,19 +160,27 @@ void VolumetricFogPass::runPass()
     {
         {
             const auto [viewportX, viewportY] = _currentWindow->currentWindowDimensions();
-            ImGui::SetNextWindowPos(ImVec2(viewportX * 0.05, viewportY * 0.35), ImGuiCond_Always,
+            ImGui::SetNextWindowPos(ImVec2(viewportX * 0.05, viewportY * 0.45), ImGuiCond_Always,
                                     ImVec2(0.0f, 0.5f));
         }
         ImGui::Begin("Fog parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-        ImGui::Text("Fog sphere");
+        ImGui::Text("Technical mumbo-jumbo");
+        ImGui::Separator();
+        ImGui::SliderFloat("LOD 0 shell width", &lod0ShellWidth, 1.0f, 50.0f);
+        ImGui::SliderInt("Steps per volume", &stepsPerVolume, 5, 100);
+        ImGui::SliderFloat("LOD function power", &lodSelectionFunctionPower, 1.2f, 2.0f);
+        ImGui::SliderFloat("Max march distance", &maxMarchDistance, 25.0f, 150.0f);
+        ImGui::Separator();
+
+        ImGui::Text("Prettiness thingies");
         ImGui::Separator();
         ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 50.0f);
         ImGui::SliderFloat("Fog sphere radius", &sphereRadius, 1.0f, 50.0f);
-        ImGui::SliderInt("Steps per volume", &stepsPerVolume, 5, 100);
-        ImGui::SliderFloat("Max march distance", &maxMarchDistance, 25.0f, 150.0f);
         ImGui::SliderFloat("Transmittance", &transmittance, 0.001f, 1.0f);
         ImGui::SliderFloat("Darkness threshold", &darknessThreshold, 0.001f, 1.0f);
         ImGui::SliderFloat("Light absorbtion", &lightAbsorb, 0.001f, 1.0f);
+        ImGui::Separator();
+
         ImGui::End();
     }
 
@@ -219,31 +229,31 @@ void VolumetricFogPass::runPass()
             return;
         }
 
-        // TODO: consider non-linear mip level selection, e.g. introduce less lod jumping when close
-        // to the volume. And we must use the zero level
-
-        const float distanceRatio = glm::clamp(glm::clamp(zDistanceToSphereCenter - sphereRadius,
-                                                          0.0f, 1.0f)
-                                                   / maxMarchDistance,
-                                               0.0f, 1.0f);
-        const float dLod = 1.0 / (float)_numMipLeves;
-        const int bottomMip = glm::floor((float)_numMipLeves * distanceRatio);
-        const int ceilingMip = glm::ceil((float)_numMipLeves * distanceRatio);
-        const float mixingCoefficient = (distanceRatio - bottomMip * dLod) / dLod;
-        const float currentTime = TimeManager::instance()->getTime();
-
         // gives the straight distance to the nearest bounding plane of the sphere
         const float straightDistanceToSphere = zDistanceToSphereCenter < sphereRadius
                                                    ? zDistanceToSphereCenter
                                                    : zDistanceToSphereCenter - sphereRadius;
+        const float currentTime = TimeManager::instance()->getTime();
+        const float sphereDiameter = 2.0f * sphereRadius;
 
+        // LOD selection
+        const float distanceRatio = glm::clamp((straightDistanceToSphere - lod0ShellWidth)
+                                                   / (maxMarchDistance - sphereDiameter),
+                                               0.0f, 1.0f);
+
+        const float LODSlopeValue = std::pow(distanceRatio, lodSelectionFunctionPower)
+                                    * _numMipLeves;
+
+        const int bottomMip = glm::floor(LODSlopeValue);
+        const int ceilingMip = glm::ceil(LODSlopeValue);
+        const float mixingCoefficient = LODSlopeValue - bottomMip;
+
+        // step size selection
         const float marchStepSize
             = glm::max(glm::min(2.0f * sphereRadius, maxMarchDistance - straightDistanceToSphere),
                        0.0001f)
               / stepsPerVolume; // the step size decreases as the sphere goes out of sight so as not
                                 // to produce rapid visual artifacts
-
-        std::cout << marchStepSize << std::endl;
 
         _fogSphereShader.use();
         _fogSphereShader.setInt("resolutionX", screenDiscretizationResoutionX);
