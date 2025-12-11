@@ -258,7 +258,6 @@ void VolumetricFogPass::runPass()
         _fogSphereShader.use();
         _fogSphereShader.setInt("resolutionX", screenDiscretizationResoutionX);
         _fogSphereShader.setInt("resolutionY", screenDiscretizationResoutionY);
-        _fogSphereShader.setInt("stepsPerVolume", stepsPerVolume);
 
         _fogSphereShader.setInt("currentMipLevelFloor", bottomMip);
         _fogSphereShader.setInt("currentMipLevelCeiling", ceilingMip);

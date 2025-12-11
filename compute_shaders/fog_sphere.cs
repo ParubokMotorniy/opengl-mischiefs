@@ -14,7 +14,16 @@
 // 4. ~Adaptive step size. I can't really use SFD, but I can chabge the step size based on the distance of the sphere to the camera~
 // 4. Profit?
 
-layout (local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
+//TODO: move to 32-bit depth
+//TODO: optimize the light marching
+
+//TODO: how to further paralelize
+// 1. First pass computes desnity+transmittance at sample points
+// 2. Second pass dispatches as many threads as there are sample points to compute shadowing at each point (over all lights. This dimension can alos be splitted but that would entail even more synchronization within warps what can deteriorate the performance). Along the ray, the finalight's are summed into an atomic color value.
+// 3. Third pass determines the final color of the fragment
+// 4. Profit? This does not seem to be a task for a day before the presentation. Way too much places where things can go wrong. So I have to come up with something else. Possibly dispatch more threads for a single invocation.
+
+layout(local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
 
 struct DirectionalLight
 {
@@ -64,15 +73,24 @@ struct SpotLight
 };
 
 #define NUM_DIRECTIONAL 8
-layout(binding = 1, std140) uniform DirectionalLights{ DirectionalLight dirLights[NUM_DIRECTIONAL]; };
+layout(binding = 1, std140) uniform DirectionalLights
+{
+    DirectionalLight dirLights[NUM_DIRECTIONAL];
+};
 uniform int numDirectionalLightsBound;
 
 #define NUM_POINT 8
-layout(binding = 2, std140) uniform PointLights { PointLight pointLights[NUM_POINT]; };
+layout(binding = 2, std140) uniform PointLights
+{
+    PointLight pointLights[NUM_POINT];
+};
 uniform int numPointLightsBound;
 
 #define NUM_SPOT 8
-layout(binding = 3, std140) uniform SpotLights { SpotLight spotLights[NUM_SPOT]; };
+layout(binding = 3, std140) uniform SpotLights
+{
+    SpotLight spotLights[NUM_SPOT];
+};
 uniform int numSpotLightsBound;
 
 layout(rgba16f, binding = 0) uniform image2D colorOutput;
@@ -83,11 +101,10 @@ uniform int resolutionY;
 uniform int currentMipLevelFloor;
 uniform int currentMipLevelCeiling;
 uniform float lodMixingCoefficient;
-uniform int stepsPerVolume;
 uniform float marchStepSize;
 uniform float maxMarchDistance;
 
-uniform vec3  viewSpherePos;
+uniform vec3 viewSpherePos;
 uniform float sphereRadius;
 
 uniform mat4 viewMatrix;
@@ -100,7 +117,7 @@ uniform float densityScale;
 uniform vec3 shadowColor;
 uniform vec3 fogColor;
 uniform float transmittance;
-uniform float darknessThreshold; 
+uniform float darknessThreshold;
 uniform float lightAbsorb;
 
 uniform mat3 fogVolumeWorldToModelRotation;
@@ -108,18 +125,121 @@ uniform mat3 fogVolumeWorldToModelRotation;
 uniform sampler3D fogTexture;
 
 const float sqrt2 = 1.414213562;
+const float lightDensityThreshold = 0.01;
+const float PI = 3.141592654;
+const float DUAL_LOBE_WEIGHT = 0.7; //TODO: the fuck this parameter takes care of?
 
-float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, float inscribedRadius)
+float computeDensityContributionWithinTexture(vec3 rayPosition, float inscribedRadius)
 {
-    vec3 localFogVector =  fogVolumeWorldToModelRotation * mat3(inverseViewMatrix) * ((rayPosition - fogCenter) / inscribedRadius);
-    // vec3 localFogVector = (rayPosition - fogCenter) / inscribedRadius;
+    vec3 localFogVector = fogVolumeWorldToModelRotation * mat3(inverseViewMatrix) * ((rayPosition - viewSpherePos) / inscribedRadius);
 
     localFogVector += 0.5;
 
     float densityFloor = textureLod(fogTexture, localFogVector, currentMipLevelFloor).a;
-    float densityCeiling = textureLod(fogTexture, localFogVector, currentMipLevelCeiling).a; 
+    float densityCeiling = textureLod(fogTexture, localFogVector, currentMipLevelCeiling).a;
 
     return mix(densityFloor, densityCeiling, lodMixingCoefficient);
+}
+
+float inverseLerp(float minValue, float maxValue, float v)
+{
+    return (v - minValue) / (maxValue - minValue);
+}
+
+float remap(float v, float inMin, float inMax, float outMin, float outMax)
+{
+    float t = inverseLerp(inMin, inMax, v);
+    return mix(outMin, outMax, t);
+}
+
+vec3 saturate3(vec3 x) {
+  return clamp(x, vec3(0.0), vec3(1.0));
+}
+
+float mean(vec3 x)
+{
+    return (x.x + x.y + x.z) / 3.0;
+}
+
+struct ScatteringTransmittance
+{
+    vec3 scattering;
+    vec3 transmittance;
+};
+
+float HenyeyGreenstein(float g, float mu)
+{
+    float gg = g * g;
+    return (1.0 / (4.0 * PI)) * ((1.0 - gg) / pow(1.0 + gg - 2.0 * g * mu, 1.5));
+}
+
+// float IsotropicPhaseFunction(float g, float costh)
+// {
+//     return 1.0 / (4.0 * PI);
+// }
+
+float DualHenyeyGreenstein(float g, float costh)
+{
+    return mix(HenyeyGreenstein(-g, costh), HenyeyGreenstein(g, costh), DUAL_LOBE_WEIGHT);
+}
+
+float PhaseFunction(float g, float costh)
+{
+    return DualHenyeyGreenstein(g, costh);
+}
+
+vec3 MultipleOctaveScattering(float density, float mu)
+{
+    float attenuation = 0.2;
+    float contribution = 0.2;
+    float phaseAttenuation = 0.5;
+
+    float a = 1.0;
+    float b = 1.0;
+    float c = 1.0;
+    float g = 0.85;
+    const float scatteringOctaves = 4.0;
+
+    vec3 luminance = vec3(0.0);
+
+    for(float i = 0.0; i < scatteringOctaves; i++)
+    {
+        float phaseFunction = PhaseFunction(0.3 * c, mu);
+        float beers = exp(-density * lightAbsorb * a); //TODO: maybe, make beers multichanneled
+
+        luminance += b * phaseFunction * beers;
+
+        a *= attenuation;
+        b *= contribution;
+        c *= (1.0 - phaseAttenuation);
+    }
+    return luminance;
+}
+
+vec3 CalculateLightEnergy(
+    vec3 lightOrigin,
+    vec3 lightDirection,
+    float mu,
+    float stepLength,
+    float maxLightSteps,
+    float inscribedRadius
+)
+{
+    float lightRayDensity = 0.0;
+    float distanceMarchedToLight = 0.0;
+
+    for(float j = 0.0; j < maxLightSteps; j++)
+    {
+        vec3 lightSamplePos = lightOrigin + lightDirection * distanceMarchedToLight;
+
+        lightRayDensity += computeDensityContributionWithinTexture(lightSamplePos, inscribedRadius) * stepLength;
+        distanceMarchedToLight += stepLength;
+    }
+
+    vec3 beersLaw = MultipleOctaveScattering(lightRayDensity, mu);
+    float powder = 1.0 - exp(-lightRayDensity * 2.0 * lightAbsorb);
+
+    return beersLaw * mix(2.0 * vec3(powder, powder, powder), vec3(1.0), remap(mu, -1.0, 1.0, 0.0, 1.0));
 }
 
 void main()
@@ -139,121 +259,96 @@ void main()
     const float actualMaxMarchDistance = min(maxMarchDistance, abs(viewSpherePos.z) + sphereRadius);
     const float inscribedRadius = sphereRadius / sqrt2;
     const float maxLightMarchDistance = 2.0 * sphereRadius;
-    
+
     //marches the ray
 
     float densityAccumulation = 0.0;
     float distanceMarched = minDistanceToSphere;
     float fragmentDepth = 1.0;
 
-	float lightAccumulation = 0;
-	float finalLight = 0;
+    vec3 luminance = vec3(0.0);
+    float finalLight = 0;
     float transmittance = 0.01;
+
+    ScatteringTransmittance marchedFogParameters;
+    marchedFogParameters.scattering = vec3(0.0, 0.0, 0.0);
+    marchedFogParameters.transmittance = vec3(1.0, 1.0, 1.0);
 
     while(distanceMarched < actualMaxMarchDistance)
     {
         vec3 rayPosition = rayDirection * distanceMarched;
         distanceMarched += marchStepSize;
-        bool inSphere = dot(rayPosition - viewSpherePos,rayPosition - viewSpherePos) <= radiusSquared;
+        bool inSphere = dot(rayPosition - viewSpherePos, rayPosition - viewSpherePos) <= radiusSquared;
 
         if(!inSphere)
             continue;
-    
+
         vec4 clip = projectionMatrix * vec4(rayPosition, 1.0);
         float depth = clip.z / clip.w;
         depth = depth * 0.5 + 0.5;
-        fragmentDepth = min(fragmentDepth, depth); 
-        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, inscribedRadius) * densityScale;
+        fragmentDepth = min(fragmentDepth, depth);
+        const float currentDensityContribution = computeDensityContributionWithinTexture(rayPosition, inscribedRadius) * densityScale;
+
+        densityAccumulation += currentDensityContribution;
+
+        if(currentDensityContribution < lightDensityThreshold)
+            continue;
 
         //directional light effect
         for(int d = 0; d < numDirectionalLightsBound; ++d)
         {
             vec3 lightDirection = normalize(mat3(viewMatrix) * (-dirLights[d].direction)); //the light direction also has to be transformed to view space, with no translation
-            for(int lightStepsTaken = 0; float(lightStepsTaken) * marchStepSize < maxLightMarchDistance; ++lightStepsTaken)
-            {
-                vec3 lightRayPosition = rayPosition + (lightDirection * lightStepsTaken * marchStepSize);
-                bool lightRayInSphere = dot(lightRayPosition - viewSpherePos, lightRayPosition - viewSpherePos) <= radiusSquared;
+            float mu = dot(rayDirection, lightDirection);
+            vec3 srcLuminance = dirLights[d].diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius);
 
-                if(!lightRayInSphere)
-                    break;
-
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
-            }
+            luminance += srcLuminance;
         }
 
         //point light effect
         for(int p = 0; p < numPointLightsBound; ++p)
         {
-            vec3 lightViewPosition = (viewMatrix * vec4(pointLights[p].position, 1.0)).xyz; 
-            vec3 lightDirection = normalize(lightViewPosition  - rayPosition);
-            float distToLight = length(lightViewPosition - rayPosition);
-            for(int lightStepsTaken = 0; float(lightStepsTaken) * marchStepSize < maxLightMarchDistance; ++lightStepsTaken)
-            {
-                vec3 lightRayPosition = rayPosition + (lightDirection * lightStepsTaken * marchStepSize);
-                bool lightRayInSphere = dot(lightRayPosition - viewSpherePos, lightRayPosition - viewSpherePos) <= radiusSquared;
+            vec3 lightViewPosition = (viewMatrix * vec4(pointLights[p].position, 1.0)).xyz;
+            vec3 lightDirection = normalize(lightViewPosition - rayPosition);
 
-                if(!lightRayInSphere)
-                    break;
+            float mu = dot(rayDirection, lightDirection);
+            vec3 srcLuminance = pointLights[p].diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius);
 
-                float attenuation = clamp(1.0
-                        / (pointLights[p].attenuationConstantTerm + pointLights[p].attenuationLinearTerm * distToLight
-                           + pointLights[p].attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
-
-                if(attenuation <= 0.0)
-                    break;
-
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
-            }
+            luminance += srcLuminance;
         }
 
         //spot light effect
         for(int s = 0; s < numSpotLightsBound; ++s)
         {
             SpotLight testedLight = spotLights[s];
-            vec3 lightViewPosition = (viewMatrix * vec4(testedLight.position, 1.0)).xyz; 
-            vec3 lightDirection = normalize(lightViewPosition  - rayPosition);
+            vec3 lightViewPosition = (viewMatrix * vec4(testedLight.position, 1.0)).xyz;
+            vec3 lightDirection = normalize(lightViewPosition - rayPosition);
 
-            float distToLight = length(lightViewPosition - rayPosition);
-            vec3 rayToLight = normalize(lightViewPosition - rayPosition);
+            float mu = dot(rayDirection, lightDirection);
+            vec3 srcLuminance = testedLight.diffuse * CalculateLightEnergy(rayPosition, lightDirection, mu, marchStepSize, maxLightMarchDistance / marchStepSize, inscribedRadius);
 
-            for(int lightStepsTaken = 0; float(lightStepsTaken) * marchStepSize < maxLightMarchDistance; ++lightStepsTaken)
-            {
-
-                vec3 lightRayPosition = rayPosition + (lightDirection * lightStepsTaken * marchStepSize);
-                bool lightRayInSphere = dot(lightRayPosition - viewSpherePos, lightRayPosition - viewSpherePos) <= radiusSquared;
-
-                if(!lightRayInSphere)
-                    break;
-
-                float attenuation = clamp(1.0
-                        / (testedLight.attenuationConstantTerm + testedLight.attenuationLinearTerm * distToLight
-                           + testedLight.attenuationQuadraticTerm * (distToLight * distToLight)), 0.0, 1.0);
-
-                if(attenuation <= 0.0)
-                    break;
-
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
-            }
+            luminance += srcLuminance;
         }
 
-		//The amount of light received along the ray from param rayOrigin in the direction rayDirection
-        float lightTransmission = exp(-lightAccumulation);
-		//shadow tends to the darkness threshold as lightAccumulation rises
-		float shadow = darknessThreshold + lightTransmission * (1.0 - darknessThreshold);
-		//The final light value is accumulated based on the current density, transmittance value and the calculated shadow value 
-		finalLight += densityAccumulation*transmittance*shadow;
-		//Initially a param its value is updated at each step by lightAbsorb, this sets the light lost by scattering
-		transmittance *= exp(-densityAccumulation * lightAbsorb);
+        float transmittance = exp(-currentDensityContribution * marchStepSize * lightAbsorb);
+        vec3 integScatt = currentDensityContribution * (luminance - luminance * transmittance) / currentDensityContribution;
+
+        marchedFogParameters.scattering += marchedFogParameters.transmittance * integScatt;
+        marchedFogParameters.transmittance *= transmittance;
+
+        if(length(marchedFogParameters.transmittance) <= 0.01)
+        {
+            marchedFogParameters.transmittance = vec3(0.0);
+            break;
+        }
     }
 
-	vec4 finalColor = vec4(mix(shadowColor, fogColor, finalLight), 1.0 - exp(-densityAccumulation));
+    vec3 scatteredFogColor = vec3(marchedFogParameters.scattering) * fogColor;
+    float meanScattering = max(mean(marchedFogParameters.scattering), 1.0);
 
-    imageStore(depthOutputImage, imgCoords, vec4(fragmentDepth,fragmentDepth,fragmentDepth,fragmentDepth));
-    imageStore(colorOutput, imgCoords, finalColor);
+    marchedFogParameters.transmittance = saturate3(marchedFogParameters.transmittance);
+
+    vec3 colour =  marchedFogParameters.transmittance + scatteredFogColor * 1.0;// * CLOUD_EXPOSURE;
+
+    imageStore(depthOutputImage, imgCoords, vec4(fragmentDepth, fragmentDepth, fragmentDepth, fragmentDepth));
+    imageStore(colorOutput, imgCoords, vec4(colour, 1.0 - exp(-densityAccumulation * meanScattering)));
 };
-
-//TODO: how to further paralelize
-// 1. First pass computes desnity+transmittance at sample points
-// 2. Second pass dispatches as many threads as there are sample points to compute shadowing at each point (over all lights. This dimension can alos be splitted but that would entail even more synchronization within warps what can deteriorate the performance). Along the ray, the finalight's are summed into an atomic color value.
-// 3. Third pass determines the final color of the fragment
-// 4. Profit? This does not seem to be a task for a day before the presentation. Way too much places where things can go wrong. So I have to come up with something else. Possibly dispatch more threads for a single invocation.
