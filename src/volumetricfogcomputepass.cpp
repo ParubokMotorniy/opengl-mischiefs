@@ -7,6 +7,8 @@
 #include "glad/glad.h"
 #include "imgui/imgui.h"
 
+#include <iostream>
+
 namespace
 {
 float fogDensity = 1.0f;
@@ -201,12 +203,12 @@ void VolumetricFogPass::runPass()
         const auto currentProjectionMatrix = _currentCamera->projectionMatrix();
 
         const glm::vec3 sphereViewPosition = currentViewMatrix * glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
+        const float zDistanceToSphereCenter = glm::abs(sphereViewPosition.z);
 
         // TODO: consider non-linear mip level selection, e.g. introduce less lod jumping when close
         // to the volume. And we must use the zero level
 
-        const float distanceRatio = glm::clamp(glm::clamp(glm::abs(sphereViewPosition.z)
-                                                              - sphereRadius,
+        const float distanceRatio = glm::clamp(glm::clamp(zDistanceToSphereCenter - sphereRadius,
                                                           0.0f, 1.0f)
                                                    / maxMarchDistance,
                                                0.0f, 1.0f);
@@ -215,8 +217,18 @@ void VolumetricFogPass::runPass()
         const int ceilingMip = glm::ceil((float)_numMipLeves * distanceRatio);
         const float mixingCoefficient = (distanceRatio - bottomMip * dLod) / dLod;
 
-        const float marchStepSize = 2.0 * sphereRadius / stepsPerVolume;
+        const float straightDistanceToSphere = zDistanceToSphereCenter < sphereRadius
+                                                   ? zDistanceToSphereCenter
+                                                   : zDistanceToSphereCenter - sphereRadius;
+
+        const float marchStepSize
+            = glm::max(glm::min(2.0f * sphereRadius, maxMarchDistance - straightDistanceToSphere),
+                       0.0001f)
+              / stepsPerVolume; // the step size decreases as the sphere goes out of sight so as not
+                                // to produce rapid visual artifacts
         const float currentTime = TimeManager::instance()->getTime();
+
+        std::cout << marchStepSize << std::endl;
 
         _fogSphereShader.use();
         _fogSphereShader.setInt("resolutionX", screenDiscretizationResoutionX);

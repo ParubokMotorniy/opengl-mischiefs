@@ -14,7 +14,6 @@
 // 4. ~Adaptive step size. I can't really use SFD, but I can chabge the step size based on the distance of the sphere to the camera~
 // 4. Profit?
 
-//TODO: sample fog color from texture 
 //TODO: when the volume is about to go out of sight, increase the number of steps to make up for rapid disappearing slices 
 
 layout (local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
@@ -119,6 +118,8 @@ const float maxLightMarchDistance = 10;
 float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, float inscribedRadius)
 {
     vec3 localFogVector =  fogVolumeWorldToModelRotation * mat3(inverseViewMatrix) * ((rayPosition - fogCenter) / inscribedRadius);
+    // vec3 localFogVector = (rayPosition - fogCenter) / inscribedRadius;
+
     localFogVector += 0.5;
 
     float densityFloor = textureLod(fogTexture, localFogVector, currentMipLevelFloor).a;
