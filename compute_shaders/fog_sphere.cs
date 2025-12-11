@@ -15,6 +15,7 @@
 // 4. Profit?
 
 //TODO: sample fog color from texture 
+//TODO: when the volume is about to go out of sight, increase the number of steps to make up for rapid disappearing slices 
 
 layout (local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
 
@@ -82,7 +83,9 @@ layout(r16f, binding = 1) uniform image2D depthOutputImage;
 
 uniform int resolutionX;
 uniform int resolutionY;
-uniform int currentMipLevel;
+uniform int currentMipLevelFloor;
+uniform int currentMipLevelCeiling;
+uniform float lodMixingCoefficient;
 uniform int stepsPerVolume;
 uniform float marchStepSize;
 uniform float maxMarchDistance;
@@ -113,11 +116,15 @@ const float sqrt2 = 1.414213562;
 const float maxLightMarchDistance = 10;
 // const float minLightDensityContribution = 0.001;
 
-float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, int mipLevel, float inscribedRadius)
+float computeDensityContributionWithinTexture(vec3 fogCenter, vec3 rayPosition, float inscribedRadius)
 {
     vec3 localFogVector =  fogVolumeWorldToModelRotation * mat3(inverseViewMatrix) * ((rayPosition - fogCenter) / inscribedRadius);
     localFogVector += 0.5;
-    return textureLod(fogTexture, localFogVector, mipLevel).a;
+
+    float densityFloor = textureLod(fogTexture, localFogVector, currentMipLevelFloor).a;
+    float densityCeiling = textureLod(fogTexture, localFogVector, currentMipLevelCeiling).a; 
+
+    return mix(densityFloor, densityCeiling, lodMixingCoefficient);
 }
 
 // vec3 getFogColor(vec3 fogCenter, vec3 rayPosition)
@@ -167,7 +174,7 @@ void main()
         depth = depth * 0.5 + 0.5;
         fragmentDepth = min(fragmentDepth, depth); 
         // densityAccumulation += densityIncrement * densityScale;
-        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, currentMipLevel, inscribedRadius) * densityScale;
+        densityAccumulation += computeDensityContributionWithinTexture(viewSpherePos, rayPosition, inscribedRadius) * densityScale;
 
         //directional light effect
         for(int d = 0; d < numDirectionalLightsBound; ++d)
@@ -182,7 +189,7 @@ void main()
                     break;
 
                 // lightAccumulation += densityIncrement;
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel, inscribedRadius);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
             }
         }
 
@@ -209,7 +216,7 @@ void main()
                     break;
 
                 lightAccumulation += densityIncrement;
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel, inscribedRadius);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
             }
         }
 
@@ -246,7 +253,7 @@ void main()
                 // lightAccumulation += mix(minLightDensityContribution, densityIncrement, 1.0 - attenuation * intensity);
 
                 // lightAccumulation += densityIncrement;
-                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, currentMipLevel, inscribedRadius);
+                lightAccumulation += computeDensityContributionWithinTexture(viewSpherePos, lightRayPosition, inscribedRadius);
             }
         }
 

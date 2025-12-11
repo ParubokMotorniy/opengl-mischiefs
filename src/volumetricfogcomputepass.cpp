@@ -202,10 +202,19 @@ void VolumetricFogPass::runPass()
 
         const glm::vec3 sphereViewPosition = currentViewMatrix * glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
 
-        const int currentMipLevel = int(
-            glm::mix(0, _numMipLeves,
-                     glm::length(sphereViewPosition)
-                         / maxMarchDistance)); // TODO: consider non-linear mip level selection
+        // TODO: consider non-linear mip level selection, e.g. introduce less lod jumping when close
+        // to the volume. And we must use the zero level
+
+        const float distanceRatio = glm::clamp(glm::clamp(glm::abs(sphereViewPosition.z)
+                                                              - sphereRadius,
+                                                          0.0f, 1.0f)
+                                                   / maxMarchDistance,
+                                               0.0f, 1.0f);
+        const float dLod = 1.0 / (float)_numMipLeves;
+        const int bottomMip = glm::floor((float)_numMipLeves * distanceRatio);
+        const int ceilingMip = glm::ceil((float)_numMipLeves * distanceRatio);
+        const float mixingCoefficient = (distanceRatio - bottomMip * dLod) / dLod;
+
         const float marchStepSize = 2.0 * sphereRadius / stepsPerVolume;
         const float currentTime = TimeManager::instance()->getTime();
 
@@ -214,7 +223,10 @@ void VolumetricFogPass::runPass()
         _fogSphereShader.setInt("resolutionY", screenDiscretizationResoutionY);
         _fogSphereShader.setInt("stepsPerVolume", stepsPerVolume);
 
-        _fogSphereShader.setInt("currentMipLevel", currentMipLevel);
+        _fogSphereShader.setInt("currentMipLevelFloor", bottomMip);
+        _fogSphereShader.setInt("currentMipLevelCeiling", ceilingMip);
+        _fogSphereShader.setFloat("lodMixingCoefficient", mixingCoefficient);
+
         _fogSphereShader.setFloat("marchStepSize", marchStepSize);
         _fogSphereShader.setFloat("maxMarchDistance", maxMarchDistance);
         _fogSphereShader.setMatrix3("fogVolumeWorldToModelRotation",
