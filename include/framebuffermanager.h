@@ -2,8 +2,11 @@
 
 #include "glad/glad.h"
 #include "singleton.h"
+#include "glm/glm.hpp"
+
 #include <cstddef>
 #include <stack>
+#include <array>
 
 class FrameBufferManager : public SystemSingleton<FrameBufferManager>
 {
@@ -27,6 +30,7 @@ public:
     void bindColorTexture(GLenum target, GLenum textureType, GLuint texIdx) const;
     void setColorMode(GLuint mode) const;
     void setReadMode(GLuint mode) const;
+    std::array<GLint, 4> getViewportDims() const;
 
 protected:
     FrameBufferManager();

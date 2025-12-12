@@ -26,7 +26,7 @@ public:
     void allocateTexture(TextureIdentifier id);
     void deallocateTexture(TextureIdentifier id);
 
-    int bindTexture(TextureIdentifier id);
+    int bindTexture(TextureIdentifier id, GLuint bindingType = GL_TEXTURE_2D);
     void unbindTexture(TextureIdentifier id);
     void unbindAllTextures();
 
@@ -47,7 +47,7 @@ private:
     constexpr static uint32_t MAX_TEXTURES = 16;
     uint32_t _boundTextures[MAX_TEXTURES];
     int _numBoundTextures = 0;
-    
+
 #ifndef NDEBUG
     // the screaming magenta texture shall be used for debugging purposes
     TextureIdentifier _debugMagenta = InvalidIdentifier;

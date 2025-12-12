@@ -119,24 +119,6 @@ float fragmentInDirectionalShadow(DirectionalLight light, int lightIdx, vec3 fra
     if(ndcPos.z > 1.0)
         return 0.0;
 
-    //hardware pcf 
-    // float shadowDepth = texture(directionalShadowMaps[lightIdx], ndcPos.xyz).r;
-    // return 1.0 - shadowDepth;
-
-    //software pcf
-    // vec2 texelSize = 1.0 / textureSize(directionalShadowMaps[lightIdx], 0);
-    // float shadow = 0.0;
-    // for(int x = -1; x <= 1; ++x)
-    // {
-    //     for(int y = -1; y <= 1; ++y)
-    //     {
-    //         float pcfDepth = texture(directionalShadowMaps[lightIdx], ndcPos.xy + vec2(x, y) * texelSize).r; 
-    //         shadow += fragmentDepth > pcfDepth ? 1.0 : 0.0;        
-    //     }    
-    // }
-    // shadow /= 9.0;
-    // return shadow;
-
     //hardware + software pcf
     vec2 texelSize = 1.0 / textureSize(directionalShadowMaps[lightIdx], 0);
     float shadow = 0.0;
@@ -150,11 +132,6 @@ float fragmentInDirectionalShadow(DirectionalLight light, int lightIdx, vec3 fra
     }
     shadow /= 9.0;
     return shadow;
-
-    //no pcf
-    // float shadowDepth = texture(directionalShadowMaps[lightIdx], ndcPos.xy).r;
-    // float shadow = fragmentDepth > shadowDepth ? 1.0 : 0.0;
-    // return shadow;
 }
 
 vec3 CalculateDirectionalLight(DirectionalLight light, int lightIdx, vec3 normal, vec3 viewDir, vec3 diffuseColor,

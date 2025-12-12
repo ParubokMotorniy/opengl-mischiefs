@@ -15,6 +15,7 @@
 
 #include "meshmanager.h"
 #include "objectmanager.h"
+#include "types.h"
 
 class ShaderProgram
 {
@@ -37,6 +38,7 @@ public:
     void setFloat(const std::string &name, float value) const;
 
     void setMatrix4(const std::string &name, const glm::mat4 &mat) const;
+    void setMatrix3(const std::string &name, const glm::mat3 &mat) const;
 
     void setVec3(const std::string &name, const glm::vec3 &vec) const;
 

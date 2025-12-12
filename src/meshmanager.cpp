@@ -16,7 +16,6 @@ TextureIdentifier MeshManager::registerMesh(const Mesh &&mesh, const std::string
     return _identifiers;
 }
 
-
 void MeshManager::unregisterMesh(MeshIdentifier id)
 {
     const auto meshPtr = _meshes.find(id);
@@ -30,14 +29,12 @@ void MeshManager::unregisterMesh(MeshIdentifier id)
     _meshes.erase(id);
 }
 
-
 std::pair<std::string, MeshIdentifier> MeshManager::registerMesh(const Mesh &&mesh)
 {
     const auto rName = RandomNamer::instance()->getRandomName(10);
     const auto id = registerMesh(std::move(mesh), rName);
     return std::make_pair(rName, id);
 }
-
 
 MeshIdentifier MeshManager::meshRegistered(const std::string &meshName)
 {
@@ -46,7 +43,6 @@ MeshIdentifier MeshManager::meshRegistered(const std::string &meshName)
     });
     return meshPtr == _meshes.end() ? InvalidIdentifier : meshPtr->first;
 }
-
 
 void MeshManager::allocateMesh(MeshIdentifier id)
 {
@@ -57,20 +53,19 @@ void MeshManager::allocateMesh(MeshIdentifier id)
     meshPtr->second.componentData.allocateMesh();
 }
 
-
-void MeshManager::bindMesh(MeshIdentifier id)
+int MeshManager::bindMesh(MeshIdentifier id)
 {
     if (_boundMesh != InvalidIdentifier)
-        return;
+        return -1;
     const auto meshPtr = _meshes.find(id);
     if (meshPtr == _meshes.end())
-        return;
+        return -1;
     auto &mesh = meshPtr->second.componentData;
 
     mesh.bindMesh();
     _boundMesh = id;
+    return 0;
 }
-
 
 void MeshManager::unbindMesh()
 {
@@ -78,24 +73,25 @@ void MeshManager::unbindMesh()
     _boundMesh = InvalidIdentifier;
 }
 
+MeshIdentifier MeshManager::getDummyMesh() const { return _dummyMesh; }
 
-void MeshManager::bindMeshInstanced(MeshIdentifier id)
+int MeshManager::bindMeshInstanced(MeshIdentifier id)
 {
-    if(_boundMesh != InvalidIdentifier)
-        return;
+    if (_boundMesh != InvalidIdentifier)
+        return -1;
 
     auto meshPtr = _meshes.find(id);
     if (meshPtr == _meshes.end())
-        return;
-    
-    auto &mesh = meshPtr->second.componentData; 
-    if(!mesh.instancingEnabled())
-        return;
+        return -1;
+
+    auto &mesh = meshPtr->second.componentData;
+    if (!mesh.instancingEnabled())
+        return -1;
 
     mesh.bindMeshInstanced();
     _boundMesh = id;
+    return 0;
 }
-
 
 void MeshManager::enableMeshInstancing(MeshIdentifier id)
 {
@@ -106,7 +102,6 @@ void MeshManager::enableMeshInstancing(MeshIdentifier id)
     meshPtr->second.componentData.enableInstancing();
 }
 
-
 void MeshManager::deallocateMesh(MeshIdentifier id)
 {
     auto meshPtr = _meshes.find(id);
@@ -116,15 +111,13 @@ void MeshManager::deallocateMesh(MeshIdentifier id)
     meshPtr->second.componentData.deallocateMesh();
 }
 
-
 void MeshManager::cleanUpGracefully()
 {
     unbindMesh();
     _meshes.clear();
 }
 
-
-const Mesh *MeshManager::getMesh(MeshIdentifier id)
+const Mesh *MeshManager::getMesh(MeshIdentifier id) const
 {
     auto meshPtr = _meshes.find(id);
     return meshPtr == _meshes.end() ? nullptr : &meshPtr->second.componentData;

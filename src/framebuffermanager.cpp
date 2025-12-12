@@ -36,6 +36,13 @@ void FrameBufferManager::setColorMode(GLuint mode) const { glDrawBuffer(mode); }
 
 void FrameBufferManager::setReadMode(GLuint mode) const { glReadBuffer(mode); }
 
+std::array<GLint, 4> FrameBufferManager::getViewportDims() const
+{
+    std::array<GLint, 4> dimensions;
+    glGetIntegerv(GL_VIEWPORT, dimensions.data());
+    return dimensions;
+}
+
 void FrameBufferManager::bindDepthBuffer(GLenum target, GLuint depthBuffer) const
 {
     glFramebufferRenderbuffer(target, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);

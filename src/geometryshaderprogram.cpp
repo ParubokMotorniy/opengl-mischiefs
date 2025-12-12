@@ -4,13 +4,9 @@
 #include "transformmanager.h"
 
 GeometryShaderProgram::GeometryShaderProgram(const char *vertexPath, const char *fragmentPath,
-                                             const char *geometryPath, MeshIdentifier dummyMesh)
-    : _dummyMesh(dummyMesh),
-      _vertexPath(vertexPath),
-      _fragmentPath(fragmentPath),
-      _geometryPath{ geometryPath }
+                                             const char *geometryPath)
+    : _vertexPath(vertexPath), _fragmentPath(fragmentPath), _geometryPath{ geometryPath }
 {
-    
 }
 
 void GeometryShaderProgram::runShader()
@@ -92,35 +88,33 @@ void GeometryShaderProgram::runShader()
         }
     };
 
-    if (_dummyMesh != InvalidIdentifier)
-    {
-        use();
+    use();
+    MeshIdentifier dummyMesh = MeshManager::instance()->getDummyMesh();
 
-        const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
-                                                              _orderedShaderObjects.cend());
+    const std::vector<GameObjectIdentifier> shaderObjects(_orderedShaderObjects.cbegin(),
+                                                          _orderedShaderObjects.cend());
 
-        MeshManager::instance()->enableMeshInstancing(_dummyMesh);
-        const Mesh &mesh = *MeshManager::instance()->getMesh(_dummyMesh);
+    MeshManager::instance()->enableMeshInstancing(dummyMesh);
+    const Mesh &mesh = *MeshManager::instance()->getMesh(dummyMesh);
 
-        const uint32_t vertexBufferId = Instancer::instance()->instanceData(shaderObjects,
-                                                                            { modelMatrixCol0,
-                                                                              modelMatrixCol1,
-                                                                              modelMatrixCol2,
-                                                                              modelMatrixCol3 },
-                                                                            mesh.instancedArrayId());
+    const uint32_t vertexBufferId = Instancer::instance()->instanceData(shaderObjects,
+                                                                        { modelMatrixCol0,
+                                                                          modelMatrixCol1,
+                                                                          modelMatrixCol2,
+                                                                          modelMatrixCol3 },
+                                                                        mesh.instancedArrayId());
 
-        MeshManager::instance()->allocateMesh(_dummyMesh);
-        MeshManager::instance()->bindMeshInstanced(_dummyMesh);
+    MeshManager::instance()->allocateMesh(dummyMesh);
+    MeshManager::instance()->bindMeshInstanced(dummyMesh);
 
-        setFloat("axisLength", 0.25l);
-        setFloat("thickness", 0.002l);
+    setFloat("axisLength", 0.25l);
+    setFloat("thickness", 0.002l);
 
-        glDrawArraysInstanced(GL_POINTS, 0, 3, shaderObjects.size());
+    glDrawArraysInstanced(GL_POINTS, 0, 3, shaderObjects.size());
 
-        glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
+    glDeleteBuffers(1, &vertexBufferId); // presumably, it will anyway be regenerated
 
-        MeshManager::instance()->unbindMesh();
-    }
+    MeshManager::instance()->unbindMesh();
 }
 
 void GeometryShaderProgram::compileAndAttachNecessaryShaders(uint32_t id)

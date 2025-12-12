@@ -13,6 +13,7 @@
 
 #include "basicshader.h"
 #include "camera.h"
+#include "fullscreenfogshader.h"
 #include "geometryshaderprogram.h"
 #include "gizmospass.h"
 #include "hdrpass.h"
@@ -37,6 +38,7 @@
 #include "transformmanager.h"
 #include "transparentpass.h"
 #include "transparentshader.h"
+#include "volumetricfogcomputepass.h"
 #include "window.h"
 #include "worldplaneshader.h"
 
@@ -68,7 +70,7 @@ const char *pbrVertexShaderSource = ENGINE_SHADERS "/pbr_vertex.vs";
 const char *pbrFragmentShaderSource = ENGINE_SHADERS "/pbr_fragment.fs";
 
 Camera *camera = new QuaternionCamera(glm::vec3(10.f, 10.0f, -10.0f));
-const float lightRotationRadius = 40.0f;
+float lightRotationRadius = 40.0f;
 
 #ifndef NDEBUG
 void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -221,11 +223,6 @@ int main(int argc, const char *argv[])
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-    //// Meshes
-
-    const MeshIdentifier dummyAxesMesh = MeshManager::instance()->registerMesh(Mesh(),
-                                                                               "dummy_mesh");
-
     // Textures
 
     const TextureIdentifier polyBlack = TextureManager::instance()
@@ -371,7 +368,7 @@ int main(int argc, const char *argv[])
         mainSkybox.initializeShaderProgram();
 
         GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
-                                               axesGeometryShaderSource, dummyAxesMesh };
+                                               axesGeometryShaderSource };
         worldAxesShader.initializeShaderProgram();
 
         TransparentShader simpleTransparentShader{ simpleTransparentVertexShaderSource,
@@ -380,6 +377,13 @@ int main(int argc, const char *argv[])
 
         PbrShader mainPbrShader{ pbrVertexShaderSource, pbrFragmentShaderSource };
         mainPbrShader.initializeShaderProgram();
+
+        VolumetricFogPass _volumetricFogPass{};
+        _volumetricFogPass.setCamera(camera);
+        _volumetricFogPass.setWindow(&mainWindow);
+
+        FullscreenFogShader fogShader{ &_volumetricFogPass };
+        fogShader.initializeShaderProgram();
 
         // passes
         StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
@@ -390,7 +394,7 @@ int main(int argc, const char *argv[])
 
         ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader, &mainPbrShader };
 
-        SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader };
+        SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader, &fogShader };
         _sortingTransparentPass.setCamera(camera);
 
         HdrPass _hdrPass(planeMesh);
@@ -693,7 +697,8 @@ int main(int argc, const char *argv[])
             /// add axes for cubes and pyramids
             GameObject &standardAxes = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
-            standardAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
+            standardAxes.addComponent(
+                Component(ComponentType::MESH, MeshManager::instance()->getDummyMesh()));
             standardAxes.addComponent(Component(ComponentType::TRANSFORM, tId));
 
             worldAxesShader.addObject(standardAxes);
@@ -717,7 +722,8 @@ int main(int argc, const char *argv[])
         {
             GameObject &worldAxes = ObjectManager::instance()->getObject(
                 ObjectManager::instance()->addObject());
-            worldAxes.addComponent(Component(ComponentType::MESH, dummyAxesMesh));
+            worldAxes.addComponent(
+                Component(ComponentType::MESH, MeshManager::instance()->getDummyMesh()));
             worldAxes.addComponent(
                 Component(ComponentType::TRANSFORM,
                           TransformManager::instance()->registerNewTransform(worldAxes)));
@@ -828,11 +834,18 @@ int main(int argc, const char *argv[])
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            _volumetricFogPass.runPass();
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
             _sortingTransparentPass.runPass();
             _gizmosPass.runPass();
             _hdrPass.runPass();
+
+            {
+                ImGui::Begin("Tweaks");
+                ImGui::SliderFloat("Light orbit radius", &lightRotationRadius, 5.0f, 30.0f, "%.2f");
+                ImGui::End();
+            }
 
             {
                 FrameBufferManager::instance()->pushFrameBuffer(0);
