@@ -260,7 +260,8 @@ vec3 MultipleOctaveScattering(float density, float mu)
     for(float i = 0.0; i < scatteringOctaves; i++)
     {
         float phaseFunction = PhaseFunction(0.3 * c, mu);
-        vec3 beers = exp(-density * lightAbsorb * a); //TODO: maybe, make beers multichanneled
+        vec3 beers = exp(-density * lightAbsorb * a);
+        // vec3 powder = 1.0 - exp(-density * 2.0 * lightAbsorb);
 
         luminance += b * phaseFunction * beers;
 
@@ -301,6 +302,7 @@ vec3 CalculateLightEnergy(
     vec3 powder = 1.0 - exp(-lightRayDensity * 2.0 * lightAbsorb);
 
     return beersLaw * mix(2.0 * powder, vec3(1.0), remap(mu, -1.0, 1.0, 0.0, 1.0));
+    // return beersLaw;
 }
 
 void main()
@@ -349,7 +351,7 @@ void main()
         fragmentDepth = min(fragmentDepth, depth);
         const float currentDensityContribution = computeDensityContributionWithinTexture(rayPosition, inscribedRadius) * densityScale;
 
-        densityAccumulation += currentDensityContribution;
+        densityAccumulation += currentDensityContribution * marchStepSize;
 
         if(currentDensityContribution < lightDensityThreshold)
             continue;
@@ -415,13 +417,14 @@ void main()
         }
     }
 
-    vec3 scatteredFogColor = vec3(marchedFogParameters.scattering) * fogColor;
-    float meanScattering = max(mean(marchedFogParameters.scattering), 1.0);
-
     marchedFogParameters.transmittance = saturate3(marchedFogParameters.transmittance);
 
-    vec3 colour = marchedFogParameters.transmittance + scatteredFogColor * 1.0;// * CLOUD_EXPOSURE;
+    vec3 scatteredFogColor = vec3(marchedFogParameters.scattering) * fogColor;
+
+    float meanTransmittance = max(mean(marchedFogParameters.scattering), 1.0);
+
+    //TODO: ideally, I should belnd with the background color basing on the transmittance. But the following also seems to give nice results
 
     imageStore(depthOutputImage, imgCoords, vec4(fragmentDepth, fragmentDepth, fragmentDepth, fragmentDepth));
-    imageStore(colorOutput, imgCoords, vec4(colour, 1.0 - exp(-densityAccumulation * meanScattering)));
+    imageStore(colorOutput, imgCoords, vec4(scatteredFogColor, exp(-meanTransmittance) * (1.0 - exp(-densityAccumulation))));
 };

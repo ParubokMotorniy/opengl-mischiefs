@@ -177,7 +177,7 @@ void VolumetricFogPass::runPass()
 
         ImGui::Text("Prettiness thingies");
         ImGui::Separator();
-        ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 10.0f);
+        ImGui::SliderFloat("Fog density", &fogDensity, 0.001f, 20.0f);
         ImGui::SliderFloat("Fog sphere radius", &sphereRadius, 1.0f, 50.0f);
         ImGui::SliderFloat("Noise influence", &noiseInfluence, 0.05f, 1.0f);
         ImGui::SliderFloat("Transmittance", &transmittance, 0.001f, 1.0f);
