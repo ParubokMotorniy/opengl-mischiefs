@@ -19,7 +19,6 @@ Should you find any assets missing, try running `git lfs pull` in the project's 
 # In-engine How-to:
 + Navigation: W-A-S-D=planar motion. Space=Up. LShift=Down. Q=Peek left. E=Peek right.
 + Zoom: mouse scroll.
-+ Hit LeftCtrl to toggle axes (or use UI)
 + Hit RightCtrl to toggle world plane
 
 *Important*: for proper out-of-the-box compilation, the `ENGINE_DISABLE_BINDLESS_TEXTURES` must be `OFF`.

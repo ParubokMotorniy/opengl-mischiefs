@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # set(CMAKE_GENERATOR Ninja)
 
-option(ENGINE_DISABLE_BINDLESS_TEXTURES "Determines whether the bindless textures are used. Note: calls to the corresponding API are merely disabled in OFF mode." OFF)
+option(ENGINE_DISABLE_BINDLESS_TEXTURES "Determines whether the bindless textures are used. Note: calls to the corresponding API are merely disabled in OFF mode. You don't get anything instead." OFF)
 
 
 include(FetchContent)
@@ -84,15 +84,15 @@ set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(assimp)
 
 file(GLOB SRC_FILES src/*)
-file(GLOB imgui_FILES 
-    ${imgui_SOURCE_DIR}/*.cpp 
-    ${imgui_SOURCE_DIR}/*.h 
+file(GLOB imgui_FILES
+    ${imgui_SOURCE_DIR}/*.cpp
+    ${imgui_SOURCE_DIR}/*.h
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3*
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw*
     ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.*
 )
 
-list(APPEND SRC_FILES 
+list(APPEND SRC_FILES
     ${imgui_FILES}
 )
 
