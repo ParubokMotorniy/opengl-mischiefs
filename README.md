@@ -5,6 +5,10 @@ I believe my changelogs for individual homeworks are quite detailed, so I refer 
 In the scope of the final project I've also added support for rendering of volumetirc fog.      
 In particular, the defined volumes of fog are raymarched in a compute shader, while taking into account the influence of light. 
 
+## DEMO
+
+You can check out the demo of the engine [here](./data/demo.mp4).
+
 ## How to build
 
 ```
