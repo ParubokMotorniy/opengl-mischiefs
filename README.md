@@ -1,13 +1,23 @@
 ### opengl-mischiefs engine
 
-This engine has been developed in the scope of "Introduction to Realtime Computer Graphics" university course. 
+   This engine has been developed in the scope of "Introduction to Realtime Computer Graphics" university course.        
 I believe my changelogs for individual homeworks are quite detailed, so I refer a reader to them to learn what this "engine" is capable of.       
-In the scope of the final project I've also added support for rendering of volumetirc fog.      
-In particular, the defined volumes of fog are raymarched in a compute shader, while taking into account the influence of light. 
+   As my final project I've also added support for rendering of volumetirc fog. In particular, the defined volumes of fog are raymarched in a compute shader, while taking into account the influence of light. 
 
 ## DEMO
 
 You can check out the demo of the engine [here](./data/demo.mp4).
+
+## Most interesting features
+
++ The engine relies on bindless textures in pretty much everything, except for shadow maps      
++ Arbitrary models can be loaded and instanced, as part of either Blinn-Phong or PBR passes
++ HDR tonemapping
++ Tiny entity-component-system (ECS)
++ Raymarched volumetric fog rendering.
++ Quaternion-based camera (Q/E allow to peek like in r6s)
++ Global and object-local coordinate axes
++ Skybox
 
 ## How to build
 
@@ -137,12 +147,3 @@ And here is the numeric data (obtained with that same `mangohud`). Note that dif
 You've seen example with bill, so here is an example with a different model: 
 
 ![mayhem](./data/tank_mayhem.png)
-
-
-Extra tasks implemented:    
-+ Add support for bindless textures (instanced shader class internally passes textures handles to the shader via SSBO)      
-+ Allow instancing of arbitrary model (almost arbitrary: only .obj files have been tested and are known to be processed correctly. The attached 'tank' and 'bill' models work, for example).
-+ Performance and visual comparsion of various texture filtering algorithms (the textures expose interface that allows setting of filtering mode).
-+ Quaternion-based camera (Q/E allow to peek like in r6s)
-+ Global and object-local coordinate axes (hit LeftCtrl)
-+ Dynamically moving light cude
