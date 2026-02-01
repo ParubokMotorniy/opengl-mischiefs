@@ -6,7 +6,7 @@ I believe my changelogs for individual homeworks are quite detailed, so I refer 
 
 ## DEMO
 
-You can check out the demo of the engine [here](./data/demo.mp4).
+You can check out the demo of the engine [on youtube](https://youtu.be/wuCE3MYS02Q) or [locally](./data/demo.mp4).
 
 ## Most interesting features
 
