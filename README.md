@@ -1,8 +1,7 @@
 ### opengl-mischiefs engine
 
-   This engine has been developed in the scope of "Introduction to Realtime Computer Graphics" university course.        
-I believe my changelogs for individual homeworks are quite detailed, so I refer a reader to them to learn what this "engine" is capable of.       
-   As my final project I've also added support for rendering of volumetirc fog. In particular, the defined volumes of fog are raymarched in a compute shader, while taking into account the influence of light. 
+I believe my changelogs are quite detailed, so I refer a reader to them to learn what this "engine-sandbox" is capable of.         
+The engine also supports rendering of volumetirc fog. In particular, the defined volumes of fog are raymarched in a compute shader, while taking into account the influence of light. 
 
 ## DEMO
 
@@ -38,7 +37,7 @@ Should you find any assets missing, try running `git lfs pull` in the project's 
 *Important*: for proper out-of-the-box compilation, the `ENGINE_DISABLE_BINDLESS_TEXTURES` must be `OFF`.
 *Note*: the engine demo can be found in the `data` folder. 
 
-## Homework 5 changelog:
+## Iteration 5 changelog:
 
 ### Task [1] - HDR and gamma correction support
 
@@ -63,7 +62,7 @@ Moreover, the PBR models are instanced and rely on bindless textures, the same w
 
 The PBR pipeline supports normal mapping (as long as the normal map is provided with the model!). Not much to say on that account.
 
-## Homework 4 changelog:
+## Iteration 4 changelog:
 
 ### Tasks [1] - Shadow rendering support
 Shadow biasing is achieved by slightly shifting fragments along their normals prior to shadow testing.      
@@ -84,7 +83,7 @@ The current UI allows to fine-tune the shadow bias and adjust the gizmos.
 ### Tasks [4] - Transparency support
 The transparent objects are rendered in a separate pass, similar to standard objects and shadow maps.  
 
-## Homework 3 report:
+## Iteration 3 changelog:
 
 ### Tasks [1;2] - Point/Directional/Spot lights support
 
@@ -103,7 +102,7 @@ The whole-new manager takes care of cubemaps now, and so skyboxes can be added t
    
 ![extra-demo](./data/demo.png)
 
-## Homework 2 report:     
+## Iteration 2 changelog:     
 ### Tasks [1;2;3;4]: - Model loading&instancing support
 
 Below is an example of instanced rendering with multiple meshes and multiple textures.      
@@ -124,7 +123,7 @@ Behold the numbers:
 ![benchmark](./data/benchmarking.png)
 ![benchmark2](./data/benchmarking2.png)
 
-### Extra: Texture filtering approaches comparison
+### Texture filtering approaches comparison
 
 The advantage of anisotropic sampling is clear: instead of pixel mess, we observe more-less accurate lines that stratch into the distance.     
 Similarly, the trilinear filtering introduces gentle blur, which is surely more appealing.     
@@ -142,7 +141,7 @@ And here is the numeric data (obtained with that same `mangohud`). Note that dif
 
 ![results](./data/filtering_results.png)
 
-### Extra: Arbitrary model loading
+### Arbitrary model loading
 
 You've seen example with bill, so here is an example with a different model: 
 
