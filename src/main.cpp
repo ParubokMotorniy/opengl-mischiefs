@@ -13,7 +13,6 @@
 
 #include "basicshader.h"
 #include "camera.h"
-#include "fullscreenfogshader.h"
 #include "geometryshaderprogram.h"
 #include "gizmospass.h"
 #include "hdrpass.h"
@@ -28,6 +27,7 @@
 #include "objectmanager.h"
 #include "pbrshader.h"
 #include "quaternioncamera.h"
+#include "shadermanager.h"
 #include "shadowpass.h"
 #include "skyboxshader.h"
 #include "standardpass.h"
@@ -216,12 +216,14 @@ int main(int argc, const char *argv[])
     }
 #endif
 
-    glViewport(0, 0, windowWidth, windowHeight);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    {
+        glViewport(0, 0, windowWidth, windowHeight);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    }
 
     // Textures
 
@@ -355,53 +357,70 @@ int main(int argc, const char *argv[])
     {
         //// Shaders
 
-        InstancedBlinnPhongShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
-        shaderProgramMain.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()
+                ->registerShader(std::make_unique<InstancedBlinnPhongShader>(vertexShaderSource,
+                                                                             fragmentShaderSource),
+                                 "instanced_blinn_phong"));
 
-        WorldPlaneShader worldPlaneShader{ cubeMesh, checkerboardTexture };
-        worldPlaneShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()
+                ->registerShader(std::make_unique<WorldPlaneShader>(cubeMesh, checkerboardTexture),
+                                 "world_plane"));
 
-        LightVisualizationShader lightVisualizationShader{ sphereMesh };
-        lightVisualizationShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()->registerShader(std::make_unique<LightVisualizationShader>(
+                                                          sphereMesh),
+                                                      "light_visualizer"));
 
-        SkyboxShader mainSkybox{ cubeMesh, simpleSkybox };
-        mainSkybox.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()->registerShader(std::make_unique<SkyboxShader>(cubeMesh,
+                                                                                     simpleSkybox),
+                                                      "main_skybox"));
 
-        GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
-                                               axesGeometryShaderSource };
-        worldAxesShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()
+                ->registerShader(std::make_unique<GeometryShaderProgram>(axesVertexShaderSource,
+                                                                         axesFragmentShaderSource,
+                                                                         axesGeometryShaderSource),
+                                 "world_axes"));
 
-        TransparentShader simpleTransparentShader{ simpleTransparentVertexShaderSource,
-                                                   simpleTransparentFragmentShaderSource };
-        simpleTransparentShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(ShaderManager::instance()->registerShader(
+            std::make_unique<TransparentShader>(simpleTransparentVertexShaderSource,
+                                                simpleTransparentFragmentShaderSource),
+            "simple_transparent"));
 
-        PbrShader mainPbrShader{ pbrVertexShaderSource, pbrFragmentShaderSource };
-        mainPbrShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()
+                ->registerShader(std::make_unique<PbrShader>(pbrVertexShaderSource,
+                                                             pbrFragmentShaderSource),
+                                 "main_pbr"));
 
-        VolumetricFogPass _volumetricFogPass{};
-        _volumetricFogPass.setCamera(camera);
-        _volumetricFogPass.setWindow(&mainWindow);
+        const ShaderIdentifier volumetricFogPassId
+            = ShaderManager::instance()->registerShader(std::make_unique<VolumetricFogPass>(),
+                                                        "fullscreen_fog");
+        ShaderManager::instance()->initializeShader(volumetricFogPassId);
 
-        FullscreenFogShader fogShader{ &_volumetricFogPass };
-        fogShader.initializeShaderProgram();
+        VolumetricFogPass *_volumetricFogPass = dynamic_cast<VolumetricFogPass *>(
+            ShaderManager::instance()->getShader(volumetricFogPassId));
+        _volumetricFogPass->setCamera(camera);
+        _volumetricFogPass->setWindow(&mainWindow);
 
         // passes
-        StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
-                                             &lightVisualizationShader, &mainSkybox,
-                                             &mainPbrShader };
+        StandardPass _standardRenderingPass;
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
 
-        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader, &mainPbrShader };
+        ShadowPass _shadowPass;
 
-        SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader, &fogShader };
+        SortingTransparentPass _sortingTransparentPass;
         _sortingTransparentPass.setCamera(camera);
 
         HdrPass _hdrPass(planeMesh);
         _hdrPass.initializeShaderProgram();
         _hdrPass.setWindow(&mainWindow);
 
-        GizmosPass _gizmosPass(&worldAxesShader);
+        GizmosPass _gizmosPass;
         _gizmosPass.setCamera(camera);
         _gizmosPass.setWindow(&mainWindow);
 
@@ -668,7 +687,7 @@ int main(int argc, const char *argv[])
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 20; k < 50; ++k)
+        for (int k = 20; k < 40; ++k)
         {
             const float fK = static_cast<float>(k);
             // add cubes and pyramids
@@ -703,7 +722,7 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
         }
-        for (int k = 10; k < 15; ++k)
+        for (int k = 10; k < 14; ++k)
         {
             const auto gameBoyCopy = ObjectManager::instance()->copyObject(gameboyModelId);
             auto gameboyTransform = TransformManager::instance()->getTransform(
@@ -834,7 +853,7 @@ int main(int argc, const char *argv[])
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            _volumetricFogPass.runPass();
+            _volumetricFogPass->runPass();
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
             _sortingTransparentPass.runPass();
@@ -922,6 +941,7 @@ int main(int argc, const char *argv[])
     MeshManager::instance()->cleanUpGracefully();
     TextureManager::instance()->cleanUpGracefully();
     CubemapManager::instance()->cleanUpGracefully();
+    ShaderManager::instance()->cleanUpGracefully();
 
     {
         ImGui_ImplOpenGL3_Shutdown();

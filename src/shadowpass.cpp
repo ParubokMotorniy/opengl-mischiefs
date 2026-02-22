@@ -5,16 +5,13 @@
 #include "lightmanager.h"
 #include "lightvisualizationshader.h"
 #include "pbrshader.h"
+#include "shadermanager.h"
 
-ShadowPass::ShadowPass(InstancedBlinnPhongShader *ins, LightVisualizationShader *lightVis,
-                       PbrShader *pbrShader)
-    : _shaderProgramMain(ins),
-      _lightVisualizationShader(lightVis),
-      _pbrShader(pbrShader),
-      _passThroughOverride(ENGINE_SHADERS "/depth_pass_through.vs",
+ShadowPass::ShadowPass()
+    : _passThroughOverride(ENGINE_SHADERS "/depth_pass_through.vs",
                            ENGINE_SHADERS "/depth_pass_through.fs"),
       _passThroughOverridePbr(ENGINE_SHADERS "/depth_pass_through_pbr.vs",
-                           ENGINE_SHADERS "/depth_pass_through.fs")
+                              ENGINE_SHADERS "/depth_pass_through.fs")
 {
     _passThroughOverride.initializeShaderProgram();
     _passThroughOverridePbr.initializeShaderProgram();
@@ -33,6 +30,12 @@ void ShadowPass::runPass()
 
         const glm::mat4 &projection = l.dummyProjectionMatrix;
         const glm::mat4 &view = l.dummyViewMatrix;
+
+        ShaderProgram *_shaderProgramMain = ShaderManager::instance()->getShader(
+            "instanced_blinn_phong");
+        ShaderProgram *_lightVisualizationShader = ShaderManager::instance()->getShader(
+            "light_visualizer");
+        ShaderProgram *_pbrShader = ShaderManager::instance()->getShader("main_pbr");
 
         _shaderProgramMain->setShaderProgramOverride(_passThroughOverride);
         _lightVisualizationShader->setShaderProgramOverride(_passThroughOverride);

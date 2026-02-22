@@ -12,8 +12,7 @@ class PbrShader;
 class ShadowPass : public FramePass
 {
 public:
-    ShadowPass(InstancedBlinnPhongShader *ins, LightVisualizationShader *lightVis,
-               PbrShader *pbrShader);
+    ShadowPass();
     void runPass() override;
 
 private:
