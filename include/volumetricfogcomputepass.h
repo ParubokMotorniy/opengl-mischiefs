@@ -4,7 +4,7 @@
 #include "framepass.h"
 #include "types.h"
 
-class VolumetricFogPass : public FramePass
+class VolumetricFogPass : public FramePass, public ShaderProgram
 {
 public:
     VolumetricFogPass();
@@ -13,6 +13,12 @@ public:
     TextureIdentifier colorTextureId() const;
     TextureIdentifier positionTextureId() const;
     bool volumeIsOutOfSight() const;
+
+    void runShader() override;
+
+protected:
+    void compileAndAttachNecessaryShaders(uint32_t id) override;
+    void deleteShaders() override;
 
 private:
     struct RenderTargetPair
@@ -35,4 +41,10 @@ private:
     bool _volumeIsOutOfSight = false;
 
     ComputeShader _fogSphereShader{ ENGINE_COMPUTE_SHADERS "/fog_sphere.cs" };
+
+    const char *_vertexPath = ENGINE_SHADERS "/fog_renderer.vs";
+    const char *_fragmentPath = ENGINE_SHADERS "/fog_renderer.fs";
+
+    uint32_t _vertexShaderId = 0;
+    uint32_t _fragmentShaderId = 0;
 };

@@ -10,6 +10,7 @@
 #include "lightmanager.h"
 #include "lightvisualizationshader.h"
 #include "pbrshader.h"
+#include "shadermanager.h"
 #include "skyboxshader.h"
 #include "texturemanager.h"
 #include "window.h"
@@ -31,17 +32,6 @@ void bindDirectionalShadowMaps(ShaderProgram *target)
     }
 }
 } // namespace
-
-StandardPass::StandardPass(InstancedBlinnPhongShader *ins, WorldPlaneShader *wrld,
-                           LightVisualizationShader *lightVis, SkyboxShader *skybox,
-                           PbrShader *pbrShader)
-    : _shaderProgramMain(ins),
-      _worldPlaneShader(wrld),
-      _lightVisualizationShader(lightVis),
-      _mainSkybox(skybox),
-      _pbrShader(pbrShader)
-{
-}
 
 void StandardPass::runPass()
 {
@@ -65,6 +55,8 @@ void StandardPass::runPass()
     }
 
     {
+        ShaderProgram *_shaderProgramMain = ShaderManager::instance()->getShader(
+            "instanced_blinn_phong");
         _shaderProgramMain->use();
         bindDirectionalShadowMaps(_shaderProgramMain);
         _shaderProgramMain->setMatrix4("view", view);
@@ -89,6 +81,7 @@ void StandardPass::runPass()
     }
 
     {
+        ShaderProgram *_pbrShader = ShaderManager::instance()->getShader("main_pbr");
         _pbrShader->use();
         bindDirectionalShadowMaps(_pbrShader);
         _pbrShader->setMatrix4("view", view);
@@ -112,6 +105,7 @@ void StandardPass::runPass()
     }
 
     {
+        ShaderProgram *_worldPlaneShader = ShaderManager::instance()->getShader("world_plane");
         _worldPlaneShader->use();
         bindDirectionalShadowMaps(_worldPlaneShader);
         _worldPlaneShader->setMatrix4("view", view);
@@ -126,6 +120,8 @@ void StandardPass::runPass()
         MeshManager::instance()->unbindMesh();
     }
     {
+        ShaderProgram *_lightVisualizationShader = ShaderManager::instance()->getShader(
+            "light_visualizer");
         _lightVisualizationShader->use();
         _lightVisualizationShader->setMatrix4("view", view);
         _lightVisualizationShader->setMatrix4("projection", projection);
@@ -135,6 +131,7 @@ void StandardPass::runPass()
     }
 
     {
+        ShaderProgram *_mainSkybox = ShaderManager::instance()->getShader("main_skybox");
         glDepthFunc(GL_LEQUAL);
         _mainSkybox->use();
         _mainSkybox->setMatrix4("view", glm::mat4(glm::mat3(view)));
