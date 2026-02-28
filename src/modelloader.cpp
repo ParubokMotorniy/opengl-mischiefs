@@ -134,17 +134,6 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
 
     aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
 
-    TextureIdentifier diffuseMap = loadMaterialTextures(material,
-                                                        { aiTextureType_DIFFUSE,
-                                                          aiTextureType_BASE_COLOR },
-                                                        modelRoot);
-    TextureIdentifier specularMap = loadMaterialTextures(material,
-                                                         { aiTextureType_SPECULAR,
-                                                           aiTextureType_METALNESS },
-                                                         modelRoot);
-    TextureIdentifier emissionMap = loadMaterialTextures(material, { aiTextureType_EMISSION_COLOR },
-                                                         modelRoot);
-
     if (loadAsPbr)
     {
         const TextureIdentifier albedo = loadMaterialTextures(material,
@@ -184,6 +173,17 @@ GameObjectIdentifier ModelLoader::processMesh(aiMesh *mesh, const aiScene *scene
                       << std::endl;
         }
     }
+
+    TextureIdentifier diffuseMap = loadMaterialTextures(material,
+                                                        { aiTextureType_DIFFUSE,
+                                                          aiTextureType_BASE_COLOR },
+                                                        modelRoot);
+    TextureIdentifier specularMap = loadMaterialTextures(material,
+                                                         { aiTextureType_SPECULAR,
+                                                           aiTextureType_METALNESS },
+                                                         modelRoot);
+    TextureIdentifier emissionMap = loadMaterialTextures(material, { aiTextureType_EMISSION_COLOR },
+                                                         modelRoot);
 
     const auto [mName,
                 mi] = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()

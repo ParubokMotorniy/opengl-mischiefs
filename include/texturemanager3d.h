@@ -9,6 +9,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <vector>
 
 class CubemapManager : public SystemSingleton<CubemapManager> // crtp
 {
@@ -16,8 +17,12 @@ public:
     friend class SystemSingleton; // so that the singleton can access the private constructor
     using NamedTexture = NamedComponent<Cubemap>;
 
-    TextureIdentifier3D registerTexture(const std::array<const char *, 6> &cubemapSources, const std::string &texName);
-    std::pair<std::string, TextureIdentifier3D> registerTexture(const std::array<const char *, 6> &cubemapSources);
+    TextureIdentifier3D registerTexture(const std::array<const char *, 6> &cubemapSources,
+                                        const std::string &texName);
+    TextureIdentifier3D registerTexture(const std::array<std::string, 6> &cubemapSources,
+                                        const std::string &texName);
+    std::pair<std::string, TextureIdentifier3D> registerTexture(
+        const std::array<const char *, 6> &cubemapSources);
 
     void unregisterTexture(TextureIdentifier3D id);
     TextureIdentifier3D textureRegistered(const std::string &texName) const;

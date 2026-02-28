@@ -27,6 +27,7 @@
 #include "objectmanager.h"
 #include "pbrshader.h"
 #include "quaternioncamera.h"
+#include "resourcereader.h"
 #include "shadermanager.h"
 #include "shadowpass.h"
 #include "skyboxshader.h"
@@ -225,134 +226,11 @@ int main(int argc, const char *argv[])
         glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     }
 
-    // Textures
-
-    const TextureIdentifier polyBlack = TextureManager::instance()
-                                            ->registerTexture(ENGINE_TEXTURES "/poly_black.jpg",
-                                                              "polyBlack");
-
-    const TextureIdentifier catDiff = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
-                                                                                  "/silly_cat.jpg",
-                                                                                  "cat_diffuse");
-    const TextureIdentifier black = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
-                                                                                "/black.jpg",
-                                                                                "black");
-
-    const TextureIdentifier specular
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/specular_squiggle.png",
-                                                      "tex_specular");
-    const TextureIdentifier floppaEm = TextureManager::instance()
-                                           ->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg",
-                                                             "big_floppa_emission");
-
-    const TextureIdentifier3D simpleSkybox = CubemapManager::instance()->registerTexture(
-        { ENGINE_TEXTURES "/blue_skybox/right1.png", ENGINE_TEXTURES "/blue_skybox/left2.png",
-          ENGINE_TEXTURES "/blue_skybox/top3.png", ENGINE_TEXTURES "/blue_skybox/bottom4.png",
-          ENGINE_TEXTURES "/blue_skybox/front5.png", ENGINE_TEXTURES "/blue_skybox/back6.png" },
-        "simple_skybox");
-
-    const TextureIdentifier checkerboardTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/checkerboard_pattern.jpg",
-                                                      "checkerboard");
     {
-        auto checkerTexture = TextureManager::instance()->getTexture(checkerboardTexture);
-        checkerTexture->setUseAnisotropic(true, 8);
-        checkerTexture->setParameters(Texture2DParameters{ .wrappingS = GL_MIRRORED_REPEAT,
-                                                           .wrappingT = GL_MIRRORED_REPEAT,
-                                                           .filteringMin = GL_LINEAR_MIPMAP_LINEAR,
-                                                           .filteringMag = GL_LINEAR });
+        ResourceManagement::loadTextures(ENGINE_TEXTURES);
+        ResourceManagement::loadCubemaps(ENGINE_CUBEMAPS);
+        ResourceManagement::loadModels(ENGINE_MODELS);
     }
-
-    const TextureIdentifier spotLightTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/bill.jpg", "bill");
-
-    const TextureIdentifier greenGlassTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/green_glass.png",
-                                                      "green_glass_diffuse");
-    const TextureIdentifier yellowGlassTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/yellow_glass.png",
-                                                      "yellow_glass_diffuse");
-    const TextureIdentifier purpleGlassTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/purple_glass.png",
-                                                      "purple_glass_diffuse");
-    const TextureIdentifier blueGlassTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/blue_glass.png",
-                                                      "blue_glass_diffuse");
-    const TextureIdentifier glassSpecularTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/glass_specular.png",
-                                                      "glass_specular");
-
-    // Materials
-    const MaterialIdentifier floppaMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ polyBlack, specular, floppaEm }, "floppa_material");
-
-    const MaterialIdentifier catMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ catDiff, specular, black }, "cat_material");
-
-    const MaterialIdentifier checkerMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ checkerboardTexture, InvalidIdentifier,
-                                                InvalidIdentifier },
-                                 "checker_material");
-
-    const MaterialIdentifier greenGlassMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ greenGlassTexture, glassSpecularTexture,
-                                                InvalidIdentifier },
-                                 "green_glass_material");
-
-    const MaterialIdentifier yellowGlassMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ yellowGlassTexture, glassSpecularTexture,
-                                                InvalidIdentifier },
-                                 "yellow_glass_material");
-
-    const MaterialIdentifier purpleGlassMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ purpleGlassTexture, glassSpecularTexture,
-                                                InvalidIdentifier },
-                                 "purple_glass_material");
-
-    const MaterialIdentifier blueGlassMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ blueGlassTexture, glassSpecularTexture,
-                                                InvalidIdentifier },
-                                 "blue_glass_material");
-
-    // Models
-
-    // Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
-    // const GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
-    //     ENGINE_MODELS
-    //     "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
-    //                               // Surprisingly, it seems to be better optimized than bill
-
-    const GameObjectIdentifier gunModelId
-        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/firearm/scene.gltf", false, true);
-
-    const GameObjectIdentifier suzukiModelId
-        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/suzuki/scene.gltf", false, true);
-
-    const GameObjectIdentifier gameboyModelId
-        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/gameboy/gameboy.obj", false, true);
-
-    const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
-        ENGINE_MODELS "/sphere/sphere.obj");
-    const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
-
-    const GameObjectIdentifier planeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
-                                                                               "/plane/plane.obj");
-    const MeshIdentifier planeMesh = MeshManager::instance()->meshRegistered("Plane");
-
-    const GameObjectIdentifier cubeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
-                                                                              "/cube/cube.obj");
-    const MeshIdentifier cubeMesh = MeshManager::instance()->meshRegistered("Cube");
-
-    const GameObjectIdentifier pyramidModel = ModelLoader::instance()->loadModel(
-        ENGINE_MODELS "/pyramid/pyramid.obj");
-    const MeshIdentifier pyramidMesh = MeshManager::instance()->meshRegistered("Pyramid");
 
     {
         //// Shaders

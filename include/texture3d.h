@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 struct Texture3DParameters
 {
@@ -23,16 +24,23 @@ class Cubemap
     friend class CubemapManager;
 
 public:
+    static constexpr int NumberOfFaces = 6;
     void setUseAnisotropic(bool useAniso, size_t level);
     void setParameters(Texture3DParameters params);
 
     operator int() const { return _textureId; }
 
 private:
-    explicit Cubemap(const std::array<const char *, 6> &cubemapPaths,
-            bool enableAnisotropicFiltering = false,
-            const Texture3DParameters &params = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
-                                                  GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR });
+    explicit Cubemap(const std::array<const char *, NumberOfFaces> &cubemapPaths,
+                     bool enableAnisotropicFiltering = false,
+                     const Texture3DParameters &params = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
+                                                           GL_CLAMP_TO_EDGE, GL_LINEAR,
+                                                           GL_LINEAR });
+    explicit Cubemap(const std::array<std::string, NumberOfFaces> &cubemapPaths,
+                     bool enableAnisotropicFiltering = false,
+                     const Texture3DParameters &params = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
+                                                           GL_CLAMP_TO_EDGE, GL_LINEAR,
+                                                           GL_LINEAR });
     void allocateTexture();
 
     void deallocateTexture();
@@ -41,7 +49,7 @@ private:
 
 private:
     uint32_t _textureId = 0;
-    std::array<std::string, 6> _cubemapPaths;
+    std::array<std::string, NumberOfFaces> _cubemapPaths;
     Texture3DParameters _params;
 
     bool _useAnisotropic = false;
