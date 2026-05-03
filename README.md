@@ -1,12 +1,11 @@
 ### opengl-mischiefs engine
 
-I believe my changelogs are quite detailed, so I refer a reader to them to learn what this "engine-sandbox" is capable of.         
+I believe the changelogs below are quite concise and descriptive, so I refer a reader to them to learn what this "engine-sandbox" is capable of.         
 The engine also supports rendering of volumetirc fog. In particular, the defined volumes of fog are raymarched in a compute shader, while taking into account the influence of light. 
 
 |   |   |
 |-----|-----|
 | <img width="1920" height="1012" alt="Screenshot_20260322_235507" src="https://github.com/user-attachments/assets/a35a9559-a13d-416c-8491-3a66b2b6046b" /> | <img width="1920" height="1012" alt="Screenshot_20260323_000226" src="https://github.com/user-attachments/assets/2a0e768a-cfa6-426c-9f0c-9f36f673439f" /> |
-
 
 
 ## DEMO
