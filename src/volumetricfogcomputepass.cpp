@@ -367,6 +367,80 @@ TextureIdentifier VolumetricFogPass::positionTextureId() const
 
 bool VolumetricFogPass::volumeIsOutOfSight() const { return _volumeIsOutOfSight; }
 
+void VolumetricFogPass::runShader()
+{
+    if (volumeIsOutOfSight())
+        return;
+
+    use();
+
+    // TODO: consider using a different blending setup
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    syncTextureAccess(GL_TEXTURE_FETCH_BARRIER_BIT);
+    const auto currentColorTextureId = colorTextureId();
+    const auto currentPositionTextureId = positionTextureId();
+
+    const auto colorBinding = TextureManager::instance()->bindTexture(currentColorTextureId);
+    const auto depthBinding = TextureManager::instance()->bindTexture(currentPositionTextureId);
+
+    assert(colorBinding != -1 && depthBinding != -1);
+
+    const auto &[viewportOffsetX, viewportOffsetY, viewportSizeX,
+                 viewportSizeY] = FrameBufferManager::instance()->getViewportDims();
+
+    setInt("texColor", colorBinding);
+    setInt("texDepth", depthBinding);
+    setInt("viewportWidth", viewportSizeX);
+    setInt("viewportHeight", viewportSizeY);
+
+    MeshManager::instance()->bindMesh(MeshManager::instance()->getDummyMesh());
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    TextureManager::instance()->unbindTexture(currentColorTextureId);
+    TextureManager::instance()->unbindTexture(currentPositionTextureId);
+    MeshManager::instance()->unbindMesh();
+}
+
+void VolumetricFogPass::compileAndAttachNecessaryShaders(uint32_t id)
+{
+    if (_vertexShaderId == 0)
+    {
+        const std::string &vShaderCode = readShaderSource(_vertexPath);
+
+        const char *vPtr = vShaderCode.c_str();
+
+        _vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(_vertexShaderId, 1, &vPtr, 0);
+        compileShader(_vertexShaderId);
+    }
+
+    glAttachShader(id, _vertexShaderId);
+
+    if (_fragmentShaderId == 0)
+    {
+        const std::string &fShaderCode = readShaderSource(_fragmentPath);
+
+        const char *fPtr = fShaderCode.c_str();
+
+        _fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(_fragmentShaderId, 1, &fPtr, 0);
+        compileShader(_fragmentShaderId);
+    }
+
+    glAttachShader(id, _fragmentShaderId);
+}
+
+void VolumetricFogPass::deleteShaders()
+{
+    glDeleteShader(_vertexShaderId);
+    _vertexShaderId = 0;
+
+    glDeleteShader(_fragmentShaderId);
+    _fragmentShaderId = 0;
+}
+
 const VolumetricFogPass::RenderTargetPair &VolumetricFogPass::getCurrentReadTarget() const
 {
     return _currentPair ? _readPair : _writePair;

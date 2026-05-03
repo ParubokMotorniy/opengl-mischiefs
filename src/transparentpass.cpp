@@ -1,23 +1,19 @@
 #include "transparentpass.h"
 
-#include "fullscreenfogshader.h"
+#include "shadermanager.h"
 #include "transparentshader.h"
 
 #include "glad/glad.h"
-
-SortingTransparentPass::SortingTransparentPass(TransparentShader *transparentShader,
-                                               FullscreenFogShader *fogShader)
-    : _transparentShader(transparentShader), _fogShader(fogShader)
-{
-}
 
 void SortingTransparentPass::runPass()
 {
     glEnable(GL_BLEND);
 
+    ShaderProgram *_transparentShader = ShaderManager::instance()->getShader("simple_transparent");
     _transparentShader->runShader();
 
     {
+        ShaderProgram *_fogShader = ShaderManager::instance()->getShader("fullscreen_fog");
         _fogShader->use();
         _fogShader->runShader();
     }
@@ -28,5 +24,6 @@ void SortingTransparentPass::runPass()
 void SortingTransparentPass::setCamera(const Camera *currentCamera)
 {
     _currentCamera = currentCamera;
-    _transparentShader->setCamera(currentCamera);
+    dynamic_cast<TransparentShader *>(ShaderManager::instance()->getShader("simple_transparent"))
+        ->setCamera(currentCamera);
 }

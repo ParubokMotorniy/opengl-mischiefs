@@ -13,6 +13,7 @@ using MeshIdentifier = ComponentIdentifier;
 using MaterialIdentifier = ComponentIdentifier;
 using TransformIdentifier = ComponentIdentifier;
 using LightSourceIdentifier = ComponentIdentifier;
+using ShaderIdentifier = ComponentIdentifier;
 
 constexpr ComponentIdentifier InvalidIdentifier = 0;
 

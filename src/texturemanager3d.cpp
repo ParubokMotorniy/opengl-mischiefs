@@ -27,6 +27,16 @@ TextureIdentifier3D CubemapManager::registerTexture(
     return _identifiers;
 }
 
+TextureIdentifier3D CubemapManager::registerTexture(const std::array<std::string, 6> &cubemapSources,
+                                                    const std::string &texName)
+{
+    if (const TextureIdentifier3D ti = textureRegistered(texName); ti != InvalidIdentifier)
+        return ti;
+
+    _textures.emplace(++_identifiers, NamedTexture{ texName, Cubemap(cubemapSources) });
+    return _identifiers;
+}
+
 TextureIdentifier3D CubemapManager::textureRegistered(const std::string &texName) const
 {
     const auto texPtr = std::ranges::find_if(_textures, [&texName](const auto &pair) {

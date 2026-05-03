@@ -1,10 +1,20 @@
 #include "texture3d.h"
 
-Cubemap::Cubemap(const std::array<const char *, 6> &cubemapPaths, bool enableAnisotropicFiltering,
-                 const Texture3DParameters &params)
+Cubemap::Cubemap(const std::array<const char *, Cubemap::Cubemap::NumberOfFaces> &cubemapPaths,
+                 bool enableAnisotropicFiltering, const Texture3DParameters &params)
     : _params(params), _useAnisotropic(enableAnisotropicFiltering)
 {
-    for (int t = 0; t < 6; ++t)
+    for (int t = 0; t < Cubemap::Cubemap::NumberOfFaces; ++t)
+    {
+        _cubemapPaths[t] = std::string(cubemapPaths[t]);
+    }
+}
+
+Cubemap::Cubemap(const std::array<std::string, Cubemap::Cubemap::NumberOfFaces> &cubemapPaths,
+                 bool enableAnisotropicFiltering, const Texture3DParameters &params)
+    : _params(params), _useAnisotropic(enableAnisotropicFiltering)
+{
+    for (int t = 0; t < Cubemap::Cubemap::NumberOfFaces; ++t)
     {
         _cubemapPaths[t] = std::string(cubemapPaths[t]);
     }

@@ -4,13 +4,12 @@
 #include "geometryshaderprogram.h"
 #include "glad/glad.h"
 #include "imgui.h"
+#include "shadermanager.h"
 
 namespace
 {
 bool renderAxes = false;
 }
-
-GizmosPass::GizmosPass(GeometryShaderProgram *axesShader) : _axesShader(axesShader) {}
 
 void GizmosPass::runPass()
 {
@@ -28,6 +27,8 @@ void GizmosPass::runPass()
     }
     if (renderAxes)
     {
+        ShaderProgram *_axesShader = ShaderManager::instance()->getShader("world_axes");
+
         glDisable(GL_DEPTH_TEST);
         _axesShader->use();
 

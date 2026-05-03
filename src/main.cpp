@@ -13,7 +13,6 @@
 
 #include "basicshader.h"
 #include "camera.h"
-#include "fullscreenfogshader.h"
 #include "geometryshaderprogram.h"
 #include "gizmospass.h"
 #include "hdrpass.h"
@@ -28,6 +27,8 @@
 #include "objectmanager.h"
 #include "pbrshader.h"
 #include "quaternioncamera.h"
+#include "resourcereader.h"
+#include "shadermanager.h"
 #include "shadowpass.h"
 #include "skyboxshader.h"
 #include "standardpass.h"
@@ -216,192 +217,88 @@ int main(int argc, const char *argv[])
     }
 #endif
 
-    glViewport(0, 0, windowWidth, windowHeight);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-    // Textures
-
-    const TextureIdentifier polyBlack = TextureManager::instance()
-                                            ->registerTexture(ENGINE_TEXTURES "/poly_black.jpg",
-                                                              "polyBlack");
-
-    const TextureIdentifier catDiff = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
-                                                                                  "/silly_cat.jpg",
-                                                                                  "cat_diffuse");
-    const TextureIdentifier black = TextureManager::instance()->registerTexture(ENGINE_TEXTURES
-                                                                                "/black.jpg",
-                                                                                "black");
-
-    const TextureIdentifier specular
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/specular_squiggle.png",
-                                                      "tex_specular");
-    const TextureIdentifier floppaEm = TextureManager::instance()
-                                           ->registerTexture(ENGINE_TEXTURES "/floppa_emission.jpg",
-                                                             "big_floppa_emission");
-
-    const TextureIdentifier3D simpleSkybox = CubemapManager::instance()->registerTexture(
-        { ENGINE_TEXTURES "/blue_skybox/right1.png", ENGINE_TEXTURES "/blue_skybox/left2.png",
-          ENGINE_TEXTURES "/blue_skybox/top3.png", ENGINE_TEXTURES "/blue_skybox/bottom4.png",
-          ENGINE_TEXTURES "/blue_skybox/front5.png", ENGINE_TEXTURES "/blue_skybox/back6.png" },
-        "simple_skybox");
-
-    const TextureIdentifier checkerboardTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/checkerboard_pattern.jpg",
-                                                      "checkerboard");
     {
-        auto checkerTexture = TextureManager::instance()->getTexture(checkerboardTexture);
-        checkerTexture->setUseAnisotropic(true, 8);
-        checkerTexture->setParameters(Texture2DParameters{ .wrappingS = GL_MIRRORED_REPEAT,
-                                                           .wrappingT = GL_MIRRORED_REPEAT,
-                                                           .filteringMin = GL_LINEAR_MIPMAP_LINEAR,
-                                                           .filteringMag = GL_LINEAR });
+        glViewport(0, 0, windowWidth, windowHeight);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     }
 
-    const TextureIdentifier spotLightTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/bill.jpg", "bill");
-
-    const TextureIdentifier greenGlassTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/green_glass.png",
-                                                      "green_glass_diffuse");
-    const TextureIdentifier yellowGlassTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/yellow_glass.png",
-                                                      "yellow_glass_diffuse");
-    const TextureIdentifier purpleGlassTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/purple_glass.png",
-                                                      "purple_glass_diffuse");
-    const TextureIdentifier blueGlassTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/blue_glass.png",
-                                                      "blue_glass_diffuse");
-    const TextureIdentifier glassSpecularTexture
-        = TextureManager::instance()->registerTexture(ENGINE_TEXTURES "/glass_specular.png",
-                                                      "glass_specular");
-
-    // Materials
-    const MaterialIdentifier floppaMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ polyBlack, specular, floppaEm }, "floppa_material");
-
-    const MaterialIdentifier catMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ catDiff, specular, black }, "cat_material");
-
-    const MaterialIdentifier checkerMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ checkerboardTexture, InvalidIdentifier,
-                                                InvalidIdentifier },
-                                 "checker_material");
-
-    const MaterialIdentifier greenGlassMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ greenGlassTexture, glassSpecularTexture,
-                                                InvalidIdentifier },
-                                 "green_glass_material");
-
-    const MaterialIdentifier yellowGlassMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ yellowGlassTexture, glassSpecularTexture,
-                                                InvalidIdentifier },
-                                 "yellow_glass_material");
-
-    const MaterialIdentifier purpleGlassMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ purpleGlassTexture, glassSpecularTexture,
-                                                InvalidIdentifier },
-                                 "purple_glass_material");
-
-    const MaterialIdentifier blueGlassMaterial
-        = MaterialManager<BasicMaterial, ComponentType::BASIC_MATERIAL>::instance()
-              ->registerMaterial(BasicMaterial{ blueGlassTexture, glassSpecularTexture,
-                                                InvalidIdentifier },
-                                 "blue_glass_material");
-
-    // Models
-
-    // Attribution: Bill Cipher 3D by Coolguy5SuperDuperCool from sketchfab
-    // const GameObjectIdentifier billModel = ModelLoader::instance()->loadModel(
-    //     ENGINE_MODELS
-    //     "/bill/bill_cipher.obj"); // put "/tank/tank.obj" here to test a different model.
-    //                               // Surprisingly, it seems to be better optimized than bill
-
-    const GameObjectIdentifier gunModelId
-        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/firearm/scene.gltf", false, true);
-
-    const GameObjectIdentifier suzukiModelId
-        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/suzuki/scene.gltf", false, true);
-
-    const GameObjectIdentifier gameboyModelId
-        = ModelLoader::instance()->loadModel(ENGINE_MODELS "/gameboy/gameboy.obj", false, true);
-
-    const GameObjectIdentifier sphereModel = ModelLoader::instance()->loadModel(
-        ENGINE_MODELS "/sphere/sphere.obj");
-    const MeshIdentifier sphereMesh = MeshManager::instance()->meshRegistered("Sphere");
-
-    const GameObjectIdentifier planeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
-                                                                               "/plane/plane.obj");
-    const MeshIdentifier planeMesh = MeshManager::instance()->meshRegistered("Plane");
-
-    const GameObjectIdentifier cubeModel = ModelLoader::instance()->loadModel(ENGINE_MODELS
-                                                                              "/cube/cube.obj");
-    const MeshIdentifier cubeMesh = MeshManager::instance()->meshRegistered("Cube");
-
-    const GameObjectIdentifier pyramidModel = ModelLoader::instance()->loadModel(
-        ENGINE_MODELS "/pyramid/pyramid.obj");
-    const MeshIdentifier pyramidMesh = MeshManager::instance()->meshRegistered("Pyramid");
+    {
+        ResourceManagement::loadTextures(ENGINE_TEXTURES);
+        ResourceManagement::loadCubemaps(ENGINE_CUBEMAPS);
+        ResourceManagement::loadModels(ENGINE_MODELS);
+    }
 
     {
         //// Shaders
 
-        InstancedBlinnPhongShader shaderProgramMain{ vertexShaderSource, fragmentShaderSource };
-        shaderProgramMain.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()
+                ->registerShader(std::make_unique<InstancedBlinnPhongShader>(vertexShaderSource,
+                                                                             fragmentShaderSource),
+                                 "instanced_blinn_phong"));
 
-        WorldPlaneShader worldPlaneShader{ cubeMesh, checkerboardTexture };
-        worldPlaneShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()
+                ->registerShader(std::make_unique<WorldPlaneShader>(cubeMesh, checkerboardTexture),
+                                 "world_plane"));
 
-        LightVisualizationShader lightVisualizationShader{ sphereMesh };
-        lightVisualizationShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()->registerShader(std::make_unique<LightVisualizationShader>(
+                                                          sphereMesh),
+                                                      "light_visualizer"));
 
-        SkyboxShader mainSkybox{ cubeMesh, simpleSkybox };
-        mainSkybox.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()->registerShader(std::make_unique<SkyboxShader>(cubeMesh,
+                                                                                     simpleSkybox),
+                                                      "main_skybox"));
 
-        GeometryShaderProgram worldAxesShader{ axesVertexShaderSource, axesFragmentShaderSource,
-                                               axesGeometryShaderSource };
-        worldAxesShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()
+                ->registerShader(std::make_unique<GeometryShaderProgram>(axesVertexShaderSource,
+                                                                         axesFragmentShaderSource,
+                                                                         axesGeometryShaderSource),
+                                 "world_axes"));
 
-        TransparentShader simpleTransparentShader{ simpleTransparentVertexShaderSource,
-                                                   simpleTransparentFragmentShaderSource };
-        simpleTransparentShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(ShaderManager::instance()->registerShader(
+            std::make_unique<TransparentShader>(simpleTransparentVertexShaderSource,
+                                                simpleTransparentFragmentShaderSource),
+            "simple_transparent"));
 
-        PbrShader mainPbrShader{ pbrVertexShaderSource, pbrFragmentShaderSource };
-        mainPbrShader.initializeShaderProgram();
+        ShaderManager::instance()->initializeShader(
+            ShaderManager::instance()
+                ->registerShader(std::make_unique<PbrShader>(pbrVertexShaderSource,
+                                                             pbrFragmentShaderSource),
+                                 "main_pbr"));
 
-        VolumetricFogPass _volumetricFogPass{};
-        _volumetricFogPass.setCamera(camera);
-        _volumetricFogPass.setWindow(&mainWindow);
+        const ShaderIdentifier volumetricFogPassId
+            = ShaderManager::instance()->registerShader(std::make_unique<VolumetricFogPass>(),
+                                                        "fullscreen_fog");
+        ShaderManager::instance()->initializeShader(volumetricFogPassId);
 
-        FullscreenFogShader fogShader{ &_volumetricFogPass };
-        fogShader.initializeShaderProgram();
+        VolumetricFogPass *_volumetricFogPass = dynamic_cast<VolumetricFogPass *>(
+            ShaderManager::instance()->getShader(volumetricFogPassId));
+        _volumetricFogPass->setCamera(camera);
+        _volumetricFogPass->setWindow(&mainWindow);
 
         // passes
-        StandardPass _standardRenderingPass{ &shaderProgramMain, &worldPlaneShader,
-                                             &lightVisualizationShader, &mainSkybox,
-                                             &mainPbrShader };
+        StandardPass _standardRenderingPass;
         _standardRenderingPass.setCamera(camera);
         _standardRenderingPass.setWindow(&mainWindow);
 
-        ShadowPass _shadowPass{ &shaderProgramMain, &lightVisualizationShader, &mainPbrShader };
+        ShadowPass _shadowPass;
 
-        SortingTransparentPass _sortingTransparentPass{ &simpleTransparentShader, &fogShader };
+        SortingTransparentPass _sortingTransparentPass;
         _sortingTransparentPass.setCamera(camera);
 
         HdrPass _hdrPass(planeMesh);
         _hdrPass.initializeShaderProgram();
         _hdrPass.setWindow(&mainWindow);
 
-        GizmosPass _gizmosPass(&worldAxesShader);
+        GizmosPass _gizmosPass;
         _gizmosPass.setCamera(camera);
         _gizmosPass.setWindow(&mainWindow);
 
@@ -668,7 +565,7 @@ int main(int argc, const char *argv[])
         }
 
         std::vector<GameObjectIdentifier> movingObjects;
-        for (int k = 20; k < 50; ++k)
+        for (int k = 20; k < 40; ++k)
         {
             const float fK = static_cast<float>(k);
             // add cubes and pyramids
@@ -703,7 +600,7 @@ int main(int argc, const char *argv[])
 
             worldAxesShader.addObject(standardAxes);
         }
-        for (int k = 10; k < 15; ++k)
+        for (int k = 10; k < 14; ++k)
         {
             const auto gameBoyCopy = ObjectManager::instance()->copyObject(gameboyModelId);
             auto gameboyTransform = TransformManager::instance()->getTransform(
@@ -834,7 +731,7 @@ int main(int argc, const char *argv[])
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            _volumetricFogPass.runPass();
+            _volumetricFogPass->runPass();
             _shadowPass.runPass();
             _standardRenderingPass.runPass();
             _sortingTransparentPass.runPass();
@@ -922,6 +819,7 @@ int main(int argc, const char *argv[])
     MeshManager::instance()->cleanUpGracefully();
     TextureManager::instance()->cleanUpGracefully();
     CubemapManager::instance()->cleanUpGracefully();
+    ShaderManager::instance()->cleanUpGracefully();
 
     {
         ImGui_ImplOpenGL3_Shutdown();
